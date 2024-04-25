@@ -1,0 +1,14 @@
+[requires]
+spdlog/1.9.2
+catch2/2.13.9
+lyra/1.5.1
+range-v3/0.11.0
+nlohmann_json/3.11.2
+cppzmq/4.7.1
+
+[generators]
+cmake
+cmake_find_package
+
+[imports]
+lib, *.so* -> ./lib @ root_package=sdl
