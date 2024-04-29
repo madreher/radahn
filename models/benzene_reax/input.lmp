@@ -1,0 +1,37 @@
+# -*- mode: lammps -*-
+
+units          real
+atom_style     charge
+atom_modify    map hash
+newton         on
+boundary       p p p
+
+####
+
+read_data      input.data
+mass           1 12.011
+mass           2 1.008
+
+
+pair_style     reaxff NULL mincap 1000
+pair_coeff     * * ffield.reax.Fe_O_C_H C H
+fix            ReaxFFSpec all qeq/reax 1 0.0 10.0 1e-8 reaxff
+
+neighbor       2.5 bin
+neigh_modify   every 1 delay 0 check yes
+
+####
+
+thermo         50
+thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
+thermo_modify  flush yes lost warn
+
+dump           dump all custom 100 fulltrajectory.dump id type x y z q
+dump_modify    dump sort id
+dump           xyz all xyz 100 fulltrajectory.xyz
+dump_modify    xyz sort id element C H
+fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+
+####
+
+timestep       0.5

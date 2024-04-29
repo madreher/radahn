@@ -47,6 +47,7 @@ BUILD_CONFIG=Release
 INSTALL_PATH=$PWD/install
 CONDUIT_PREFIX=${CONDUIT_PREFIX:-/home/matthieu/dev/opt}
 GODRICK_PREFIX=${GODRICK_PREFIX:-/home/matthieu/dev/godrick/build/install}
+LAMMPS_PREFIX=${LAMMPS_PREFIX:-/home/matthieu/dev/lammps/lammps-17Apr2024/build/install}
 ENABLE_CPP_COVERAGE=${ENABLE_CPP_COVERAGE:-False}
 
 pushd ${DIR}
@@ -64,7 +65,7 @@ cmake ${DIR} \
   -DCMAKE_PREFIX_PATH="${QT_DIR}" \
   -DGIT_COMMIT_HASH=${GIT_COMMIT_HASH} \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_PATH} \
-  -DCMAKE_PREFIX_PATH=${CONDUIT_PREFIX}/lib/cmake:{GODRICK_PREFIX}/lib/cmake \
+  -DCMAKE_PREFIX_PATH="${CONDUIT_PREFIX}/lib/cmake;${GODRICK_PREFIX}/lib/cmake;${LAMMPS_PREFIX}/lib/cmake" \
   $@
 #  -DCMAKE_MODULE_PATH="${PWD}" \
 

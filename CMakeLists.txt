@@ -28,7 +28,6 @@ add_custom_target( ${PROJECT_NAME}_other_files
                            run_cmake_script.sh
                            conanfile.txt
                            cmake/CompilerWarnings.cmake
-                           cmake/Coverage.cmake
                            cmake/StandardProjectSettings.cmake
                            .gitignore
                 )
@@ -52,8 +51,8 @@ target_compile_features(RADAHN_project_options INTERFACE cxx_std_20)
 
 target_compile_definitions(RADAHN_project_options
                             INTERFACE
-                                CMAKE_BINARY_DIR="${CMAKE_BINARY_DIR}"
-                                CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+                                RADAHN_CMAKE_BINARY_DIR="${CMAKE_BINARY_DIR}"
+                                RADAHN_CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
                                 RADAHN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
                                 RADAHN_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
                                 RADAHN_VERSION_STRING="${RADAHN_VERSION_STRING}"
@@ -61,7 +60,7 @@ target_compile_definitions(RADAHN_project_options
                                 RADAHN_VERSION_MINOR=${RADAHN_VERSION_MINOR}
                                 RADAHN_VERSION_PATCH=${RADAHN_VERSION_PATCH}
                                 RADAHN_VERSION_TWEAK=${RADAHN_VERSION_BUILD}
-                                CMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}"
+                                RADAHN_CMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}"
                                 RADAHN_GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 #######################################################################################
@@ -112,4 +111,13 @@ target_link_libraries( RADAHN_project_libraries
         conduit::conduit
 )
 endif()
+
+set(RADAHN_MODULE_DIR       ${CMAKE_INSTALL_PREFIX}/bin)
+
+add_subdirectory(src)
+
+install(DIRECTORY 
+            ${CMAKE_SOURCE_DIR}/workflow 
+        DESTINATION  
+            ${CMAKE_INSTALL_PREFIX})
 
