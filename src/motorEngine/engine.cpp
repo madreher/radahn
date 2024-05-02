@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
 
     std::vector<conduit::Node> receivedData;
-    if(handler.get("in", receivedData))
+    while(handler.get("atoms", receivedData))
     {
         spdlog::info("Received a data.");
 
@@ -65,11 +65,15 @@ int main(int argc, char** argv)
         auto & simData = receivedData[0]["simdata"];
         simIt_t simIt = simData["simIt"].as_uint64();
 
+        spdlog::info("Received simulation data Step {}", simIt);
+
         // Update the motor
         motors[0]->updateState(simIt);
     }
 
+    spdlog::info("Engine exited loop. Closing...");
     handler.close();
+    spdlog::info("Engine closed. Exiting.");
 
     return EXIT_SUCCESS;
 }

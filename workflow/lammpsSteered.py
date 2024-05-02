@@ -13,6 +13,7 @@ from godrick.computeResources import ComputeCollection
 from godrick.workflow import Workflow
 from godrick.task import MPITask, MPIPlacementPolicy
 from godrick.launcher import MainLauncher
+from godrick.communicator import MPIPairedCommunicator, MPICommunicatorProtocol
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -68,7 +69,7 @@ def main():
     shutil.copy2(filePotentialFile, workFolder)
 
     # Workflow initialization
-    workflow = Workflow("LammpsStandAlone")
+    workflow = Workflow("LammpsSteered")
     
     # Lammps Task declaration
     lammpsCmd = f"/home/matthieu/dev/radahn/build/install/bin/lammpsDriver --name lammps --config {workflow.getConfigurationFile()}"
@@ -76,17 +77,33 @@ def main():
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
 
-    if args.ncores > nCoresHost:
-        raise ValueError(f"User requested {args.ncores} physical cores but the localhost only has {nCoresHost} physical cores.")
-    lammpsResources = cluster.splitNodesByCoreRange([args.ncores])[0]
+    if args.ncores + 1 > nCoresHost:
+        raise ValueError(f"User requested {args.ncores+1} physical cores for Lammps and the engine, but the localhost only has {nCoresHost} physical cores.")
+    splitResources = cluster.splitNodesByCoreRange([args.ncores, 1])
+    lammpsResources = splitResources[0]
     print(f"Number of cores assigned to Lammps: {args.ncores}")
 
     lammps = MPITask(name="lammps", cmdline=lammpsCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=lammpsResources)
     lammps.addInputPort("in")
     lammps.addOutputPort("atoms")
 
+    # Engine Task declaration
+    engineCmd = f"/home/matthieu/dev/radahn/build/install/bin/engine --name engine --config {workflow.getConfigurationFile()}"
+    engineResources = splitResources[1]
+    engine = MPITask(name="engine", cmdline=engineCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=engineResources)
+    engine.addInputPort("atoms")
+    engine.addOutputPort("motorscmd")
+
+    # Communicator declaration
+    simToEngine =  MPIPairedCommunicator(id="simToEngine", protocol=MPICommunicatorProtocol.PARTIAL_BCAST_GATHER)
+    simToEngine.connectToInputPort(engine.getInputPort("atoms"))
+    simToEngine.connectToOutputPort(lammps.getOutputPort("atoms"))
+
+
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
+    workflow.declareTask(engine)
+    workflow.declareCommunicator(simToEngine)
 
     # Process the workflow
     launcher = MainLauncher()
