@@ -136,8 +136,20 @@ int main(int argc, char** argv)
     executeCommand(lps, "fix NVE all nve");
 
     std::vector<conduit::Node> receivedData;
-    while(currentStep < maxNVESteps && handler.get("in", receivedData))
+    while(currentStep < maxNVESteps)
     {
+        auto resultReceive = handler.get("in", receivedData);
+        if( resultReceive == godrick::MessageResponse::TERMINATE )
+            break;
+        if (resultReceive == godrick::MessageResponse::ERROR)
+        {
+            spdlog::info("Lammps task received an error message. Abording.");
+            break;
+        }
+
+        // Remaining results are EMPTY, TOKEN, MESSAGES, we don't do different things for now.
+
+        // Normal processing
         executeCommand(lps, "run " + std::to_string(intervalSteps));
 
         double simItD = lammps_get_thermo(lps, "step");
