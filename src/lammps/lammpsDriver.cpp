@@ -147,6 +147,15 @@ int main(int argc, char** argv)
             break;
         }
 
+        if(resultReceive == godrick::MessageResponse::TOKEN)
+        {
+            spdlog::info("Lammps received a token.");
+        }
+        if(resultReceive == godrick::MessageResponse::MESSAGES)
+        {
+            spdlog::info("Lammps received a regular message.");
+        }
+
         // Remaining results are EMPTY, TOKEN, MESSAGES, we don't do different things for now.
 
         // Normal processing

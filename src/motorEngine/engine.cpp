@@ -89,6 +89,9 @@ int main(int argc, char** argv)
 
         // Update the motor
         motors[0]->updateState(simIt);
+
+        conduit::Node output;
+        handler.push("motorscmd", output);
     }
 
     spdlog::info("Engine exited loop. Closing...");

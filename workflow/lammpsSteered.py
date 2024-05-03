@@ -99,11 +99,17 @@ def main():
     simToEngine.connectToInputPort(engine.getInputPort("atoms"))
     simToEngine.connectToOutputPort(lammps.getOutputPort("atoms"))
 
+    engineToSim = MPIPairedCommunicator(id="engineToSim", protocol=MPICommunicatorProtocol.PARTIAL_BCAST_GATHER)
+    engineToSim.connectToInputPort(lammps.getInputPort("in"))
+    engineToSim.connectToOutputPort(engine.getOutputPort("motorscmd"))
+    engineToSim.setNbToken(1)
+
 
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
     workflow.declareTask(engine)
     workflow.declareCommunicator(simToEngine)
+    workflow.declareCommunicator(engineToSim)
 
     # Process the workflow
     launcher = MainLauncher()
