@@ -8,6 +8,7 @@
 #include <conduit/conduit.hpp>
 
 #include <radahn/core/blankMotor.h>
+#include <radahn/core/moveMotor.h>
 
 using namespace radahn::core;
 
@@ -74,7 +75,18 @@ int main(int argc, char** argv)
     }
 
     // Test setup
+
+    // Declare test motors
     motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
+    std::set<atomIndexes_t> selectionMove = {1,2,3,4,5};
+    motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
+        VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
+        true, false, false, 
+        DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+
+    // Make them start immediatly
+    motors[0]->startMotor();
+    motors[1]->startMotor();
 
     std::vector<conduit::Node> receivedData;
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
@@ -84,13 +96,22 @@ int main(int argc, char** argv)
         // Access data from the simulation
         auto & simData = receivedData[0]["simdata"];
         simIt_t simIt = simData["simIt"].as_uint64();
+        atomIndexes_t* indices = simData["atomIDs"].value();
+        uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
+        atomPositions_t* positions = simData["atomPositions"].value();
 
         //spdlog::info("Received simulation data Step {}", simIt);
 
         // Update the motor
-        motors[0]->updateState(simIt);
+        motors[0]->updateState(simIt, nbAtoms, indices, positions);
+        motors[1]->updateState(simIt, nbAtoms, indices, positions);
 
+        // Get commands from the motor
         conduit::Node output;
+        //auto cmdArray = output.add_child("lmpcmds");
+        motors[0]->appendCommandToConduitNode(output["lmpcmds"].append());
+        motors[1]->appendCommandToConduitNode(output["lmpcmds"].append());
+
         handler.push("motorscmd", output);
     }
 

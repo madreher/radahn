@@ -16,7 +16,7 @@ enum class SimUnits : uint8_t
 };
 
 
-constexpr const char* to_string(SimUnits u) throw()
+constexpr const char* to_string(SimUnits u)// throw()
 {
     switch (u)
     {
@@ -31,8 +31,44 @@ constexpr const char* to_string(SimUnits u) throw()
     }
 }
 
-// In this case, we are limiting ourselves to only positions, velocities, and forces, with few calls. 
+// In this case, we are limiting ourselves to only positions, velocities, and forces, and only with 3 unit sets with few calls. 
 // If the use case becomes more complicated, it will be worth looking at proper unit libraries.
+
+class DistanceQuantity
+{
+public:
+    DistanceQuantity(){}
+    DistanceQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
+
+    double convertTo(SimUnits destUnit) const;
+
+    double m_value;
+    SimUnits m_unit;
+};
+
+class VelocityQuantity
+{
+public:
+    VelocityQuantity(){}
+    VelocityQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
+
+    double convertTo(SimUnits destUnit) const;
+
+    double m_value;
+    SimUnits m_unit;
+};
+
+class ForceQuantity
+{
+public:
+    ForceQuantity(){}
+    ForceQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
+
+    double convertTo(SimUnits destUnit) const;
+
+    double m_value;
+    SimUnits m_unit;
+};
 
 
 

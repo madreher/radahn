@@ -3,8 +3,18 @@
 
 using namespace radahn::core;
 
-bool radahn::core::BlankMotor::updateState(simIt_t it)
+bool radahn::core::BlankMotor::updateState(simIt_t it, 
+        uint64_t nbAtoms,
+        atomIndexes_t* indices, 
+        atomPositions_t*positions)
 {
+    (void)nbAtoms;
+    (void)indices;
+    (void)positions;
+
+    if(m_status != MotorStatus::MOTOR_RUNNING)
+        return false;
+
     if(m_stepCountersSet)
         return it < m_lastStep;
     else 
@@ -18,7 +28,8 @@ bool radahn::core::BlankMotor::updateState(simIt_t it)
 
 bool radahn::core::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
 {
-    conduit::Node& cmd = node.append();
-    cmd["cmdType"] = static_cast<uint32_t>(SimCommandType::SIM_COMMAND_WAIT);
+    //node["cmdType"] = static_cast<uint32_t>(SimCommandType::SIM_COMMAND_WAIT);
+    //node["origin"] = m_name;
+    (void)node;
     return true;
 }

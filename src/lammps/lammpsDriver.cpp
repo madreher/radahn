@@ -154,6 +154,19 @@ int main(int argc, char** argv)
         if(resultReceive == godrick::MessageResponse::MESSAGES)
         {
             spdlog::info("Lammps received a regular message.");
+
+            //receivedData[0].print_detailed();
+            // Check that we have lammps commands
+            if(receivedData[0].has_child("lmpcmds"))
+            {
+                auto cmdIter = receivedData[0]["lmpcmds"].children();
+                while (cmdIter.has_next())
+                {
+                    auto cmdNode = cmdIter.next();
+                    spdlog::info("Lammps received the command {} from {}", cmdNode["cmdType"].to_uint32(), cmdNode["origin"].to_string());
+                }
+                
+            }
         }
 
         // Remaining results are EMPTY, TOKEN, MESSAGES, we don't do different things for now.
