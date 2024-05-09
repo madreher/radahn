@@ -1,5 +1,4 @@
 #include <radahn/core/blankMotor.h>
-#include <radahn/core/simCommands.h>
 
 using namespace radahn::core;
 
