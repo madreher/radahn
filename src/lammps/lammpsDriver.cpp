@@ -4,6 +4,7 @@
 #include <conduit/conduit.hpp>
 
 #include <radahn/core/types.h>
+#include <radahn/core/lammpsCommandsUtils.h>
 
 #include <lyra/lyra.hpp>
 #include <spdlog/spdlog.h>
@@ -159,11 +160,22 @@ int main(int argc, char** argv)
             // Check that we have lammps commands
             if(receivedData[0].has_child("lmpcmds"))
             {
-                auto cmdIter = receivedData[0]["lmpcmds"].children();
+                /*auto cmdIter = receivedData[0]["lmpcmds"].children();
                 while (cmdIter.has_next())
                 {
                     auto cmdNode = cmdIter.next();
+                    //cmdNode.print_detailed();
                     spdlog::info("Lammps received the command {} from {}", cmdNode["cmdType"].to_uint32(), cmdNode["origin"].to_string());
+                }*/
+
+                auto cmdUtil = radahn::core::LammpsCommandsUtils();
+                if(!cmdUtil.loadCommandsFromConduit(receivedData[0]))
+                {
+                    spdlog::error("Something went wrong when try to parse the lammps commands");
+                }
+                else
+                {
+                    spdlog::info("Lammps could parse the commands, yahoo!");
                 }
                 
             }

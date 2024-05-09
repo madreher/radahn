@@ -1,4 +1,5 @@
 #include <radahn/core/blankMotor.h>
+#include <radahn/core/lammpsCommandsUtils.h>
 
 using namespace radahn::core;
 
@@ -27,8 +28,6 @@ bool radahn::core::BlankMotor::updateState(simIt_t it,
 
 bool radahn::core::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
 {
-    //node["cmdType"] = static_cast<uint32_t>(SimCommandType::SIM_COMMAND_WAIT);
-    //node["origin"] = m_name;
-    (void)node;
+    LammpsCommandsUtils::registerWaitCommandToConduit(node, m_name);
     return true;
 }
