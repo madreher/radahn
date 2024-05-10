@@ -28,8 +28,10 @@ public:
     LammpsCommand(){}
     virtual ~LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) = 0;
-    virtual std::string writeDoCommands() const = 0;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const = 0;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const = 0;
     virtual std::string getGroupName() const { return std::string(""); }
+    virtual bool needMotionInteration() const { return true; }
 };
 
 class MoveLammpsCommand : public LammpsCommand
@@ -39,12 +41,14 @@ public:
     VelocityQuantity m_vy;
     VelocityQuantity m_vz;
     std::string m_origin;
-    std::span<atomIndexes_t> m_selection;
+    std::vector<atomIndexes_t> m_selection;
 
     MoveLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
-    virtual std::string writeDoCommands() const override;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
     virtual std::string getGroupName() const override;
+    virtual bool needMotionInteration() const override { return false; }
 
 };
 
@@ -55,21 +59,28 @@ public:
 
     WaitLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
-    virtual std::string writeDoCommands() const override;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
 };
 
 class LammpsCommandsUtils 
 {
 public:
     LammpsCommandsUtils(){}
+    std::string getIntegrationGroup() const { return m_integrateGroupName; }
 
     bool loadCommandsFromConduit(conduit::Node& cmds);
+    bool writeDoCommands(std::vector<std::string>& cmds) const;
+    bool writeUndoCommands(std::vector<std::string>& cmds) const;
+    
 
     static void registerMoveCommandToConduit(conduit::Node& node, const std::string& name, VelocityQuantity vx, VelocityQuantity vy, VelocityQuantity vz, const std::vector<atomIndexes_t>& selection);
     static void registerWaitCommandToConduit(conduit::Node& node, const std::string& name);
 
 protected:
     std::vector<std::shared_ptr<LammpsCommand>> m_cmds;
+    std::string m_integrateGroupName = "integrateGRP";
+    std::string m_nonIntegrateGroupName = "nonintegrateGRP";
 };
 
 } // core

@@ -133,12 +133,10 @@ int main(int argc, char** argv)
 
     executeScript(lps, lmpInitialState);
 
-    // In this example, we don't have motors nor anchors. Therefor we are running the NVE on all the atoms, always.
-    executeCommand(lps, "fix NVE all nve");
-
     std::vector<conduit::Node> receivedData;
     while(currentStep < maxNVESteps)
     {
+        executeCommand(lps, "#### LOOP Start from Timestep " + std::to_string(currentStep) + " #####################################");
         auto resultReceive = handler.get("in", receivedData);
         if( resultReceive == godrick::MessageResponse::TERMINATE )
             break;
@@ -152,39 +150,67 @@ int main(int argc, char** argv)
         {
             spdlog::info("Lammps received a token.");
         }
+
+        auto cmdUtil = radahn::core::LammpsCommandsUtils();
         if(resultReceive == godrick::MessageResponse::MESSAGES)
         {
             spdlog::info("Lammps received a regular message.");
 
-            //receivedData[0].print_detailed();
             // Check that we have lammps commands
             if(receivedData[0].has_child("lmpcmds"))
             {
-                /*auto cmdIter = receivedData[0]["lmpcmds"].children();
-                while (cmdIter.has_next())
-                {
-                    auto cmdNode = cmdIter.next();
-                    //cmdNode.print_detailed();
-                    spdlog::info("Lammps received the command {} from {}", cmdNode["cmdType"].to_uint32(), cmdNode["origin"].to_string());
-                }*/
-
-                auto cmdUtil = radahn::core::LammpsCommandsUtils();
+                //auto cmdUtil = radahn::core::LammpsCommandsUtils();
                 if(!cmdUtil.loadCommandsFromConduit(receivedData[0]))
                 {
-                    spdlog::error("Something went wrong when try to parse the lammps commands");
+                    spdlog::error("Something went wrong when try to parse the lammps commands. Abording the simulation loop.");
+                    break;
                 }
-                else
-                {
-                    spdlog::info("Lammps could parse the commands, yahoo!");
-                }
+                
+                /*std::vector<std::string> doCmds;
+                cmdUtil.writeDoCommands(doCmds);
+                spdlog::info("List of DO commands which should be added: ");
+                for(auto & cmd : doCmds)
+                    spdlog::info("{}", cmd);
+                spdlog::info("End of DO command list.");
+
+                std::vector<std::string> undoCmds;
+                cmdUtil.writeUndoCommands(undoCmds);
+                spdlog::info("List of UNDO commands which should be added: ");
+                for(auto & cmd : undoCmds)
+                    spdlog::info("{}", cmd);
+                spdlog::info("End of UNDO command list.");*/
                 
             }
         }
 
-        // Remaining results are EMPTY, TOKEN, MESSAGES, we don't do different things for now.
 
-        // Normal processing
+        // Create the commands for the motors
+        std::vector<std::string> doCommands;
+        cmdUtil.writeDoCommands(doCommands);
+        for(auto & cmd : doCommands)
+            executeCommand(lps, cmd);
+
+        // Create the time integration command
+        executeCommand(lps, "#### Start INTEGRATION ");
+        std::stringstream cmdFixNVE;
+        cmdFixNVE<<"fix NVE "<<cmdUtil.getIntegrationGroup()<<" nve";
+        executeCommand(lps, cmdFixNVE.str());
+
+        // Advance the simulation
         executeCommand(lps, "run " + std::to_string(intervalSteps));
+
+        // Undo the time integration
+        std::stringstream cmdUnfixNVE;
+        cmdUnfixNVE<<"unfix NVE";
+        executeCommand(lps, cmdUnfixNVE.str());
+        executeCommand(lps, "#### End INTEGRATION ");
+
+        // Undo the motors commands
+        std::vector<std::string> undoCommands;
+        cmdUtil.writeUndoCommands(undoCommands);
+        for(auto & cmd : undoCommands)
+            executeCommand(lps, cmd);
+
 
         double simItD = lammps_get_thermo(lps, "step");
         simIt_t simIt = static_cast<simIt_t>(simItD);
@@ -211,6 +237,8 @@ int main(int argc, char** argv)
         simData["atomForces"] = forces;
         simData["atomVelocities"] = vel;
         handler.push("atoms", rootMsg, true);
+
+        executeCommand(lps, "#### LOOP End at Timestep " + std::to_string(currentStep) + " #########################################");
     }
     spdlog::info("Lammps done. Closing godrick...");
 

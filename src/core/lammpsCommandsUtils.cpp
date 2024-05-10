@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <ranges>
+
 bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
@@ -23,26 +25,53 @@ bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
     m_vx = VelocityQuantity(vx, SimUnits(unit));
     m_vy = VelocityQuantity(vy, SimUnits(unit));
     m_vz = VelocityQuantity(vz, SimUnits(unit));
+    
+    // We have to copy the selection to a vector because the node is getting out of scope after this call
     atomIndexes_t* selection = node["selection"].value();
-    m_selection = std::span<atomIndexes_t>( selection, static_cast<size_t>(node["selection"].dtype().number_of_elements()));
-    m_origin = node["origin"].to_string();
+    auto nbAtoms = node["selection"].dtype().number_of_elements();
+    auto selectionSpan = std::span<atomIndexes_t>( selection, static_cast<size_t>(nbAtoms));
+    m_selection = std::vector<atomIndexes_t>(selectionSpan.begin(), selectionSpan.end());
+
+
+    for(auto i = 0; i < nbAtoms; ++i)
+        spdlog::info("{}", m_selection[static_cast<size_t>(i)]);
+
+    m_origin = node["origin"].as_char8_str();
+    spdlog::info("Reading the origin {}", m_origin);
 
     return true;
 }
 
-std::string radahn::core::MoveLammpsCommand::writeDoCommands() const
+bool radahn::core::MoveLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     // Create the group
-    std::stringstream ss;
-    ss<<"group "<<m_origin<<"GRP id";
+    std::stringstream cmd1;
+    cmd1<<"group "<<m_origin<<"GRP id";
     for(auto & id : m_selection)
-        ss<<" "<<id;
-    ss<<"\n";
+        cmd1<<" "<<id;
+    cmds.push_back(cmd1.str());
 
     // Create the move command
-    ss<<"fix "<<m_origin<<"ID "<<m_origin<<"GRP move linear "<<m_vx.m_value<<" "<<m_vy.m_value<<" "<<m_vz.m_value<<"\n";
+    std::stringstream cmd2;
+    cmd2<<"fix "<<m_origin<<"ID "<<m_origin<<"GRP move linear "<<m_vx.m_value<<" "<<m_vy.m_value<<" "<<m_vz.m_value<<"\n";
+    cmds.push_back(cmd2.str());
 
-    return ss.str();
+    return true;
+}
+
+bool radahn::core::MoveLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+{
+    // Undo the fix
+    std::stringstream cmd1;
+    cmd1<<"unfix "<<m_origin<<"ID";
+    cmds.push_back(cmd1.str());
+
+    // Undo the grp 
+    std::stringstream cmd2;
+    cmd2<<"group "<<m_origin<<"GRP delete";
+    cmds.push_back(cmd2.str());
+
+    return true;
 }
 
 std::string radahn::core::MoveLammpsCommand::getGroupName() const
@@ -71,9 +100,16 @@ bool radahn::core::WaitLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-std::string radahn::core::WaitLammpsCommand::writeDoCommands() const
+bool radahn::core::WaitLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
-    return "";
+    (void)cmds;
+    return true;
+}
+
+bool radahn::core::WaitLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+{
+    (void)cmds;
+    return true;
 }
 
 
@@ -129,6 +165,74 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
     }
 
     return true;
+}
+
+bool radahn::core::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>& cmdsStr) const
+{
+
+    cmdsStr.push_back("#### Start DO motor commands");
+    // Create the free group, which is going to be all minus the MoveCommand groups
+    std::vector<std::string> nonIntegrationGroup;
+
+    // Declare all the commands for each motor
+    // This include group creations + motion commands
+    bool result = true;
+    for(auto & cmd : m_cmds)
+    {
+        result &= cmd->writeDoCommands(cmdsStr);
+
+        // Check if the group can be added to the time integration process
+        if(!cmd->needMotionInteration())
+            nonIntegrationGroup.push_back(cmd->getGroupName());
+    }
+
+    // Create the moveable group for the integration process
+    if(nonIntegrationGroup.size() == 0)
+    {
+        // All the groups can be moved
+        std::stringstream cmd1;
+        cmd1<<"group "<<m_nonIntegrateGroupName<<" empty";
+        cmdsStr.push_back(cmd1.str());
+    }
+    else
+    {
+        std::stringstream cmd1;
+        cmd1<<"group "<<m_nonIntegrateGroupName<<" union ";
+        for(auto & grp : nonIntegrationGroup)
+            cmd1<<" "<<grp;
+        cmdsStr.push_back(cmd1.str());
+    }
+    std::stringstream ss;
+    ss<<"group "<<m_integrateGroupName<<" subtract all nonintegrateGRP";
+    cmdsStr.push_back(ss.str());
+
+    cmdsStr.push_back("#### END DO motor commands");
+
+    return result;
+}
+
+bool radahn::core::LammpsCommandsUtils::writeUndoCommands(std::vector<std::string>& cmds) const
+{
+    cmds.push_back("#### Start UNDO motor commands");
+
+    // Do this in the reverse order as do
+    std::stringstream cmd1;
+    cmd1<<"group "<<m_integrateGroupName<<" delete";
+    cmds.push_back(cmd1.str());
+
+    std::stringstream cmd2;
+    cmd2<<"group "<<m_nonIntegrateGroupName<<" delete";
+    cmds.push_back(cmd2.str());
+
+    bool result = true;
+    for(auto & cmd : m_cmds | std::views::reverse)
+    {
+        result &= cmd->writeUndoCommands(cmds);
+    }
+
+    cmds.push_back("#### End UNDO motor commands");
+
+    return result;
 }
 
 

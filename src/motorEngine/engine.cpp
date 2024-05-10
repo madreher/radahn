@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 
     // Declare test motors
     motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
-    std::set<atomIndexes_t> selectionMove = {1,2,3,4,5};
+    std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
     motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
         VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
         true, false, false, 
