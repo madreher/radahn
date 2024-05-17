@@ -14,7 +14,7 @@ class AtomSet
 public:
     AtomSet(){}
     AtomSet(const std::set<radahn::core::atomIndexes_t>& selection) : m_selection(selection), m_vecSelection(selection.begin(), selection.end()){};
-    AtomSet(const AtomSet& ref) = default;
+    //AtomSet(const AtomSet& ref) = default;
 
     bool selectAtoms(radahn::core::simIt_t currentIt, uint64_t nbAtoms, atomIndexes_t* indices, atomPositions_t* positions);
 
