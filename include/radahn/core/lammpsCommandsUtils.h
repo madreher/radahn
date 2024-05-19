@@ -31,7 +31,7 @@ public:
     virtual bool writeDoCommands(std::vector<std::string>& cmds) const = 0;
     virtual bool writeUndoCommands(std::vector<std::string>& cmds) const = 0;
     virtual std::string getGroupName() const { return std::string(""); }
-    virtual bool needMotionInteration() const { return true; }
+    virtual bool needMotionIntegration() const { return true; }
 };
 
 class MoveLammpsCommand : public LammpsCommand
@@ -48,8 +48,29 @@ public:
     virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
     virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
     virtual std::string getGroupName() const override;
-    virtual bool needMotionInteration() const override { return false; }
+    virtual bool needMotionIntegration() const override { return false; }
 
+};
+
+class RotateLammpsCommand : public LammpsCommand
+{
+public:
+    DistanceQuantity m_px;      // 3D point of the axe
+    DistanceQuantity m_py;
+    DistanceQuantity m_pz;
+    atomPositions_t m_ax;       // Axe vector
+    atomPositions_t m_ay;
+    atomPositions_t m_az;
+    std::string m_origin;
+    TimeQuantity m_period;      // Period of the rotation
+    std::vector<atomIndexes_t> m_selection;
+    
+    RotateLammpsCommand() : LammpsCommand(){}
+    virtual bool loadFromConduit(conduit::Node& node) override;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
+    virtual std::string getGroupName() const override;
+    virtual bool needMotionIntegration() const override { return false; }
 };
 
 class WaitLammpsCommand : public LammpsCommand
@@ -74,7 +95,24 @@ public:
     bool writeUndoCommands(std::vector<std::string>& cmds) const;
     
 
-    static void registerMoveCommandToConduit(conduit::Node& node, const std::string& name, VelocityQuantity vx, VelocityQuantity vy, VelocityQuantity vz, const std::vector<atomIndexes_t>& selection);
+    static void registerMoveCommandToConduit(
+        conduit::Node& node, 
+        const std::string& name, 
+        VelocityQuantity vx, 
+        VelocityQuantity vy, 
+        VelocityQuantity vz, 
+        const std::vector<atomIndexes_t>& selection);
+    static void registerRotateCommandToConduit(
+        conduit::Node& node, 
+        const std::string& name, 
+        DistanceQuantity px, 
+        DistanceQuantity py, 
+        DistanceQuantity pz, 
+        atomPositions_t ax,     
+        atomPositions_t ay,
+        atomPositions_t az,
+        TimeQuantity period,     
+        const std::vector<atomIndexes_t>& selection);
     static void registerWaitCommandToConduit(conduit::Node& node, const std::string& name);
 
 protected:

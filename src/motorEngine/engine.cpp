@@ -9,6 +9,7 @@
 
 #include <radahn/core/blankMotor.h>
 #include <radahn/core/moveMotor.h>
+#include <radahn/core/rotateMotor.h>
 
 using namespace radahn::core;
 
@@ -78,15 +79,22 @@ int main(int argc, char** argv)
 
     // Declare test motors
     motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
+    
     std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
+    
     motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
         VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
         true, false, false, 
         DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+    
+    motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
+        DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL),
+        1.0, 0.0, 0.0, TimeQuantity(1.0, SimUnits::LAMMPS_REAL), 180));
 
     // Make them start immediatly
     motors[0]->startMotor();
     motors[1]->startMotor();
+    motors[2]->startMotor();
 
     std::vector<conduit::Node> receivedData;
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
@@ -105,12 +113,14 @@ int main(int argc, char** argv)
         // Update the motor
         motors[0]->updateState(simIt, nbAtoms, indices, positions);
         motors[1]->updateState(simIt, nbAtoms, indices, positions);
+        motors[2]->updateState(simIt, nbAtoms, indices, positions);
 
         // Get commands from the motor
         conduit::Node output;
         //auto cmdArray = output.add_child("lmpcmds");
         motors[0]->appendCommandToConduitNode(output["lmpcmds"].append());
         motors[1]->appendCommandToConduitNode(output["lmpcmds"].append());
+        motors[2]->appendCommandToConduitNode(output["lmpcmds"].append());
 
         handler.push("motorscmd", output);
     }

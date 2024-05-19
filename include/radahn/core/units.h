@@ -70,6 +70,17 @@ public:
     SimUnits m_unit;
 };
 
+class TimeQuantity
+{
+public:
+    TimeQuantity(){}
+    TimeQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
+
+    double convertTo(SimUnits destUnit) const;
+
+    double m_value;
+    SimUnits m_unit;
+};
 
 
 } // core

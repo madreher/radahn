@@ -164,22 +164,7 @@ int main(int argc, char** argv)
                 {
                     spdlog::error("Something went wrong when try to parse the lammps commands. Abording the simulation loop.");
                     break;
-                }
-                
-                /*std::vector<std::string> doCmds;
-                cmdUtil.writeDoCommands(doCmds);
-                spdlog::info("List of DO commands which should be added: ");
-                for(auto & cmd : doCmds)
-                    spdlog::info("{}", cmd);
-                spdlog::info("End of DO command list.");
-
-                std::vector<std::string> undoCmds;
-                cmdUtil.writeUndoCommands(undoCmds);
-                spdlog::info("List of UNDO commands which should be added: ");
-                for(auto & cmd : undoCmds)
-                    spdlog::info("{}", cmd);
-                spdlog::info("End of UNDO command list.");*/
-                
+                }                
             }
         }
 
