@@ -73,6 +73,38 @@ public:
     virtual bool needMotionIntegration() const override { return false; }
 };
 
+class AddForceLammpsCommand : public LammpsCommand
+{
+public:
+    ForceQuantity m_fx;
+    ForceQuantity m_fy;
+    ForceQuantity m_fz;
+    std::string m_origin;
+    std::vector<atomIndexes_t> m_selection;
+
+    AddForceLammpsCommand() : LammpsCommand(){}
+    virtual bool loadFromConduit(conduit::Node& node) override;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
+    virtual std::string getGroupName() const override;
+};
+
+class AddTorqueLammpsCommand : public LammpsCommand
+{
+public:
+    TorqueQuantity m_tx;
+    TorqueQuantity m_ty;
+    TorqueQuantity m_tz;
+    std::string m_origin;
+    std::vector<atomIndexes_t> m_selection;
+
+    AddTorqueLammpsCommand() : LammpsCommand(){}
+    virtual bool loadFromConduit(conduit::Node& node) override;
+    virtual bool writeDoCommands(std::vector<std::string>& cmds) const override;
+    virtual bool writeUndoCommands(std::vector<std::string>& cmds) const override;
+    virtual std::string getGroupName() const override;
+};
+
 class WaitLammpsCommand : public LammpsCommand
 {
 public:
@@ -101,6 +133,20 @@ public:
         VelocityQuantity vx, 
         VelocityQuantity vy, 
         VelocityQuantity vz, 
+        const std::vector<atomIndexes_t>& selection);
+    static void registerAddForceCommandToConduit(
+        conduit::Node& node, 
+        const std::string& name, 
+        ForceQuantity fx, 
+        ForceQuantity fy, 
+        ForceQuantity fz, 
+        const std::vector<atomIndexes_t>& selection);
+    static void registerAddTorqueCommandToConduit(
+        conduit::Node& node, 
+        const std::string& name, 
+        TorqueQuantity tx, 
+        TorqueQuantity ty, 
+        TorqueQuantity tz, 
         const std::vector<atomIndexes_t>& selection);
     static void registerRotateCommandToConduit(
         conduit::Node& node, 

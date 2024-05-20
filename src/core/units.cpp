@@ -18,6 +18,12 @@ double radahn::core::ForceQuantity::convertTo(SimUnits destUnit) const
     return 0.0;
 }
 
+double radahn::core::TorqueQuantity::convertTo(SimUnits destUnit) const
+{
+    (void)destUnit;
+    return 0.0;
+}
+
 double radahn::core::TimeQuantity::convertTo(SimUnits destUnit) const
 {
     (void)destUnit;

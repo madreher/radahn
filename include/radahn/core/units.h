@@ -70,6 +70,18 @@ public:
     SimUnits m_unit;
 };
 
+class TorqueQuantity
+{
+public:
+    TorqueQuantity(){}
+    TorqueQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
+
+    double convertTo(SimUnits destUnit) const;
+
+    double m_value;
+    SimUnits m_unit;
+};
+
 class TimeQuantity
 {
 public:
