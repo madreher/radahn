@@ -207,7 +207,7 @@ bool radahn::core::AddTorqueLammpsCommand::writeDoCommands(std::vector<std::stri
 
     // Create the move command
     std::stringstream cmd2;
-    cmd2<<"fix "<<m_origin<<"ID "<<m_origin<<"GRP addtorque"<<m_tx.m_value<<" "<<m_ty.m_value<<" "<<m_tz.m_value<<"\n";
+    cmd2<<"fix "<<m_origin<<"ID "<<m_origin<<"GRP addtorque "<<m_tx.m_value<<" "<<m_ty.m_value<<" "<<m_tz.m_value<<"\n";
     cmds.push_back(cmd2.str());
 
     return true;
@@ -404,6 +404,14 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                     m_cmds.push_back(cmd);
                     break;
                 }
+                case radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE:
+                {
+                    std::shared_ptr<AddTorqueLammpsCommand> cmd = std::make_shared<AddTorqueLammpsCommand>();
+                    if(!cmd->loadFromConduit(cmdNode))
+                        return false;
+                    m_cmds.push_back(cmd);
+                    break;
+                }
                 default:
                 {
                     spdlog::error("Lammps received an unsupported command from the engine.");
@@ -523,7 +531,7 @@ void radahn::core::LammpsCommandsUtils::registerAddTorqueCommandToConduit(condui
 {
     // Heavy syntax still required for c++20
     // for c++23, prefer using std::to_underlying
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_MOVE);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE);
     node["origin"] = name;
     node["tx"] = tx.m_value;   // Need to send units as well
     node["ty"] = ty.m_value;
