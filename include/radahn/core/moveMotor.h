@@ -1,5 +1,7 @@
 #pragma once 
 
+#include <spdlog/spdlog.h>
+
 #include <radahn/core/motor.h>
 #include <radahn/core/atomSet.h>
 #include <radahn/core/units.h>
@@ -27,14 +29,13 @@ public:
     virtual ~MoveMotor(){}
 
     virtual bool updateState(simIt_t it, 
-        uint64_t nbAtoms,
-        atomIndexes_t* indices, 
-        atomPositions_t* positions) override
+        const std::vector<atomIndexes_t>& indices, 
+        const std::vector<atomPositions_t>& positions) override
         {
             if(m_status != MotorStatus::MOTOR_RUNNING)
                 return false;
 
-            m_currentState.selectAtoms(it, nbAtoms, indices, positions);
+            m_currentState.selectAtoms(it, indices, positions);
             if(!m_initialStateRegistered)
             {
                 spdlog::info("Registering the initial state for the motor {}.", m_name);

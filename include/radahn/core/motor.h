@@ -27,9 +27,8 @@ public:
     MotorStatus getMotorStatus() const { return m_status; }
 
     virtual bool updateState(simIt_t it,
-        uint64_t nbAtoms,
-        atomIndexes_t* indices, 
-        atomPositions_t*positions) = 0;
+        const std::vector<atomIndexes_t>& indices, 
+        const std::vector<atomPositions_t>& positions) = 0;
     virtual bool appendCommandToConduitNode(conduit::Node& node) = 0;
 
     bool startMotor()

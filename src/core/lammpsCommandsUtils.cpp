@@ -32,12 +32,8 @@ bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
     auto selectionSpan = std::span<atomIndexes_t>( selection, static_cast<size_t>(nbAtoms));
     m_selection = std::vector<atomIndexes_t>(selectionSpan.begin(), selectionSpan.end());
 
-
-    for(auto i = 0; i < nbAtoms; ++i)
-        spdlog::info("{}", m_selection[static_cast<size_t>(i)]);
-
     m_origin = node["origin"].as_char8_str();
-    spdlog::info("Reading the origin {}", m_origin);
+    //spdlog::info("Reading the origin {}", m_origin);
 
     return true;
 }
@@ -109,12 +105,8 @@ bool radahn::core::AddForceLammpsCommand::loadFromConduit(conduit::Node& node)
     auto selectionSpan = std::span<atomIndexes_t>( selection, static_cast<size_t>(nbAtoms));
     m_selection = std::vector<atomIndexes_t>(selectionSpan.begin(), selectionSpan.end());
 
-
-    for(auto i = 0; i < nbAtoms; ++i)
-        spdlog::info("{}", m_selection[static_cast<size_t>(i)]);
-
     m_origin = node["origin"].as_char8_str();
-    spdlog::info("Reading the origin {}", m_origin);
+    //spdlog::info("Reading the origin {}", m_origin);
 
     return true;
 }
@@ -186,12 +178,8 @@ bool radahn::core::AddTorqueLammpsCommand::loadFromConduit(conduit::Node& node)
     auto selectionSpan = std::span<atomIndexes_t>( selection, static_cast<size_t>(nbAtoms));
     m_selection = std::vector<atomIndexes_t>(selectionSpan.begin(), selectionSpan.end());
 
-
-    for(auto i = 0; i < nbAtoms; ++i)
-        spdlog::info("{}", m_selection[static_cast<size_t>(i)]);
-
     m_origin = node["origin"].as_char8_str();
-    spdlog::info("Reading the origin {}", m_origin);
+    //spdlog::info("Reading the origin {}", m_origin);
 
     return true;
 }
@@ -271,12 +259,8 @@ bool radahn::core::RotateLammpsCommand::loadFromConduit(conduit::Node& node)
     auto selectionSpan = std::span<atomIndexes_t>( selection, static_cast<size_t>(nbAtoms));
     m_selection = std::vector<atomIndexes_t>(selectionSpan.begin(), selectionSpan.end());
 
-
-    for(auto i = 0; i < nbAtoms; ++i)
-        spdlog::info("{}", m_selection[static_cast<size_t>(i)]);
-
     m_origin = node["origin"].as_char8_str();
-    spdlog::info("Reading the origin {}", m_origin);
+    //spdlog::info("Reading the origin {}", m_origin);
 
     return true;
 }
@@ -354,16 +338,16 @@ bool radahn::core::WaitLammpsCommand::writeUndoCommands(std::vector<std::string>
 
 bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& cmds)
 {
-    spdlog::info("Reading commands from lammpscommandsutils.");
-    cmds.print_detailed();
-    spdlog::info("End reading full commands from lammps commandsutils.");
+    //spdlog::info("Reading commands from lammpscommandsutils.");
+    //cmds.print_detailed();
+    //spdlog::info("End reading full commands from lammps commandsutils.");
     if(cmds.has_child("lmpcmds"))
     {
         auto cmdIter = cmds["lmpcmds"].children();
         while (cmdIter.has_next())
         {
             auto cmdNode = cmdIter.next();
-            cmdNode.print_detailed();
+            //cmdNode.print_detailed();
             if(!cmdNode.has_child("cmdType"))
             {
                 spdlog::error("Unable to identify the type of a command for Lammps.");

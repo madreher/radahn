@@ -1,0 +1,80 @@
+#include <radahn/motor/motorEngine.h>
+
+#include <radahn/core/blankMotor.h>
+#include <radahn/core/moveMotor.h>
+#include <radahn/core/rotateMotor.h>
+#include <radahn/core/forceMotor.h>
+#include <radahn/core/torqueMotor.h>
+
+using namespace radahn::core;
+
+void radahn::motor::MotorEngine::loadTestMotorSetup()
+{
+    // Test setup
+
+    // Declare test motors
+    m_motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
+    
+    std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
+    
+    //m_motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
+    //    VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
+    //    true, false, false, 
+    //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+    
+    //m_motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
+    //    DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL),
+    //    1.0, 0.0, 0.0, TimeQuantity(1.0, SimUnits::LAMMPS_REAL), 180));
+    
+    //m_motors.emplace_back(std::make_shared<ForceMotor>("testForce", selectionMove, 
+    //    ForceQuantity(0.001, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL),
+    //    true, false, false, 
+    //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+    m_motors.emplace_back(std::make_shared<TorqueMotor>("testTorque", selectionMove, 
+        TorqueQuantity(0.001, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL),
+        90.0));
+
+    // Make them start immediatly
+    for(auto & motor : m_motors)
+        motor->startMotor();
+}
+
+bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
+    uint64_t nbAtoms,
+    atomIndexes_t* indices, 
+    atomPositions_t*positions)
+{
+
+    (void)it;
+    // First, we need to first the received positions
+    // HYPOTHESIS: We receive ALL the atom information, not just a sub-selection!!!
+    m_currentIndexes.resize(3*nbAtoms);
+    m_currentPositions.resize(3*nbAtoms);
+
+    for(size_t i = 0; i < nbAtoms; ++i)
+    {
+        // Lammps indices are 1-based
+        int64_t atomID = static_cast<int64_t>(indices[i]);
+        uint64_t newIndex = static_cast<uint64_t>(atomID-1);
+        m_currentIndexes[newIndex] = indices[i];
+        m_currentPositions[3*newIndex] = positions[3*i];
+        m_currentPositions[3*newIndex+1] = positions[3*i+1];
+        m_currentPositions[3*newIndex+2] = positions[3*i+2];
+    }
+
+    // Now we can update the motors with the sorted arrays
+    bool result = true;
+    for(auto & motor : m_motors)
+        result &= motor->updateState(it, m_currentIndexes, m_currentPositions);
+
+
+    return result;
+}
+
+bool radahn::motor::MotorEngine::getCommandsFromMotors(conduit::Node& node) const
+{
+    bool result = true;
+    for(auto & motor : m_motors)
+        result &= motor->appendCommandToConduitNode(node);
+    return result;
+}

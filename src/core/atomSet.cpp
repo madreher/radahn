@@ -8,12 +8,13 @@
     m_positions = ref.m_positions;
 }*/
 
-bool radahn::core::AtomSet::selectAtoms(radahn::core::simIt_t currentIt, uint64_t nbAtoms, atomIndexes_t* indices, atomPositions_t* positions)
+bool radahn::core::AtomSet::selectAtoms(radahn::core::simIt_t currentIt, const std::vector<atomIndexes_t>& indices, const std::vector<atomPositions_t>& positions)
 {
     m_indices.clear();
     m_positions.clear();
 
-    for(uint64_t i = 0; i < nbAtoms; ++i)
+    // TODO: speed this up assuming tha the input array is already sorted
+    for(uint64_t i = 0; i < indices.size(); ++i)
     {
         if(m_selection.count(indices[i]) > 0)
         {

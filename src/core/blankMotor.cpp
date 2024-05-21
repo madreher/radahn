@@ -4,11 +4,9 @@
 using namespace radahn::core;
 
 bool radahn::core::BlankMotor::updateState(simIt_t it, 
-        uint64_t nbAtoms,
-        atomIndexes_t* indices, 
-        atomPositions_t*positions)
+        const std::vector<atomIndexes_t>& indices, 
+        const std::vector<atomPositions_t>& positions)
 {
-    (void)nbAtoms;
     (void)indices;
     (void)positions;
 

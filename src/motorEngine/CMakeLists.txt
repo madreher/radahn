@@ -1,4 +1,4 @@
-add_executable(engine engine.cpp)
+add_executable(engine engine.cpp motorEngine.cpp)
 
 target_link_libraries(engine 
     godrick::godrick

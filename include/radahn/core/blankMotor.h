@@ -18,9 +18,8 @@ public:
     BlankMotor(const std::string& name, radahn::core::simIt_t nbStepsRequested) : Motor(name), m_nbStepsRequested(nbStepsRequested), m_startStep(0), m_lastStep(0), m_stepCountersSet(false){}
 
     virtual bool updateState(simIt_t it, 
-        uint64_t nbAtoms,
-        atomIndexes_t* indices, 
-        atomPositions_t* positions) override;
+        const std::vector<atomIndexes_t>& indices, 
+        const std::vector<atomPositions_t>& positions) override;
         
     virtual bool appendCommandToConduitNode(conduit::Node& node) override;
 

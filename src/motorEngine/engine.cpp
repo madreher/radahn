@@ -12,6 +12,7 @@
 #include <radahn/core/rotateMotor.h>
 #include <radahn/core/forceMotor.h>
 #include <radahn/core/torqueMotor.h>
+#include <radahn/motor/motorEngine.h>
 
 using namespace radahn::core;
 
@@ -77,41 +78,15 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    // Test setup
-
-    // Declare test motors
-    motors.emplace_back(std::make_shared<BlankMotor>("testWait", 1000));
-    
-    std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
-    
-    motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
-        VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
-        true, false, false, 
-        DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
-    
-    motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
-        DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL),
-        1.0, 0.0, 0.0, TimeQuantity(1.0, SimUnits::LAMMPS_REAL), 180));
-    
-    motors.emplace_back(std::make_shared<ForceMotor>("testForce", selectionMove, 
-        ForceQuantity(0.001, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL),
-        true, false, false, 
-        DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
-    motors.emplace_back(std::make_shared<TorqueMotor>("testTorque", selectionMove, 
-        TorqueQuantity(0.001, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL),
-        90.0));
-
-    // Make them start immediatly
-    //motors[0]->startMotor();
-    //motors[1]->startMotor();
-    //motors[2]->startMotor();
-    //motors[3]->startMotor();
-    motors[4]->startMotor();
+    // Create the engine and add a test set of motors
+    auto engine = radahn::motor::MotorEngine();
+    engine.loadTestMotorSetup();
 
     std::vector<conduit::Node> receivedData;
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
     {
-        printSimulationData(receivedData);
+        // Debug
+        //printSimulationData(receivedData);
 
         // Access data from the simulation
         auto & simData = receivedData[0]["simdata"];
@@ -120,23 +95,13 @@ int main(int argc, char** argv)
         uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
         atomPositions_t* positions = simData["atomPositions"].value();
 
-        //spdlog::info("Received simulation data Step {}", simIt);
+        spdlog::info("Received simulation data Step {}", simIt);
 
-        // Update the motor
-        //motors[0]->updateState(simIt, nbAtoms, indices, positions);
-        //motors[1]->updateState(simIt, nbAtoms, indices, positions);
-        //motors[2]->updateState(simIt, nbAtoms, indices, positions);
-        //motors[3]->updateState(simIt, nbAtoms, indices, positions);
-        motors[4]->updateState(simIt, nbAtoms, indices, positions);
+        engine.updateMotorsState(simIt, nbAtoms, indices, positions);
 
         // Get commands from the motor
         conduit::Node output;
-        //auto cmdArray = output.add_child("lmpcmds");
-        //motors[0]->appendCommandToConduitNode(output["lmpcmds"].append());
-        //motors[1]->appendCommandToConduitNode(output["lmpcmds"].append());
-        //motors[2]->appendCommandToConduitNode(output["lmpcmds"].append());
-        //motors[3]->appendCommandToConduitNode(output["lmpcmds"].append());
-        motors[4]->appendCommandToConduitNode(output["lmpcmds"].append());
+        engine.getCommandsFromMotors(output["lmpcmds"].append());
 
         handler.push("motorscmd", output);
     }
