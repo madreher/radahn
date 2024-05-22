@@ -213,8 +213,13 @@ int main(int argc, char** argv)
         std::vector<atomVelocities_t> vel;
         extractAtomInformation(lps, ids, pos, forces, vel);
 
-        //for(size_t i = 0; i < ids.size(); ++i)
-        //    spdlog::info("Rank {} Step {}, Atom {}, Position [{} {} {}]", rank, currentStep, ids[i], pos[3*i], pos[3*i+1], pos[3*i+2]);
+        /*if(ids.size() > 0)
+        {
+            for(size_t i = 0; i < ids.size(); ++i)
+                spdlog::info("Rank {} Step {}, Atom {}, Position [{} {} {}]", rank, currentStep, ids[i], pos[3*i], pos[3*i+1], pos[3*i+2]);
+        }
+        else
+            spdlog::info("Rank {} Step {} doesn't have any atoms.", rank, currentStep);*/
 
 
         conduit::Node rootMsg;

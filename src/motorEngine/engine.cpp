@@ -136,8 +136,8 @@ int main(int argc, char** argv)
         //(void)receivedIt;
 
         spdlog::info("Received simulation data Step {}", receivedIt);
-        for(uint64_t i = 0; i < fullIndices.size(); ++i)
-            spdlog::info("{} {} {}", fullPositions[3*i], fullPositions[3*i+1], fullPositions[3*i+2]);
+        //for(uint64_t i = 0; i < fullIndices.size(); ++i)
+        //    spdlog::info("{} {} {}", fullPositions[3*i], fullPositions[3*i+1], fullPositions[3*i+2]);
 
         //engine.updateMotorsState(simIt, nbAtoms, indices, positions);
         engine.updateMotorsState(receivedIt, fullIndices, fullPositions);
@@ -153,11 +153,13 @@ int main(int argc, char** argv)
         engine.getCommandsFromMotors(output["lmpcmds"].append());
 
         handler.push("motorscmd", output);
+
+        receivedData.clear();
     }
 
-    spdlog::info("Cleaning the motor engine...");
-    engine.clearMotors();
-    spdlog::info("Motor engine cleaned.");
+    //spdlog::info("Cleaning the motor engine...");
+    //engine.clearMotors();
+    //spdlog::info("Motor engine cleaned.");
 
     spdlog::info("Engine exited loop. Closing...");
     handler.close();
