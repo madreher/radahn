@@ -13,7 +13,11 @@ class AtomSet
 {
 public:
     AtomSet(){}
-    AtomSet(const std::set<radahn::core::atomIndexes_t>& selection) : m_selection(selection), m_vecSelection(selection.begin(), selection.end()){};
+    //AtomSet(const std::set<radahn::core::atomIndexes_t>& selection) : m_selection(selection), m_vecSelection(selection.begin(), selection.end())
+    AtomSet(const std::set<radahn::core::atomIndexes_t>& selection) : m_vecSelection(selection.begin(), selection.end())
+    {
+        m_selection = std::set<radahn::core::atomIndexes_t>(selection);
+    };
     //AtomSet(const AtomSet& ref) = default;
 
     bool selectAtoms(radahn::core::simIt_t currentIt, const std::vector<atomIndexes_t>& indices, const std::vector<atomPositions_t>& positions);

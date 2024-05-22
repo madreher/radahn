@@ -38,6 +38,41 @@ void printSimulationData(std::vector<conduit::Node>& data)
     }
 }
 
+simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<atomIndexes_t>& outIndices, std::vector<atomPositions_t>& outPositions)
+{
+    // Get the total nb of atoms
+    conduit::index_t totalNbAtoms = 0;
+    simIt_t simIt;
+
+    for(size_t i = 0; i < receivedData.size(); ++i)
+    {
+        auto & simData = receivedData[i]["simdata"];
+        totalNbAtoms += simData["atomIDs"].dtype().number_of_elements();
+    }
+
+    // Prepare the vectors
+    outIndices.reserve(static_cast<size_t>(totalNbAtoms));
+    outPositions.reserve(static_cast<size_t>(totalNbAtoms*3));
+
+    // Copy the data to the vectors
+    size_t offset = 0;
+    for(size_t i = 0; i < receivedData.size(); ++i)
+    {
+        auto & simData = receivedData[0]["simdata"];
+        simIt = simData["simIt"].as_uint64();
+        atomIndexes_t* indices = simData["atomIDs"].value();
+        uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
+        atomPositions_t* positions = simData["atomPositions"].value();
+
+        outIndices.insert(outIndices.end(), indices, indices + nbAtoms);
+        outPositions.insert(outPositions.end(), positions, positions + 3*nbAtoms);
+
+        offset += nbAtoms;
+    }
+
+    return simIt;
+}
+
 int main(int argc, char** argv)
 {
     (void)argc;
@@ -89,15 +124,23 @@ int main(int argc, char** argv)
         //printSimulationData(receivedData);
 
         // Access data from the simulation
-        auto & simData = receivedData[0]["simdata"];
-        simIt_t simIt = simData["simIt"].as_uint64();
-        atomIndexes_t* indices = simData["atomIDs"].value();
-        uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
-        atomPositions_t* positions = simData["atomPositions"].value();
+        //auto & simData = receivedData[0]["simdata"];
+        //simIt_t simIt = simData["simIt"].as_uint64();
+        //atomIndexes_t* indices = simData["atomIDs"].value();
+        //uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
+        //atomPositions_t* positions = simData["atomPositions"].value();
 
-        spdlog::info("Received simulation data Step {}", simIt);
+        std::vector<atomIndexes_t> fullIndices;
+        std::vector<atomPositions_t> fullPositions;
+        auto receivedIt = mergeInputData(receivedData, fullIndices, fullPositions);
+        //(void)receivedIt;
 
-        engine.updateMotorsState(simIt, nbAtoms, indices, positions);
+        spdlog::info("Received simulation data Step {}", receivedIt);
+        for(uint64_t i = 0; i < fullIndices.size(); ++i)
+            spdlog::info("{} {} {}", fullPositions[3*i], fullPositions[3*i+1], fullPositions[3*i+2]);
+
+        //engine.updateMotorsState(simIt, nbAtoms, indices, positions);
+        engine.updateMotorsState(receivedIt, fullIndices, fullPositions);
 
         if(engine.isCompleted())
         {
@@ -111,6 +154,10 @@ int main(int argc, char** argv)
 
         handler.push("motorscmd", output);
     }
+
+    spdlog::info("Cleaning the motor engine...");
+    engine.clearMotors();
+    spdlog::info("Motor engine cleaned.");
 
     spdlog::info("Engine exited loop. Closing...");
     handler.close();

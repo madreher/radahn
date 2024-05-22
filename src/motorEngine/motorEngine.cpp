@@ -40,14 +40,12 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
 }
 
 bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
-    uint64_t nbAtoms,
-    atomIndexes_t* indices, 
-    atomPositions_t*positions)
+    std::vector<atomIndexes_t>& indices, 
+    std::vector<atomPositions_t>& positions)
 {
-
-    (void)it;
     // First, we need to first the received positions
     // HYPOTHESIS: We receive ALL the atom information, not just a sub-selection!!!
+    size_t nbAtoms = indices.size();
     m_currentIndexes.resize(3*nbAtoms);
     m_currentPositions.resize(3*nbAtoms);
 
@@ -87,4 +85,9 @@ bool radahn::motor::MotorEngine::isCompleted() const
     }
 
     return true;
+}
+
+void radahn::motor::MotorEngine::clearMotors()
+{
+    m_motors.clear();
 }

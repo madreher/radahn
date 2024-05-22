@@ -21,12 +21,12 @@ public:
     void loadTestMotorSetup();
 
     bool updateMotorsState(radahn::core::simIt_t it,
-        uint64_t nbAtoms,
-        radahn::core::atomIndexes_t* indices, 
-        radahn::core::atomPositions_t*positions);
+        std::vector<radahn::core::atomIndexes_t>& indices, 
+        std::vector<radahn::core::atomPositions_t>& positions);
 
     bool getCommandsFromMotors(conduit::Node& node) const;
     bool isCompleted() const;
+    void clearMotors();
 
 protected:
     std::vector<std::shared_ptr<radahn::core::Motor>> m_motors;

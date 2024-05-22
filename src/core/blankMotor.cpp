@@ -1,6 +1,8 @@
 #include <radahn/core/blankMotor.h>
 #include <radahn/core/lammpsCommandsUtils.h>
 
+#include <spdlog/spdlog.h>
+
 using namespace radahn::core;
 
 bool radahn::core::BlankMotor::updateState(simIt_t it, 
@@ -14,7 +16,14 @@ bool radahn::core::BlankMotor::updateState(simIt_t it,
         return false;
 
     if(m_stepCountersSet)
-        return it < m_lastStep;
+    {
+        if(it >= m_lastStep)
+        {
+            spdlog::info("Motor {} completed successfully.", m_name);
+            m_status = MotorStatus::MOTOR_SUCCESS;
+        }        
+        return true;
+    }
     else 
     {
         m_startStep = it;
