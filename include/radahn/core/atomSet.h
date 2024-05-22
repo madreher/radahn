@@ -20,6 +20,8 @@ public:
 
     const std::vector<radahn::core::atomIndexes_t>& getSelectionVector() const { return m_vecSelection; }
 
+    std::vector<radahn::core::atomPositions_t> computePositionCenter() const;
+
 protected:
     std::set<radahn::core::atomIndexes_t> m_selection;
     std::vector<radahn::core::atomIndexes_t> m_vecSelection;

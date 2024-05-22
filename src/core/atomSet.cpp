@@ -28,3 +28,23 @@ bool radahn::core::AtomSet::selectAtoms(radahn::core::simIt_t currentIt, const s
 
     return m_indices.size() == m_selection.size();
 }
+
+std::vector<radahn::core::atomPositions_t> radahn::core::AtomSet::computePositionCenter() const
+{
+    std::vector<radahn::core::atomPositions_t> center = {0.0, 0.0, 0.0};
+    if(m_indices.size() > 0)
+    {
+        for(size_t i = 0; i < m_indices.size(); ++i)
+        {
+            center[0] += m_positions[3*i];
+            center[1] += m_positions[3*i+1];
+            center[2] += m_positions[3*i+2];
+        }
+
+        center[0] /= static_cast<atomPositions_t>(m_indices.size());
+        center[1] /= static_cast<atomPositions_t>(m_indices.size());
+        center[2] /= static_cast<atomPositions_t>(m_indices.size());
+    }
+
+    return center;
+}

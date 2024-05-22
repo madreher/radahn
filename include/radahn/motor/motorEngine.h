@@ -26,6 +26,7 @@ public:
         radahn::core::atomPositions_t*positions);
 
     bool getCommandsFromMotors(conduit::Node& node) const;
+    bool isCompleted() const;
 
 protected:
     std::vector<std::shared_ptr<radahn::core::Motor>> m_motors;

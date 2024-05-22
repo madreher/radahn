@@ -139,7 +139,10 @@ int main(int argc, char** argv)
         executeCommand(lps, "#### LOOP Start from Timestep " + std::to_string(currentStep) + " #####################################");
         auto resultReceive = handler.get("in", receivedData);
         if( resultReceive == godrick::MessageResponse::TERMINATE )
+        {
+            spdlog::info("Lammps received a terminate message from the engine. Exiting the loop.");
             break;
+        }
         if (resultReceive == godrick::MessageResponse::ERROR)
         {
             spdlog::info("Lammps task received an error message. Abording.");

@@ -99,6 +99,12 @@ int main(int argc, char** argv)
 
         engine.updateMotorsState(simIt, nbAtoms, indices, positions);
 
+        if(engine.isCompleted())
+        {
+            spdlog::info("Motor engine has completed. Exiting the main loop.");
+            break;
+        }
+
         // Get commands from the motor
         conduit::Node output;
         engine.getCommandsFromMotors(output["lmpcmds"].append());
