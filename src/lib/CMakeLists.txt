@@ -1,9 +1,9 @@
 # Build the base library
 #=======================================
-set(library_MODULE RadahnCoreLib   )
+set(library_MODULE RadahnLib   )
 #=======================================
 
-file(GLOB files "*.cpp")
+file(GLOB_RECURSE files "*.cpp" )
 
 add_library( ${library_MODULE} SHARED ${files} )
 target_include_directories(${library_MODULE} 

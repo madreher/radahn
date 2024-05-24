@@ -1,11 +1,11 @@
-#include <radahn/core/blankMotor.h>
-#include <radahn/core/lammpsCommandsUtils.h>
+#include <radahn/motor/blankMotor.h>
+#include <radahn/lmp/lammpsCommandsUtils.h>
 
 #include <spdlog/spdlog.h>
 
 using namespace radahn::core;
 
-bool radahn::core::BlankMotor::updateState(simIt_t it, 
+bool radahn::motor::BlankMotor::updateState(simIt_t it, 
         const std::vector<atomIndexes_t>& indices, 
         const std::vector<atomPositions_t>& positions)
 {
@@ -33,8 +33,8 @@ bool radahn::core::BlankMotor::updateState(simIt_t it,
     return true;
 }
 
-bool radahn::core::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
+bool radahn::motor::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
 {
-    LammpsCommandsUtils::registerWaitCommandToConduit(node, m_name);
+    radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(node, m_name);
     return true;
 }

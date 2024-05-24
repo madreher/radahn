@@ -11,7 +11,7 @@
 
 namespace radahn {
 
-namespace core {
+namespace lmp {
 
 enum class SimCommandType : uint32_t
 {
@@ -37,11 +37,11 @@ public:
 class MoveLammpsCommand : public LammpsCommand
 {
 public:
-    VelocityQuantity m_vx;
-    VelocityQuantity m_vy;
-    VelocityQuantity m_vz;
+    radahn::core::VelocityQuantity m_vx;
+    radahn::core::VelocityQuantity m_vy;
+    radahn::core::VelocityQuantity m_vz;
     std::string m_origin;
-    std::vector<atomIndexes_t> m_selection;
+    std::vector<radahn::core::atomIndexes_t> m_selection;
 
     MoveLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
@@ -55,15 +55,15 @@ public:
 class RotateLammpsCommand : public LammpsCommand
 {
 public:
-    DistanceQuantity m_px;      // 3D point of the axe
-    DistanceQuantity m_py;
-    DistanceQuantity m_pz;
-    atomPositions_t m_ax;       // Axe vector
-    atomPositions_t m_ay;
-    atomPositions_t m_az;
+    radahn::core::DistanceQuantity m_px;      // 3D point of the axe
+    radahn::core::DistanceQuantity m_py;
+    radahn::core::DistanceQuantity m_pz;
+    radahn::core::atomPositions_t m_ax;       // Axe vector
+    radahn::core::atomPositions_t m_ay;
+    radahn::core::atomPositions_t m_az;
     std::string m_origin;
-    TimeQuantity m_period;      // Period of the rotation
-    std::vector<atomIndexes_t> m_selection;
+    radahn::core::TimeQuantity m_period;      // Period of the rotation
+    std::vector<radahn::core::atomIndexes_t> m_selection;
     
     RotateLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
@@ -76,11 +76,11 @@ public:
 class AddForceLammpsCommand : public LammpsCommand
 {
 public:
-    ForceQuantity m_fx;
-    ForceQuantity m_fy;
-    ForceQuantity m_fz;
+    radahn::core::ForceQuantity m_fx;
+    radahn::core::ForceQuantity m_fy;
+    radahn::core::ForceQuantity m_fz;
     std::string m_origin;
-    std::vector<atomIndexes_t> m_selection;
+    std::vector<radahn::core::atomIndexes_t> m_selection;
 
     AddForceLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
@@ -92,11 +92,11 @@ public:
 class AddTorqueLammpsCommand : public LammpsCommand
 {
 public:
-    TorqueQuantity m_tx;
-    TorqueQuantity m_ty;
-    TorqueQuantity m_tz;
+    radahn::core::TorqueQuantity m_tx;
+    radahn::core::TorqueQuantity m_ty;
+    radahn::core::TorqueQuantity m_tz;
     std::string m_origin;
-    std::vector<atomIndexes_t> m_selection;
+    std::vector<radahn::core::atomIndexes_t> m_selection;
 
     AddTorqueLammpsCommand() : LammpsCommand(){}
     virtual bool loadFromConduit(conduit::Node& node) override;
@@ -130,35 +130,35 @@ public:
     static void registerMoveCommandToConduit(
         conduit::Node& node, 
         const std::string& name, 
-        VelocityQuantity vx, 
-        VelocityQuantity vy, 
-        VelocityQuantity vz, 
-        const std::vector<atomIndexes_t>& selection);
+        radahn::core::VelocityQuantity vx, 
+        radahn::core::VelocityQuantity vy, 
+        radahn::core::VelocityQuantity vz, 
+        const std::vector<radahn::core::atomIndexes_t>& selection);
     static void registerAddForceCommandToConduit(
         conduit::Node& node, 
         const std::string& name, 
-        ForceQuantity fx, 
-        ForceQuantity fy, 
-        ForceQuantity fz, 
-        const std::vector<atomIndexes_t>& selection);
+        radahn::core::ForceQuantity fx, 
+        radahn::core::ForceQuantity fy, 
+        radahn::core::ForceQuantity fz, 
+        const std::vector<radahn::core::atomIndexes_t>& selection);
     static void registerAddTorqueCommandToConduit(
         conduit::Node& node, 
         const std::string& name, 
-        TorqueQuantity tx, 
-        TorqueQuantity ty, 
-        TorqueQuantity tz, 
-        const std::vector<atomIndexes_t>& selection);
+        radahn::core::TorqueQuantity tx, 
+        radahn::core::TorqueQuantity ty, 
+        radahn::core::TorqueQuantity tz, 
+        const std::vector<radahn::core::atomIndexes_t>& selection);
     static void registerRotateCommandToConduit(
         conduit::Node& node, 
         const std::string& name, 
-        DistanceQuantity px, 
-        DistanceQuantity py, 
-        DistanceQuantity pz, 
-        atomPositions_t ax,     
-        atomPositions_t ay,
-        atomPositions_t az,
-        TimeQuantity period,     
-        const std::vector<atomIndexes_t>& selection);
+        radahn::core::DistanceQuantity px, 
+        radahn::core::DistanceQuantity py, 
+        radahn::core::DistanceQuantity pz, 
+        radahn::core::atomPositions_t ax,     
+        radahn::core::atomPositions_t ay,
+        radahn::core::atomPositions_t az,
+        radahn::core::TimeQuantity period,     
+        const std::vector<radahn::core::atomIndexes_t>& selection);
     static void registerWaitCommandToConduit(conduit::Node& node, const std::string& name);
 
 protected:

@@ -1,10 +1,12 @@
-#include <radahn/core/lammpsCommandsUtils.h>
+#include <radahn/lmp/lammpsCommandsUtils.h>
 
 #include <spdlog/spdlog.h>
 
 #include <ranges>
 
-bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
+using namespace radahn::core;
+
+bool radahn::lmp::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
     {   
@@ -12,7 +14,7 @@ bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
         return false;
     }
     auto cmdType = node["cmdType"].to_uint32();
-    if(radahn::core::SimCommandType(cmdType) != radahn::core::SimCommandType::SIM_COMMAND_LMP_MOVE)
+    if(radahn::lmp::SimCommandType(cmdType) != radahn::lmp::SimCommandType::SIM_COMMAND_LMP_MOVE)
     {
         spdlog::error("Trying to read a MoveLammpsCommand by the given conduit node doesn't have the right type.");
         return false;
@@ -38,7 +40,7 @@ bool radahn::core::MoveLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-bool radahn::core::MoveLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::MoveLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     // Create the group
     std::stringstream cmd1;
@@ -55,7 +57,7 @@ bool radahn::core::MoveLammpsCommand::writeDoCommands(std::vector<std::string>& 
     return true;
 }
 
-bool radahn::core::MoveLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::MoveLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     // Undo the fix
     std::stringstream cmd1;
@@ -70,14 +72,14 @@ bool radahn::core::MoveLammpsCommand::writeUndoCommands(std::vector<std::string>
     return true;
 }
 
-std::string radahn::core::MoveLammpsCommand::getGroupName() const
+std::string radahn::lmp::MoveLammpsCommand::getGroupName() const
 {
     std::stringstream ss;
     ss<<m_origin<<"GRP";
     return ss.str();
 }
 
-bool radahn::core::AddForceLammpsCommand::loadFromConduit(conduit::Node& node)
+bool radahn::lmp::AddForceLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
     {   
@@ -85,7 +87,7 @@ bool radahn::core::AddForceLammpsCommand::loadFromConduit(conduit::Node& node)
         return false;
     }
     auto cmdType = node["cmdType"].to_uint32();
-    if(radahn::core::SimCommandType(cmdType) != radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE)
+    if(radahn::lmp::SimCommandType(cmdType) != radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE)
     {
         spdlog::error("Trying to read a AddForceLammpsCommand by the given conduit node doesn't have the right type.");
         return false;
@@ -111,7 +113,7 @@ bool radahn::core::AddForceLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-bool radahn::core::AddForceLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::AddForceLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     // Create the group
     std::stringstream cmd1;
@@ -128,7 +130,7 @@ bool radahn::core::AddForceLammpsCommand::writeDoCommands(std::vector<std::strin
     return true;
 }
 
-bool radahn::core::AddForceLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::AddForceLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     // Undo the fix
     std::stringstream cmd1;
@@ -143,14 +145,14 @@ bool radahn::core::AddForceLammpsCommand::writeUndoCommands(std::vector<std::str
     return true;
 }
 
-std::string radahn::core::AddForceLammpsCommand::getGroupName() const
+std::string radahn::lmp::AddForceLammpsCommand::getGroupName() const
 {
     std::stringstream ss;
     ss<<m_origin<<"GRP";
     return ss.str();
 }
 
-bool radahn::core::AddTorqueLammpsCommand::loadFromConduit(conduit::Node& node)
+bool radahn::lmp::AddTorqueLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
     {   
@@ -158,7 +160,7 @@ bool radahn::core::AddTorqueLammpsCommand::loadFromConduit(conduit::Node& node)
         return false;
     }
     auto cmdType = node["cmdType"].to_uint32();
-    if(radahn::core::SimCommandType(cmdType) != radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE)
+    if(radahn::lmp::SimCommandType(cmdType) != radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE)
     {
         spdlog::error("Trying to read a AddTorqueLammpsCommand by the given conduit node doesn't have the right type.");
         return false;
@@ -184,7 +186,7 @@ bool radahn::core::AddTorqueLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-bool radahn::core::AddTorqueLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::AddTorqueLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     // Create the group
     std::stringstream cmd1;
@@ -201,7 +203,7 @@ bool radahn::core::AddTorqueLammpsCommand::writeDoCommands(std::vector<std::stri
     return true;
 }
 
-bool radahn::core::AddTorqueLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::AddTorqueLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     // Undo the fix
     std::stringstream cmd1;
@@ -216,14 +218,14 @@ bool radahn::core::AddTorqueLammpsCommand::writeUndoCommands(std::vector<std::st
     return true;
 }
 
-std::string radahn::core::AddTorqueLammpsCommand::getGroupName() const
+std::string radahn::lmp::AddTorqueLammpsCommand::getGroupName() const
 {
     std::stringstream ss;
     ss<<m_origin<<"GRP";
     return ss.str();
 }
 
-bool radahn::core::RotateLammpsCommand::loadFromConduit(conduit::Node& node)
+bool radahn::lmp::RotateLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
     {   
@@ -231,7 +233,7 @@ bool radahn::core::RotateLammpsCommand::loadFromConduit(conduit::Node& node)
         return false;
     }
     auto cmdType = node["cmdType"].to_uint32();
-    if(radahn::core::SimCommandType(cmdType) != radahn::core::SimCommandType::SIM_COMMAND_LMP_ROTATE)
+    if(radahn::lmp::SimCommandType(cmdType) != radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ROTATE)
     {
         spdlog::error("Trying to read a RotateLammpsCommand by the given conduit node doesn't have the right type.");
         return false;
@@ -265,7 +267,7 @@ bool radahn::core::RotateLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-bool radahn::core::RotateLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::RotateLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     // Create the group
     std::stringstream cmd1;
@@ -282,7 +284,7 @@ bool radahn::core::RotateLammpsCommand::writeDoCommands(std::vector<std::string>
     return true;
 }
 
-bool radahn::core::RotateLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::RotateLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     // Undo the fix
     std::stringstream cmd1;
@@ -297,14 +299,14 @@ bool radahn::core::RotateLammpsCommand::writeUndoCommands(std::vector<std::strin
     return true;
 }
 
-std::string radahn::core::RotateLammpsCommand::getGroupName() const
+std::string radahn::lmp::RotateLammpsCommand::getGroupName() const
 {
     std::stringstream ss;
     ss<<m_origin<<"GRP";
     return ss.str();
 }
 
-bool radahn::core::WaitLammpsCommand::loadFromConduit(conduit::Node& node)
+bool radahn::lmp::WaitLammpsCommand::loadFromConduit(conduit::Node& node)
 {
     if(!node.has_child("cmdType"))
     {   
@@ -312,7 +314,7 @@ bool radahn::core::WaitLammpsCommand::loadFromConduit(conduit::Node& node)
         return false;
     }
     auto cmdType = node["cmdType"].to_uint32();
-    if(radahn::core::SimCommandType(cmdType) != radahn::core::SimCommandType::SIM_COMMAND_WAIT)
+    if(radahn::lmp::SimCommandType(cmdType) != radahn::lmp::SimCommandType::SIM_COMMAND_WAIT)
     {
         spdlog::error("Trying to read a WaitLammpsCommand by the given conduit node doesn't have the right type.");
         return false;
@@ -323,20 +325,20 @@ bool radahn::core::WaitLammpsCommand::loadFromConduit(conduit::Node& node)
     return true;
 }
 
-bool radahn::core::WaitLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::WaitLammpsCommand::writeDoCommands(std::vector<std::string>& cmds) const
 {
     (void)cmds;
     return true;
 }
 
-bool radahn::core::WaitLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::WaitLammpsCommand::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     (void)cmds;
     return true;
 }
 
 
-bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& cmds)
+bool radahn::lmp::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& cmds)
 {
     //spdlog::info("Reading commands from lammpscommandsutils.");
     //cmds.print_detailed();
@@ -353,10 +355,10 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                 spdlog::error("Unable to identify the type of a command for Lammps.");
                 return false;
             }
-            auto cmdType = radahn::core::SimCommandType(cmdNode["cmdType"].to_uint32());
+            auto cmdType = radahn::lmp::SimCommandType(cmdNode["cmdType"].to_uint32());
             switch(cmdType)
             {
-                case radahn::core::SimCommandType::SIM_COMMAND_LMP_MOVE:
+                case radahn::lmp::SimCommandType::SIM_COMMAND_LMP_MOVE:
                 {
                     std::shared_ptr<MoveLammpsCommand> cmd = std::make_shared<MoveLammpsCommand>();
                     if(!cmd->loadFromConduit(cmdNode))
@@ -364,7 +366,7 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                     m_cmds.push_back(cmd);
                     break;
                 }
-                case radahn::core::SimCommandType::SIM_COMMAND_WAIT:
+                case radahn::lmp::SimCommandType::SIM_COMMAND_WAIT:
                 {
                     std::shared_ptr<WaitLammpsCommand> cmd = std::make_shared<WaitLammpsCommand>();
                     if(!cmd->loadFromConduit(cmdNode))
@@ -372,7 +374,7 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                     m_cmds.push_back(cmd);
                     break;
                 }
-                case radahn::core::SimCommandType::SIM_COMMAND_LMP_ROTATE:
+                case radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ROTATE:
                 {
                     std::shared_ptr<RotateLammpsCommand> cmd = std::make_shared<RotateLammpsCommand>();
                     if(!cmd->loadFromConduit(cmdNode))
@@ -380,7 +382,7 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                     m_cmds.push_back(cmd);
                     break;
                 }
-                case radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE:
+                case radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE:
                 {
                     std::shared_ptr<AddForceLammpsCommand> cmd = std::make_shared<AddForceLammpsCommand>();
                     if(!cmd->loadFromConduit(cmdNode))
@@ -388,7 +390,7 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
                     m_cmds.push_back(cmd);
                     break;
                 }
-                case radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE:
+                case radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE:
                 {
                     std::shared_ptr<AddTorqueLammpsCommand> cmd = std::make_shared<AddTorqueLammpsCommand>();
                     if(!cmd->loadFromConduit(cmdNode))
@@ -414,7 +416,7 @@ bool radahn::core::LammpsCommandsUtils::loadCommandsFromConduit(conduit::Node& c
     return true;
 }
 
-bool radahn::core::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>& cmdsStr) const
+bool radahn::lmp::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>& cmdsStr) const
 {
 
     cmdsStr.push_back("#### Start DO motor commands");
@@ -458,7 +460,7 @@ bool radahn::core::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>
     return result;
 }
 
-bool radahn::core::LammpsCommandsUtils::writeUndoCommands(std::vector<std::string>& cmds) const
+bool radahn::lmp::LammpsCommandsUtils::writeUndoCommands(std::vector<std::string>& cmds) const
 {
     cmds.push_back("#### Start UNDO motor commands");
 
@@ -484,11 +486,11 @@ bool radahn::core::LammpsCommandsUtils::writeUndoCommands(std::vector<std::strin
 
 
 
-void radahn::core::LammpsCommandsUtils::registerMoveCommandToConduit(conduit::Node& node, const std::string& name, VelocityQuantity vx, VelocityQuantity vy, VelocityQuantity vz, const std::vector<atomIndexes_t>& selection)
+void radahn::lmp::LammpsCommandsUtils::registerMoveCommandToConduit(conduit::Node& node, const std::string& name, VelocityQuantity vx, VelocityQuantity vy, VelocityQuantity vz, const std::vector<atomIndexes_t>& selection)
 {
     // Heavy syntax still required for c++20
     // for c++23, prefer using std::to_underlying
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_MOVE);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(radahn::lmp::SimCommandType::SIM_COMMAND_LMP_MOVE);
     node["origin"] = name;
     node["vx"] = vx.m_value;   // Need to send units as well
     node["vy"] = vy.m_value;
@@ -498,11 +500,11 @@ void radahn::core::LammpsCommandsUtils::registerMoveCommandToConduit(conduit::No
 
 }
 
-void radahn::core::LammpsCommandsUtils::registerAddForceCommandToConduit(conduit::Node& node, const std::string& name, ForceQuantity fx, ForceQuantity fy, ForceQuantity fz, const std::vector<atomIndexes_t>& selection)
+void radahn::lmp::LammpsCommandsUtils::registerAddForceCommandToConduit(conduit::Node& node, const std::string& name, ForceQuantity fx, ForceQuantity fy, ForceQuantity fz, const std::vector<atomIndexes_t>& selection)
 {
     // Heavy syntax still required for c++20
     // for c++23, prefer using std::to_underlying
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_FORCE);
     node["origin"] = name;
     node["fx"] = fx.m_value;   // Need to send units as well
     node["fy"] = fy.m_value;
@@ -511,11 +513,11 @@ void radahn::core::LammpsCommandsUtils::registerAddForceCommandToConduit(conduit
     node["selection"] = selection;
 }
 
-void radahn::core::LammpsCommandsUtils::registerAddTorqueCommandToConduit(conduit::Node& node, const std::string& name, TorqueQuantity tx, TorqueQuantity ty, TorqueQuantity tz, const std::vector<atomIndexes_t>& selection)
+void radahn::lmp::LammpsCommandsUtils::registerAddTorqueCommandToConduit(conduit::Node& node, const std::string& name, TorqueQuantity tx, TorqueQuantity ty, TorqueQuantity tz, const std::vector<atomIndexes_t>& selection)
 {
     // Heavy syntax still required for c++20
     // for c++23, prefer using std::to_underlying
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ADD_TORQUE);
     node["origin"] = name;
     node["tx"] = tx.m_value;   // Need to send units as well
     node["ty"] = ty.m_value;
@@ -524,7 +526,7 @@ void radahn::core::LammpsCommandsUtils::registerAddTorqueCommandToConduit(condui
     node["selection"] = selection;
 }
 
-void radahn::core::LammpsCommandsUtils::registerRotateCommandToConduit(
+void radahn::lmp::LammpsCommandsUtils::registerRotateCommandToConduit(
         conduit::Node& node, 
         const std::string& name, 
         DistanceQuantity px, 
@@ -538,7 +540,7 @@ void radahn::core::LammpsCommandsUtils::registerRotateCommandToConduit(
 {
     // Heavy syntax still required for c++20
     // for c++23, prefer using std::to_underlying
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_LMP_ROTATE);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(radahn::lmp::SimCommandType::SIM_COMMAND_LMP_ROTATE);
     node["origin"] = name;
     node["px"] = px.m_value;   // Need to send units as well
     node["py"] = py.m_value;
@@ -552,8 +554,8 @@ void radahn::core::LammpsCommandsUtils::registerRotateCommandToConduit(
     node["selection"] = selection;
 }
 
-void radahn::core::LammpsCommandsUtils::registerWaitCommandToConduit(conduit::Node& node, const std::string& name)
+void radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(conduit::Node& node, const std::string& name)
 {
-    node["cmdType"] = static_cast<std::underlying_type<radahn::core::SimCommandType>::type>(radahn::core::SimCommandType::SIM_COMMAND_WAIT);
+    node["cmdType"] = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(radahn::lmp::SimCommandType::SIM_COMMAND_WAIT);
     node["origin"] = name;
 }

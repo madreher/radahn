@@ -1,12 +1,13 @@
 #include <radahn/motor/motorEngine.h>
 
-#include <radahn/core/blankMotor.h>
-#include <radahn/core/moveMotor.h>
-#include <radahn/core/rotateMotor.h>
-#include <radahn/core/forceMotor.h>
-#include <radahn/core/torqueMotor.h>
+#include <radahn/motor/blankMotor.h>
+#include <radahn/motor/moveMotor.h>
+#include <radahn/motor/rotateMotor.h>
+#include <radahn/motor/forceMotor.h>
+#include <radahn/motor/torqueMotor.h>
 
 using namespace radahn::core;
+using namespace radahn::motor;
 
 void radahn::motor::MotorEngine::loadTestMotorSetup()
 {
@@ -80,7 +81,7 @@ bool radahn::motor::MotorEngine::isCompleted() const
 {
     for(auto & motor : m_motors)
     {
-        if(motor->getMotorStatus() !=  radahn::core::MotorStatus::MOTOR_SUCCESS)
+        if(motor->getMotorStatus() !=  radahn::motor::MotorStatus::MOTOR_SUCCESS)
             return false;
     }
 

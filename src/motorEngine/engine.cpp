@@ -7,14 +7,10 @@
 
 #include <conduit/conduit.hpp>
 
-#include <radahn/core/blankMotor.h>
-#include <radahn/core/moveMotor.h>
-#include <radahn/core/rotateMotor.h>
-#include <radahn/core/forceMotor.h>
-#include <radahn/core/torqueMotor.h>
 #include <radahn/motor/motorEngine.h>
 
 using namespace radahn::core;
+using namespace radahn::motor;
 
 std::vector<std::shared_ptr<Motor>> motors;
 
@@ -42,7 +38,7 @@ simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<ato
 {
     // Get the total nb of atoms
     conduit::index_t totalNbAtoms = 0;
-    simIt_t simIt;
+    simIt_t simIt = 0;
 
     for(size_t i = 0; i < receivedData.size(); ++i)
     {

@@ -7,7 +7,7 @@
 
 namespace radahn {
 
-namespace core {
+namespace motor {
 
 enum class MotorStatus : uint8_t
 {
@@ -26,9 +26,9 @@ public:
 
     MotorStatus getMotorStatus() const { return m_status; }
 
-    virtual bool updateState(simIt_t it,
-        const std::vector<atomIndexes_t>& indices, 
-        const std::vector<atomPositions_t>& positions) = 0;
+    virtual bool updateState(radahn::core::simIt_t it,
+        const std::vector<radahn::core::atomIndexes_t>& indices, 
+        const std::vector<radahn::core::atomPositions_t>& positions) = 0;
     virtual bool appendCommandToConduitNode(conduit::Node& node) = 0;
 
     bool startMotor()

@@ -4,7 +4,7 @@
 #include <conduit/conduit.hpp>
 
 #include <radahn/core/types.h>
-#include <radahn/core/lammpsCommandsUtils.h>
+#include <radahn/lmp/lammpsCommandsUtils.h>
 
 #include <lyra/lyra.hpp>
 #include <spdlog/spdlog.h>
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
             spdlog::info("Lammps received a token.");
         }
 
-        auto cmdUtil = radahn::core::LammpsCommandsUtils();
+        auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
         if(resultReceive == godrick::MessageResponse::MESSAGES)
         {
             spdlog::info("Lammps received a regular message.");

@@ -9,7 +9,7 @@ target_link_libraries(lammpsDriver
     RADAHN_project_options
     RADAHN_project_libraries
     RADAHN_project_warnings
-    RadahnCoreLib)
+    RadahnLib)
 
 install(
     TARGETS 

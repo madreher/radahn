@@ -1,6 +1,6 @@
 #pragma once 
 
-#include <radahn/core/motor.h>
+#include <radahn/motor/motor.h>
 #include <radahn/core/types.h>
 
 #include <conduit/conduit.hpp>
@@ -29,7 +29,7 @@ public:
     void clearMotors();
 
 protected:
-    std::vector<std::shared_ptr<radahn::core::Motor>> m_motors;
+    std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;
 
     radahn::core::simIt_t m_currentIt;
     std::vector<radahn::core::atomIndexes_t> m_currentIndexes;
