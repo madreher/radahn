@@ -17,19 +17,19 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
     
     std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
     
-    //m_motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
-    //    VelocityQuantity(0.001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
-    //    true, false, false, 
-    //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+    m_motors.emplace_back(std::make_shared<MoveMotor>("testMove", selectionMove, 
+        VelocityQuantity(0.0001, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL), VelocityQuantity(0.0, SimUnits::LAMMPS_REAL),
+        true, false, false, 
+        DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
     
     //m_motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
     //    DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL),
     //    1.0, 0.0, 0.0, TimeQuantity(1.0, SimUnits::LAMMPS_REAL), 180));
     
-    m_motors.emplace_back(std::make_shared<ForceMotor>("testForce", selectionMove, 
-        ForceQuantity(0.001, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL),
-        true, false, false, 
-        DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
+    //m_motors.emplace_back(std::make_shared<ForceMotor>("testForce", selectionMove, 
+    //    ForceQuantity(0.001, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL),
+    //    true, false, false, 
+    //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
     //m_motors.emplace_back(std::make_shared<TorqueMotor>("testTorque", selectionMove, 
     //    TorqueQuantity(0.001, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL),
     //    90.0));

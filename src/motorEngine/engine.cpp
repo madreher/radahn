@@ -123,17 +123,14 @@ int main(int argc, char** argv)
         // Debug
         //printSimulationData(receivedData);
 
-        // Access data from the simulation
-        //auto & simData = receivedData[0]["simdata"];
-        //simIt_t simIt = simData["simIt"].as_uint64();
-        //atomIndexes_t* indices = simData["atomIDs"].value();
-        //uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
-        //atomPositions_t* positions = simData["atomPositions"].value();
-
+        // Merge all the data into individual arrays instead of partial arrays
+        // This is necessary when Lammps is running on multiple MPI processes, we receive as many 
+        // messages as Lammps MPI processes
+        // This cause a double memory footprint but avoid having to deal with partial arrays everywhere
         std::vector<atomIndexes_t> fullIndices;
         std::vector<atomPositions_t> fullPositions;
         auto receivedIt = mergeInputData(receivedData, fullIndices, fullPositions);
-        //(void)receivedIt;
+
 
         spdlog::info("Received simulation data Step {}", receivedIt);
         //for(uint64_t i = 0; i < fullIndices.size(); ++i)
