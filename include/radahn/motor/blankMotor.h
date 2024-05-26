@@ -19,7 +19,8 @@ public:
 
     virtual bool updateState(radahn::core::simIt_t it, 
         const std::vector<radahn::core::atomIndexes_t>& indices, 
-        const std::vector<radahn::core::atomPositions_t>& positions) override;
+        const std::vector<radahn::core::atomPositions_t>& positions,
+        conduit::Node& kvs) override;
         
     virtual bool appendCommandToConduitNode(conduit::Node& node) override;
 

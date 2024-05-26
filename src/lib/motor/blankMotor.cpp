@@ -7,7 +7,8 @@ using namespace radahn::core;
 
 bool radahn::motor::BlankMotor::updateState(simIt_t it, 
         const std::vector<atomIndexes_t>& indices, 
-        const std::vector<atomPositions_t>& positions)
+        const std::vector<atomPositions_t>& positions,
+        conduit::Node& kvs)
 {
     (void)indices;
     (void)positions;
@@ -17,6 +18,10 @@ bool radahn::motor::BlankMotor::updateState(simIt_t it,
 
     if(m_stepCountersSet)
     {
+        kvs["steps_left"] = it - m_lastStep;
+        kvs["steps_done"] = it - m_startStep;
+        kvs["progress"] = (static_cast<double>(it - m_startStep) / static_cast<double>(m_nbStepsRequested))*100.0;
+
         if(it >= m_lastStep)
         {
             spdlog::info("Motor {} completed successfully.", m_name);
@@ -26,6 +31,9 @@ bool radahn::motor::BlankMotor::updateState(simIt_t it,
     }
     else 
     {
+        kvs["steps_left"] = m_nbStepsRequested;
+        kvs["steps_done"] = 0;
+        kvs["progress"] = 0.0;
         m_startStep = it;
         m_lastStep = it + m_nbStepsRequested;
         m_stepCountersSet = true;

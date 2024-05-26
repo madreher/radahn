@@ -28,12 +28,16 @@ public:
     bool isCompleted() const;
     void clearMotors();
 
+    const conduit::Node& getCurrentKVS() const { return m_currentKVS; }
+
 protected:
     std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;
 
     radahn::core::simIt_t m_currentIt;
     std::vector<radahn::core::atomIndexes_t> m_currentIndexes;
     std::vector<radahn::core::atomPositions_t> m_currentPositions;
+
+    conduit::Node m_currentKVS;  // Data which can be used for plotting
 
 
 };

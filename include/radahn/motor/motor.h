@@ -25,10 +25,12 @@ public:
     virtual ~Motor(){}
 
     MotorStatus getMotorStatus() const { return m_status; }
+    const std::string& getMotorName() const { return m_name; }
 
     virtual bool updateState(radahn::core::simIt_t it,
         const std::vector<radahn::core::atomIndexes_t>& indices, 
-        const std::vector<radahn::core::atomPositions_t>& positions) = 0;
+        const std::vector<radahn::core::atomPositions_t>& positions,
+        conduit::Node& kvs) = 0;
     virtual bool appendCommandToConduitNode(conduit::Node& node) = 0;
 
     bool startMotor()

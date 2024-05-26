@@ -28,10 +28,13 @@ public:
 
     virtual bool updateState(radahn::core::simIt_t it, 
         const std::vector<radahn::core::atomIndexes_t>& indices, 
-        const std::vector<radahn::core::atomPositions_t>& positions) override
+        const std::vector<radahn::core::atomPositions_t>& positions,
+        conduit::Node& kvs) override
         {
             if(m_status != MotorStatus::MOTOR_RUNNING)
                 return false;
+
+            kvs["progress"] = 0.0;
 
             m_currentState.selectAtoms(it, indices, positions);
             if(!m_initialStateRegistered)

@@ -61,10 +61,14 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
         m_currentPositions[3*newIndex+2] = positions[3*i+2];
     }
 
+    // Initialize the data for the current iteration
+    m_currentKVS = conduit::Node();
+    m_currentKVS["global"]["step"] = it;
+
     // Now we can update the motors with the sorted arrays
     bool result = true;
     for(auto & motor : m_motors)
-        result &= motor->updateState(it, m_currentIndexes, m_currentPositions);
+        result &= motor->updateState(it, m_currentIndexes, m_currentPositions, m_currentKVS.add_child(motor->getMotorName()));
 
     return result;
 }

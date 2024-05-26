@@ -34,10 +34,12 @@ public:
 
     virtual bool updateState(radahn::core::simIt_t it, 
         const std::vector<radahn::core::atomIndexes_t>& indices, 
-        const std::vector<radahn::core::atomPositions_t>& positions) override
+        const std::vector<radahn::core::atomPositions_t>& positions,
+        conduit::Node& kvs) override
         {
             if(m_status != MotorStatus::MOTOR_RUNNING)
                 return false;
+
 
             m_currentState.selectAtoms(it, indices, positions);
             if(!m_initialStateRegistered)
@@ -48,6 +50,13 @@ public:
                 m_initialCy = radahn::core::DistanceQuantity(initialCenter[1], radahn::core::SimUnits::LAMMPS_REAL);
                 m_initialCz = radahn::core::DistanceQuantity(initialCenter[2], radahn::core::SimUnits::LAMMPS_REAL);
                 m_initialState = radahn::core::AtomSet(m_currentState);
+                kvs["progress"] = 0.0;
+                kvs["distance_x"] = 0.0;
+                kvs["distance_y"] = 0.0;
+                kvs["distance_z"] = 0.0;
+                kvs["center_x"] = m_initialCx.m_value;
+                kvs["center_y"] = m_initialCy.m_value;
+                kvs["center_z"] = m_initialCz.m_value;
                 m_initialStateRegistered = true;
                 return true;
             }
@@ -56,10 +65,38 @@ public:
             auto currentCenter = m_currentState.computePositionCenter();
 
             std::vector<radahn::core::atomPositions_t> distances = {0.0, 0.0, 0.0};
-            distances[0] = currentCenter[0]-m_initialCx.m_value;
+            distances[0] = currentCenter[0]-m_initialCx.m_value;    // Distance done since the start
             distances[1] = currentCenter[1]-m_initialCy.m_value;
             distances[2] = currentCenter[2]-m_initialCz.m_value;
             spdlog::info("Current distance: {} {} {}", distances[0], distances[1], distances[2] );
+
+            kvs["distance_x"] = distances[0];
+            kvs["distance_y"] = distances[1];
+            kvs["distance_z"] = distances[2];
+            kvs["center_x"] = m_initialCx.m_value;
+            kvs["center_y"] = m_initialCy.m_value;
+            kvs["center_z"] = m_initialCz.m_value;
+
+            // Progress calculation
+            double progress = 0.0;
+            double totalProgress = 0.0;
+            if(m_checkX)
+            {
+                totalProgress += 100.0;
+                progress += (distances[0] / m_dx.m_value) * 100.0; // Can be negative if the distance is in the other direction than the requested distance
+            }
+            if(m_checkY)
+            {
+                totalProgress += 100.0;
+                progress += (distances[1] / m_dy.m_value) * 100.0; 
+            }
+            if(m_checkZ)
+            {
+                totalProgress += 100.0;
+                progress += (distances[2] / m_dz.m_value) * 100.0; 
+            }
+            
+            kvs["progress"] = (progress / totalProgress) * 100.0;
 
             bool validX = !m_checkX || (m_dx.m_value < 0.0 && distances[0] <= m_dx.m_value) || (m_dx.m_value >= 0.0 && distances[0] >= m_dx.m_value);
             bool validY = !m_checkY || (m_dy.m_value < 0.0 && distances[1] <= m_dy.m_value) || (m_dy.m_value >= 0.0 && distances[1] >= m_dy.m_value);
@@ -98,6 +135,7 @@ protected:
     radahn::core::DistanceQuantity m_initialCx;          // initial center
     radahn::core::DistanceQuantity m_initialCy;
     radahn::core::DistanceQuantity m_initialCz;
+    radahn::core::DistanceQuantity m_initialDistance;
     radahn::core::AtomSet m_initialState;
 };
 

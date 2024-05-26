@@ -148,6 +148,8 @@ int main(int argc, char** argv)
         handler.push("motorscmd", output);
 
         receivedData.clear();
+
+        engine.getCurrentKVS().print();
     }
 
     //spdlog::info("Cleaning the motor engine...");
