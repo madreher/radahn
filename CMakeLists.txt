@@ -91,6 +91,7 @@ target_link_libraries( RADAHN_project_libraries
         CONAN_PKG::spdlog
         CONAN_PKG::lyra
         CONAN_PKG::nlohmann_json
+        CONAN_PKG::glm
         conduit::conduit
 )
 elseif(MACOSX)
@@ -99,6 +100,7 @@ target_link_libraries( RADAHN_project_libraries
         CONAN_PKG::spdlog
         CONAN_PKG::lyra
         CONAN_PKG::nlohmann_json
+        CONAN_PKG::glm
         conduit::conduit
 )
 else()
@@ -107,6 +109,7 @@ target_link_libraries( RADAHN_project_libraries
         CONAN_PKG::spdlog
         CONAN_PKG::lyra
         CONAN_PKG::nlohmann_json
+        CONAN_PKG::glm
         stdc++fs
         conduit::conduit
 )

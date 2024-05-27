@@ -113,8 +113,6 @@ public:
         
     virtual bool appendCommandToConduitNode(conduit::Node& node) override
     {
-        // Heavy syntax still required for c++20
-        // for c++23, prefer using std::to_underlying
         radahn::lmp::LammpsCommandsUtils::registerMoveCommandToConduit(node, m_name, m_vx, m_vy, m_vz, m_currentState.getSelectionVector());
 
         return true;
