@@ -37,7 +37,8 @@ public:
             m_currentState.selectAtoms(it, indices, positions);
             auto selectedPositions = m_currentState.getCurrentSelectedPositions();
 
-            // The torque uses the center of mass to anchor the rotation
+            // The torque uses the center of mass to anchor the rotation axis
+            // Therefor, unlike the move rotate method, we have to recompute the centroid every iteration
             // For now, we will use the geometrical center instead for tracking 
             auto geocenter = m_currentState.computePositionCenter();
             m_centroid = {geocenter[0], geocenter[1], geocenter[2]};

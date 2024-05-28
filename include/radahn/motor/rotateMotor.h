@@ -56,13 +56,40 @@ public:
                 m_rotationAxis = {m_ax, m_ay, m_az};
                 m_rotationAxis = glm::normalize(m_rotationAxis);
 
-                // Save the first position
-                // HYPOTHESIS: the atoms are always sorted, therefor the order of the atoms is always the same
-                m_trackedPointFirstIteration = {selectedPositions[0], selectedPositions[1], selectedPositions[2]};
-                // Take two point very far away on the rotation axe to define a segment. GLM considers only a segment not an infinite line for the projection.
-                // Without this, the result of the projection will likely end up at an extremity of the segment so we make it long enough to "simulate" a line.
-                m_trackedPointFirstIterationProjection = glm::closestPointOnLine(m_trackedPointFirstIteration, m_centroid - m_rotationAxis * 100000.0, m_centroid + m_rotationAxis * 100000.0);
-                m_firstIterationProjectionVector = m_trackedPointFirstIteration - m_trackedPointFirstIterationProjection;
+                // Try to find an atom which is not too close of the axis
+                while(m_trackedAtomIndex < m_currentState.getNbSelectedAtoms())
+                {
+
+                    // Save the first position
+                    // HYPOTHESIS: the atoms are always sorted, therefor the order of the atoms is always the same
+                    m_trackedPointFirstIteration = {selectedPositions[m_trackedAtomIndex*3], selectedPositions[m_trackedAtomIndex*3+1], selectedPositions[m_trackedAtomIndex*3+2]};
+                    // Take two point very far away on the rotation axe to define a segment. GLM considers only a segment, not an infinite line for the projection.
+                    // Without this, the result of the projection will likely end up at an extremity of the segment so we make it long enough to "simulate" a line.
+                    m_trackedPointFirstIterationProjection = glm::closestPointOnLine(m_trackedPointFirstIteration, m_centroid - m_rotationAxis * 100000.0, m_centroid + m_rotationAxis * 100000.0);
+                    m_firstIterationProjectionVector = m_trackedPointFirstIteration - m_trackedPointFirstIterationProjection;
+                    double distanceFromAxis = glm::length(m_firstIterationProjectionVector);
+                    //spdlog::info("Atom index {} Distance between the track point and the axis: {}", m_trackedAtomIndex, distanceFromAxis);
+                    if(distanceFromAxis < 0.01)
+                    {
+                        spdlog::info("Atom index {} is too close to the axis. Changing atom.", m_trackedAtomIndex);
+                        m_trackedAtomIndex++;
+                    }
+                    else 
+                    {
+                        spdlog::info("Atom index {} is far enough from the rotation axis. Keeping it.", m_trackedAtomIndex);
+                        break;
+                    }
+                }
+
+                // Check that we have found a proper atom
+                if(m_trackedAtomIndex == m_initialState.getNbSelectedAtoms())
+                {
+                    spdlog::error("Was unable to find an atom not on the rotation axis. Abording.");
+                    m_status = MotorStatus::MOTOR_FAILED;
+                    return false;
+                }
+                
+                
                 m_firstIterationProjectionVector = glm::normalize(m_firstIterationProjectionVector);
                 m_initialStateRegistered = true;
                 return true;
@@ -71,7 +98,7 @@ public:
             
 
             //glm::dvec3 pointOnAxe = centroid + axe;
-            glm::dvec3 trackedPointCurrent = {selectedPositions[0], selectedPositions[1], selectedPositions[2]};
+            glm::dvec3 trackedPointCurrent = {selectedPositions[m_trackedAtomIndex*3], selectedPositions[m_trackedAtomIndex*3+1], selectedPositions[m_trackedAtomIndex*3+2]};
             glm::dvec3 trackedPointProjection = glm::closestPointOnLine(trackedPointCurrent, m_centroid - m_rotationAxis * 10000000.0, m_centroid + m_rotationAxis * 10000000.0);
             glm::dvec3 currentIterationProjectionVector = trackedPointCurrent - trackedPointProjection;
             currentIterationProjectionVector = glm::normalize(currentIterationProjectionVector);
@@ -143,6 +170,7 @@ protected:
     double m_previousRotationAngleRad = 0;
     double m_totalRotationDeg = 0;
     int32_t m_nbRotationCompleted = 0;
+    size_t m_trackedAtomIndex = 0;
 };    
 
 } // core
