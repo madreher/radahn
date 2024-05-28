@@ -44,22 +44,26 @@ public:
             if(m_status != MotorStatus::MOTOR_RUNNING)
                 return false;
 
-            glm::dvec3 centroid = {m_px.m_value, m_py.m_value, m_pz.m_value};
-            glm::dvec3 axe = {m_ax, m_ay, m_az};
-            axe = glm::normalize(axe);
-
             m_currentState.selectAtoms(it, indices, positions);
             auto selectedPositions = m_currentState.getCurrentSelectedPositions();
             if(!m_initialStateRegistered)
             {
                 spdlog::info("Registering the initial state for the motor {}.", m_name);
                 m_initialState = radahn::core::AtomSet(m_currentState);
+
+                // Setup necessary varibles
+                m_centroid = {m_px.m_value, m_py.m_value, m_pz.m_value};
+                m_rotationAxis = {m_ax, m_ay, m_az};
+                m_rotationAxis = glm::normalize(m_rotationAxis);
+
                 // Save the first position
                 // HYPOTHESIS: the atoms are always sorted, therefor the order of the atoms is always the same
                 m_trackedPointFirstIteration = {selectedPositions[0], selectedPositions[1], selectedPositions[2]};
                 // Take two point very far away on the rotation axe to define a segment. GLM considers only a segment not an infinite line for the projection.
                 // Without this, the result of the projection will likely end up at an extremity of the segment so we make it long enough to "simulate" a line.
-                m_trackedPointFirstIterationProjection = glm::closestPointOnLine(m_trackedPointFirstIteration, centroid - axe * 100000.0, centroid + axe * 100000.0);
+                m_trackedPointFirstIterationProjection = glm::closestPointOnLine(m_trackedPointFirstIteration, m_centroid - m_rotationAxis * 100000.0, m_centroid + m_rotationAxis * 100000.0);
+                m_firstIterationProjectionVector = m_trackedPointFirstIteration - m_trackedPointFirstIterationProjection;
+                m_firstIterationProjectionVector = glm::normalize(m_firstIterationProjectionVector);
                 m_initialStateRegistered = true;
                 return true;
             }
@@ -68,14 +72,12 @@ public:
 
             //glm::dvec3 pointOnAxe = centroid + axe;
             glm::dvec3 trackedPointCurrent = {selectedPositions[0], selectedPositions[1], selectedPositions[2]};
-            glm::dvec3 trackedPointProjection = glm::closestPointOnLine(trackedPointCurrent, centroid - axe * 100000.0, centroid + axe * 100000.0);
-            glm::dvec3 firstIterationProjectionVector = m_trackedPointFirstIteration - m_trackedPointFirstIterationProjection;
+            glm::dvec3 trackedPointProjection = glm::closestPointOnLine(trackedPointCurrent, m_centroid - m_rotationAxis * 10000000.0, m_centroid + m_rotationAxis * 10000000.0);
             glm::dvec3 currentIterationProjectionVector = trackedPointCurrent - trackedPointProjection;
-            firstIterationProjectionVector = glm::normalize(firstIterationProjectionVector);
             currentIterationProjectionVector = glm::normalize(currentIterationProjectionVector);
 
             // Produces a result in rad between -PI and PI
-            double rotationFromFirstRad = glm::orientedAngle(firstIterationProjectionVector, currentIterationProjectionVector, axe);
+            double rotationFromFirstRad = glm::orientedAngle(m_firstIterationProjectionVector, currentIterationProjectionVector, m_rotationAxis);
             if(rotationFromFirstRad < 0.0)
                 rotationFromFirstRad = 2.0*M_PI + rotationFromFirstRad; // + because avgRotationRad is negative
             double rotationFromFirstDeg = rotationFromFirstRad * 180.0 / M_PI;
@@ -96,93 +98,11 @@ public:
             kvs["trackY"] = trackedPointCurrent.y;
             kvs["trackZ"] = trackedPointCurrent.z;
 
-            if (m_totalRotationDeg > m_requestedAngle)
+            if (m_totalRotationDeg >= m_requestedAngle)
             {
                 spdlog::info("Motor {} completed successfully.", m_name);
                 m_status = MotorStatus::MOTOR_SUCCESS;
             }
-
-            // Produces a result between -PI and PI, moving to 0, 2PI
-    //avgRotationRad = avgRotationRad / (double)(_tracker->getNbAtoms());
-   
-
-
-
-            // Check if we have met the conditions
-            /*
-            _axePoint[0] = _centroid[0] + _axe[0];
-    _axePoint[1] = _centroid[1] + _axe[1];
-    _axePoint[2] = _centroid[2] + _axe[2];
-
-    tools::closestPointOnLine(_centroid, _axePoint, _origin, _projOrigin);
-    tools::makeVec(_projOrigin, _origin, _vecOrigin);
-
-    //fprintf(stderr, "Centroid: [%f %f %f]\n", _centroid[0], _centroid[1], _centroid[2]);
-    _motorKeyValueStore->addCurrentValue("centroidX", _centroid[0]);
-    _motorKeyValueStore->addCurrentValue("centroidY", _centroid[1]);
-    _motorKeyValueStore->addCurrentValue("centroidZ", _centroid[2]);
-
-    glm::dvec3 rotationAxis(_axe[0], _axe[1], _axe[2]);
-    rotationAxis = glm::normalize(rotationAxis);
-    double motor_it = std::get<double>(_motorKeyValueStore->getCurrentValue("motor_it"));
-
-
-    // Computing the current state of the rotation
-    double avgRotationRad = 0.0;
-    glm::dvec3 origin(_centroid[0], _centroid[1], _centroid[2]);
-
-    double sim_it = std::get<double>(globalValues->getCurrentValue("sim_it"));
-    for(unsigned int i = 0; i < _tracker->getNbAtoms(); i++)
-    {
-        if(_tracker->getNbIterationsStored() > 1 && _tracker->getAtomIndices()[i] == _ref)
-        {
-            glm::dvec3 point(atomPositions[3*i], atomPositions[3*i+1], atomPositions[3*i+2]);
-            glm::dvec3 firstPoint(_firstPositions[3*i], _firstPositions[3*i+1], _firstPositions[3*i+2]);
-            glm::dvec3 firstProj = glm::closestPointOnLine(firstPoint, origin - rotationAxis * 100000.0, origin + rotationAxis * 100000.0);
-            glm::dvec3 proj = glm::closestPointOnLine(point, origin - rotationAxis * 100000.0, origin + rotationAxis * 100000.0);
-            glm::dvec3 vec1 = firstPoint - firstProj;
-            glm::dvec3 vec2 = point - proj;
-            vec1 = glm::normalize(vec1);
-            vec2 = glm::normalize(vec2);
-            //avgRotation +=  glm::orientedAngle(vec1, vec2, rotationAxis);
-            //double angle = glm::angle(vec1, vec2);
-            double angle = glm::orientedAngle(vec1, vec2, rotationAxis);
-            avgRotationRad += angle; // rad
-        }
-    }
-
-    // Produces a result between -PI and PI, moving to 0, 2PI
-    //avgRotationRad = avgRotationRad / (double)(_tracker->getNbAtoms());
-    if(avgRotationRad < 0.0)
-        avgRotationRad = 2.0*M_PI + avgRotationRad; // + because avgRotationRad is negative
-    //_motorKeyValueStore->addCurrentValue("avg_rotation_rad", avgRotationRad);
-
-
-    // Computing the angle difference between the current angle and the previous one
-    double previousAngleRad = (_previousAvgRotation * M_PI)/180.0;
-    double speed_rad = avgRotationRad - previousAngleRad;
-
-
-    // The rotation finished a cycle in positive direction
-    if(avgRotationRad < M_PI/2.0 && previousAngleRad > (3.0*M_PI)/2.0)
-        speed_rad = 2.0*M_PI - previousAngleRad + avgRotationRad;
-    // The rotation finished a cycle in negative direction
-    else if(avgRotationRad > (3.0*M_PI)/2.0 && previousAngleRad < M_PI/2.0)
-        speed_rad = -(2.0*M_PI - avgRotationRad + previousAngleRad);
-    double speed_deg = speed_rad * 180.0 / M_PI;
-
-    _motorKeyValueStore->addCurrentValue("ref_rotation_speed_rad", speed_rad);
-    double avgRotationDeg = avgRotationRad * 180.0 / M_PI;
-
-
-    // Checking if we have finished a rotation in the positive direction
-    if(avgRotationDeg < 90.0 && _previousAvgRotation > 250.0)
-        _completeRotations++;
-    // Checking if we have finished a rotation in the negative direction
-    if(avgRotationDeg > 250.0 && _previousAvgRotation < 90.0)
-        _completeRotations--;
-
-    _sumRotation = (double)_completeRotations * 360.0 + avgRotationDeg;*/
 
             return true;
         }
@@ -210,8 +130,11 @@ protected:
     radahn::core::AtomSet m_initialState;
 
     // Variables used internally only to track the rotation
+    glm::dvec3 m_centroid;
+    glm::dvec3 m_rotationAxis;
     glm::dvec3 m_trackedPointFirstIteration;            // Tracked atom taken when the motor started. It served as a starting point to track the rotation done
     glm::dvec3 m_trackedPointFirstIterationProjection;  // Projection of the tracked point on the rotation axis based on its positions during the first iteration
+    glm::dvec3 m_firstIterationProjectionVector;        // Vector between the tracked atom position during the first iteration and its projection on the rotation vector
     double m_previousRotationAngleDeg = 0;
     double m_previousRotationAngleRad = 0;
     double m_totalRotationDeg = 0;
