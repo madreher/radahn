@@ -23,17 +23,17 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
     //    true, false, false, 
     //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
     
-    m_motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
-        DistanceQuantity(52.0, SimUnits::LAMMPS_REAL), DistanceQuantity(52.0, SimUnits::LAMMPS_REAL), DistanceQuantity(50.0, SimUnits::LAMMPS_REAL),
-        1.0, 0.0, 0.0, TimeQuantity(10000.0, SimUnits::LAMMPS_REAL), 180));
+    //m_motors.emplace_back(std::make_shared<RotateMotor>("testRotate", selectionMove, 
+    //    DistanceQuantity(52.0, SimUnits::LAMMPS_REAL), DistanceQuantity(52.0, SimUnits::LAMMPS_REAL), DistanceQuantity(50.0, SimUnits::LAMMPS_REAL),
+    //    1.0, 0.0, 0.0, TimeQuantity(10000.0, SimUnits::LAMMPS_REAL), 180));
     
     //m_motors.emplace_back(std::make_shared<ForceMotor>("testForce", selectionMove, 
     //    ForceQuantity(0.001, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL), ForceQuantity(0.0, SimUnits::LAMMPS_REAL),
     //    true, false, false, 
     //    DistanceQuantity(1.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL), DistanceQuantity(0.0, SimUnits::LAMMPS_REAL)));
-    //m_motors.emplace_back(std::make_shared<TorqueMotor>("testTorque", selectionMove, 
-    //    TorqueQuantity(0.001, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL),
-    //    90.0));
+    m_motors.emplace_back(std::make_shared<TorqueMotor>("testTorque", selectionMove, 
+        TorqueQuantity(0.001, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL), TorqueQuantity(0.0, SimUnits::LAMMPS_REAL),
+        90.0));
 
     // Make them start immediatly
     for(auto & motor : m_motors)

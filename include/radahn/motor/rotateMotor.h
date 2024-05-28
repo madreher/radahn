@@ -93,10 +93,14 @@ public:
             m_totalRotationDeg = static_cast<double>(m_nbRotationCompleted) * 360.0 + rotationFromFirstDeg;
 
             kvs["progress"] = (m_totalRotationDeg / m_requestedAngle) * 100.0;
-            kvs["current_angle_deg"] = m_totalRotationDeg;
-            kvs["trackX"] = trackedPointCurrent.x;
-            kvs["trackY"] = trackedPointCurrent.y;
-            kvs["trackZ"] = trackedPointCurrent.z;
+            kvs["current_total_angle_deg"] = m_totalRotationDeg;
+            kvs["current_angle_deg"] = rotationFromFirstDeg;
+            kvs["track_x"] = trackedPointCurrent.x;
+            kvs["track_y"] = trackedPointCurrent.y;
+            kvs["track_z"] = trackedPointCurrent.z;
+
+            m_previousRotationAngleRad = rotationFromFirstRad;
+            m_previousRotationAngleDeg = rotationFromFirstDeg;
 
             if (m_totalRotationDeg >= m_requestedAngle)
             {
@@ -138,7 +142,7 @@ protected:
     double m_previousRotationAngleDeg = 0;
     double m_previousRotationAngleRad = 0;
     double m_totalRotationDeg = 0;
-    uint32_t m_nbRotationCompleted = 0;
+    int32_t m_nbRotationCompleted = 0;
 };    
 
 } // core

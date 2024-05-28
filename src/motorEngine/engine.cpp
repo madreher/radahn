@@ -138,6 +138,7 @@ int main(int argc, char** argv)
         if(engine.isCompleted())
         {
             spdlog::info("Motor engine has completed. Exiting the main loop.");
+            engine.getCurrentKVS().print();
             break;
         }
 
