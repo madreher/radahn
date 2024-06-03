@@ -29,6 +29,7 @@ public:
     void clearMotors();
 
     const conduit::Node& getCurrentKVS() const { return m_currentKVS; }
+    conduit::Node& getCurrentKVS() { return m_currentKVS; }
 
 protected:
     std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;

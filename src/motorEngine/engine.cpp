@@ -148,6 +148,10 @@ int main(int argc, char** argv)
 
         handler.push("motorscmd", output);
 
+        // This is kinda dangerous because the push operation may modify the Node
+        // In this case it's fine because it's the instruction before the next iteration
+        handler.push("kvs", engine.getCurrentKVS());
+
         receivedData.clear();
 
         engine.getCurrentKVS().print();

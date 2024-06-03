@@ -125,6 +125,9 @@ public:
             kvs["track_x"] = trackedPointCurrent.x;
             kvs["track_y"] = trackedPointCurrent.y;
             kvs["track_z"] = trackedPointCurrent.z;
+            kvs["centroid_x"] = m_centroid.x;
+            kvs["centroid_y"] = m_centroid.y;
+            kvs["centroid_z"] = m_centroid.z;
 
             m_previousRotationAngleRad = rotationFromFirstRad;
             m_previousRotationAngleDeg = rotationFromFirstDeg;
