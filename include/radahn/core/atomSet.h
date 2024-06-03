@@ -23,6 +23,8 @@ public:
     bool selectAtoms(radahn::core::simIt_t currentIt, const std::vector<atomIndexes_t>& indices, const std::vector<atomPositions_t>& positions);
 
     const std::vector<radahn::core::atomIndexes_t>& getSelectionVector() const { return m_vecSelection; }
+    const std::vector<radahn::core::atomPositions_t>& getCurrentSelectedPositions() const { return m_positions; }
+    size_t getNbSelectedAtoms() const { return m_selection.size(); }
 
     std::vector<radahn::core::atomPositions_t> computePositionCenter() const;
 

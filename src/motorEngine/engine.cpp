@@ -138,6 +138,7 @@ int main(int argc, char** argv)
         if(engine.isCompleted())
         {
             spdlog::info("Motor engine has completed. Exiting the main loop.");
+            engine.getCurrentKVS().print();
             break;
         }
 
@@ -146,6 +147,10 @@ int main(int argc, char** argv)
         engine.getCommandsFromMotors(output["lmpcmds"].append());
 
         handler.push("motorscmd", output);
+
+        // This is kinda dangerous because the push operation may modify the Node
+        // In this case it's fine because it's the instruction before the next iteration
+        handler.push("kvs", engine.getCurrentKVS());
 
         receivedData.clear();
 

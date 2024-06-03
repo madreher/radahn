@@ -13,7 +13,7 @@ from godrick.computeResources import ComputeCollection
 from godrick.workflow import Workflow
 from godrick.task import MPITask, MPIPlacementPolicy
 from godrick.launcher import MainLauncher
-from godrick.communicator import MPIPairedCommunicator, MPICommunicatorProtocol
+from godrick.communicator import MPIPairedCommunicator, MPICommunicatorProtocol, ZMQGateCommunicator, ZMQCommunicatorProtocol, ZMQBindingSide, CommunicatorGateSideFlag, CommunicatorMessageFormat
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -93,6 +93,7 @@ def main():
     engine = MPITask(name="engine", cmdline=engineCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=engineResources)
     engine.addInputPort("atoms")
     engine.addOutputPort("motorscmd")
+    engine.addOutputPort("kvs")
 
     # Communicator declaration
     simToEngine =  MPIPairedCommunicator(id="simToEngine", protocol=MPICommunicatorProtocol.PARTIAL_BCAST_GATHER)
@@ -104,12 +105,16 @@ def main():
     engineToSim.connectToOutputPort(engine.getOutputPort("motorscmd"))
     engineToSim.setNbToken(1)
 
+    # Open gates
+    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON)
+    kvsEngine.connectToOutputPort(engine.getOutputPort("kvs"))
 
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
     workflow.declareTask(engine)
     workflow.declareCommunicator(simToEngine)
     workflow.declareCommunicator(engineToSim)
+    workflow.declareCommunicator(kvsEngine)
 
     # Process the workflow
     launcher = MainLauncher()
