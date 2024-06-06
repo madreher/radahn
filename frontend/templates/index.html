@@ -61,6 +61,8 @@
     $(document).ready(function() {
         var socket = io();
 
+        var currentField = "";
+
         // Get the canvas element
         const canvas = document.getElementById('plot-canvas');
         const canvaTemp = document.getElementById('plot-canvas-temp');
@@ -103,6 +105,13 @@
             var msg = JSON.parse(data.message);
             console.log('Received ZMQ message on JS side:', data.message);
 
+
+            if (!('global' in msg)) {
+                console.log('The "global" key is not present in the msg');
+                return;
+            }
+
+
             //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
             // Update the data in the chart instance
             chart.data.labels.push(msg['global']['simIt']);
@@ -122,6 +131,32 @@
 
             // Update the chart
             chartTemp.update();
+
+            // Find all fields
+            
+            function extractKeysAndValues(obj, parentKey = "") {
+                let result = [];
+                for (let key in obj) {
+                    if (obj.hasOwnProperty(key)) {
+                        let newKey = parentKey ? parentKey + "." + key : key;
+                        if (typeof obj[key] !== "object" || obj[key] === null) {
+                            result.push({key: newKey, value: obj[key]});
+                        }
+                        else {
+                            result = result.concat(extractKeysAndValues(obj[key], newKey));
+                        }
+                    }
+                }
+                return result;
+            }
+            
+            //let keys = extractKeys(msg);
+            let fields = extractKeysAndValues(msg);
+            
+            $('#fields-list').empty();
+            $.each(fields, function(index, key) {
+                $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
+            });
         });
 
         // Handlers for the different forms in the page.
@@ -142,6 +177,8 @@
         <input type="submit" value="Start">
     </form>
     <h2>Receive:</h2>
+    <h2>Fields:</h2>
+    <ul id="fields-list"></ul>
     <div id="log"></div>
     <div>
     <canvas id="plot-canvas"></canvas>
