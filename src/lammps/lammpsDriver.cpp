@@ -1,4 +1,6 @@
 #include <string>
+#include <unordered_map>
+#include <variant>
 
 #include <godrick/mpi/godrickMPI.h>
 #include <conduit/conduit.hpp>
@@ -47,7 +49,8 @@ void extractAtomInformation(
     std::vector<atomIndexes_t>& ids,
     std::vector<atomPositions_t>& pos,
     std::vector<atomForces_t>& forces,
-    std::vector<atomVelocities_t>& vel
+    std::vector<atomVelocities_t>& vel,
+    std::unordered_map<std::string, std::variant<double, int32_t> >& thermo
     )
 {
     // Allocating the buffers according to the local proc
@@ -75,6 +78,29 @@ void extractAtomInformation(
         vel[3*i+1] = v[i][1];
         vel[3*i+2] = v[i][2];
     }
+
+    int32_t* simIt32 = static_cast<int32_t*>(lammps_extract_global(lps, "ntimestep"));
+    thermo.insert({"simIt", static_cast<int32_t>(simIt32[0])});
+
+
+    double temp = lammps_get_thermo(lps, "temp");
+    thermo.insert({"temp", temp});
+
+    double tot = lammps_get_thermo(lps, "etotal");
+    thermo.insert({"tot", tot});
+
+    double pot = lammps_get_thermo(lps, "pe");
+    thermo.insert({"pot", pot});
+
+    double kin = lammps_get_thermo(lps, "ke");
+    thermo.insert({"kin", kin});
+
+    double* dt = static_cast<double*>(lammps_extract_global(lps, "dt"));
+    thermo.insert({"dt", dt[0]});
+
+    double* sim_t = static_cast<double*>(lammps_extract_global(lps, "atime"));
+    thermo.insert({"sim_t", sim_t[0]});
+   
 }
 
 int main(int argc, char** argv)
@@ -211,7 +237,8 @@ int main(int argc, char** argv)
         std::vector<atomPositions_t> pos;
         std::vector<atomForces_t> forces;
         std::vector<atomVelocities_t> vel;
-        extractAtomInformation(lps, ids, pos, forces, vel);
+        std::unordered_map<std::string, std::variant<double, int32_t> > thermos;
+        extractAtomInformation(lps, ids, pos, forces, vel, thermos);
 
         /*if(ids.size() > 0)
         {
@@ -229,6 +256,15 @@ int main(int argc, char** argv)
         simData["atomPositions"] = pos;
         simData["atomForces"] = forces;
         simData["atomVelocities"] = vel;
+
+        conduit::Node& thermosData = rootMsg.add_child("thermos");
+        for(auto & t : thermos)
+        {
+            if(std::holds_alternative<double>(t.second))
+                thermosData[t.first] = std::get<double>(t.second);
+            else
+                thermosData[t.first] = std::get<int32_t>(t.second);
+        }
         handler.push("atoms", rootMsg, true);
 
         executeCommand(lps, "#### LOOP End at Timestep " + std::to_string(currentStep) + " #########################################");

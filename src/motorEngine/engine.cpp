@@ -150,7 +150,9 @@ int main(int argc, char** argv)
 
         // This is kinda dangerous because the push operation may modify the Node
         // In this case it's fine because it's the instruction before the next iteration
-        handler.push("kvs", engine.getCurrentKVS());
+        conduit::Node temporalData = engine.getCurrentKVS();
+        temporalData["global"] = receivedData[0]["thermos"];
+        handler.push("kvs", temporalData);
 
         receivedData.clear();
 
