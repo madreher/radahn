@@ -154,6 +154,12 @@ int main(int argc, char** argv)
         temporalData["global"] = receivedData[0]["thermos"];
         handler.push("kvs", temporalData);
 
+        // Send the atom positions to the outside 
+        conduit::Node atoms;
+        atoms["positions"] = engine.getCurrentPositions();
+        atoms["simIt"] = engine.getCurrentIt();
+        handler.push("atoms", atoms);
+
         receivedData.clear();
 
         engine.getCurrentKVS().print();

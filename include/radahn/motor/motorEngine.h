@@ -31,6 +31,9 @@ public:
     const conduit::Node& getCurrentKVS() const { return m_currentKVS; }
     conduit::Node& getCurrentKVS() { return m_currentKVS; }
 
+    const std::vector<radahn::core::atomPositions_t>& getCurrentPositions() { return m_currentPositions; }
+    radahn::core::simIt_t getCurrentIt() { return m_currentIt; }
+
 protected:
     std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;
 

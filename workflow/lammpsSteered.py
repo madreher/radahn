@@ -94,6 +94,7 @@ def main():
     engine.addInputPort("atoms")
     engine.addOutputPort("motorscmd")
     engine.addOutputPort("kvs")
+    engine.addOutputPort("atoms")
 
     # Communicator declaration
     simToEngine =  MPIPairedCommunicator(id="simToEngine", protocol=MPICommunicatorProtocol.PARTIAL_BCAST_GATHER)
@@ -106,8 +107,10 @@ def main():
     engineToSim.setNbToken(1)
 
     # Open gates
-    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON)
+    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50000)
     kvsEngine.connectToOutputPort(engine.getOutputPort("kvs"))
+    outAtomsEngine = ZMQGateCommunicator(name="atomsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50001)
+    outAtomsEngine.connectToOutputPort(engine.getOutputPort("atoms"))
 
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
@@ -115,6 +118,7 @@ def main():
     workflow.declareCommunicator(simToEngine)
     workflow.declareCommunicator(engineToSim)
     workflow.declareCommunicator(kvsEngine)
+    workflow.declareCommunicator(outAtomsEngine)
 
     # Process the workflow
     launcher = MainLauncher()
