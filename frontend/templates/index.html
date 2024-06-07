@@ -5,56 +5,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="text/javascript" charset="utf-8">
-    /*$(document).ready(function() {
-        var socket = io();
-
-        // Get the canvas element
-        const canvas = document.getElementById('plot-canvas');
-
-        // Create a Chart.js instance
-        const chart = new Chart(canvas, {
-        type: 'line',
-        data: {
-            datasets: [{
-            label: 'Data',
-            data: [],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 2,
-            fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-        });
-
-        socket.on('zmq_message', function(data) {
-            var msg = JSON.parse(data.message);
-            console.log('Received ZMQ message on JS side:', data.message);
-
-            //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
-            // Update the data in the chart instance
-            chart.data.datasets[0].data.push({
-                x: msg['global']['step'],
-                y: msg['global']['step']
-            });
-
-            // Update the chart
-            chart.update();
-        });
-
-        // Handlers for the different forms in the page.
-        // These accept data from the user and send it to the server in a
-        // variety of ways
-        $('form#start_listening').submit(function(event) {
-            socket.emit('start_listening');
-            return false;
-        });
-
-    });*/
-    </script>
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>        
 </head>
 <body>
     <script type="text/javascript" charset="utf-8">
@@ -72,7 +23,7 @@
         type: 'line',
         data: {
             datasets: [{
-            label: 'Data',
+            label: 'Timestep',
             data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
@@ -88,7 +39,7 @@
         type: 'line',
         data: {
             datasets: [{
-            label: 'Data',
+            label: 'Temperature (K)',
             data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
@@ -166,25 +117,113 @@
             socket.emit('start_listening');
             return false;
         });
+
+
+        let element = document.getElementById('visualization');
+        let config = {
+            backgroundColor: 'black'
+        } 
+        let viewer = $3Dmol.createViewer(element, config);
+
+        const input = document.getElementById('xyz-file');
+        input.addEventListener('change', handleFileSelect, false);
+
+        function handleFileSelect(evt) {
+            console.log("File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                // WTF is this? You have to give a lambda triggered if the load has been successful???
+                // HELLOOOOO?
+                reader.onload = function(event) {
+                    const contents = event.target.result;
+                    // Now you can parse the contents of the file
+                    // For example, if the file is a JSON, you can parse it as follows:
+                    console.log("File contents:", contents);
+
+                    viewer.addModel(contents, 'xyz');
+                    viewer.setStyle({}, {stick: {}})
+                    viewer.zoomTo();
+                    viewer.render();
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.log("No file was selected");
+            }
+        }
+        
+        // Load the benzene directly for now   
+        /*let moleculeUrl = "file:///" + "/home/matthieu/dev/radahn/models/benzene_reax/benzene.xyz"; 
+        jQuery.ajax( moleculeUrl, {
+            success: function(data) {
+                let v = viewer;
+                v.addModel(data, 'xyz');
+                v.setStyle({}, {stick: {}})
+                v.zoomTo();
+                v.render();
+            },
+            error: function(hdr, status, error) {
+                console.log("Failed to load the XYZ file from " + moleculeUrl + ": " + error);
+            },
+        })*/
+        //viewer.addModel(moleculeUrl, 'xyz');
+        //viewer.setStyle({}, {stick: {}})
+        //viewer.zoomTo();
+
+        //viewer.render();
+
+        
     });
     </script>
-    <h1>Flask-SocketIO ZMQ Example</h1>
-    <p>
-    Async mode is: <b>{{ async_mode }}</b><br>
-    </p>
-    <h2>Send:</h2>
-    <form id="start_listening" method="POST" action="#">
-        <input type="submit" value="Start">
-    </form>
-    <h2>Receive:</h2>
-    <h2>Fields:</h2>
-    <ul id="fields-list"></ul>
-    <div id="log"></div>
-    <div>
-    <canvas id="plot-canvas"></canvas>
+    <style>
+        .left {
+            float: left;
+            width: 33%;
+        }
+        .middle {
+            float: left;
+            width: 33%;
+        }
+        .right {
+            float: left;
+            width: 33%;
+        }
+
+        .mol-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+    </style>
+    <div class="left">
+        <h1>Radahn Mega Frontend</h1>
+        <p>
+        Async mode is: <b>{{ async_mode }}</b><br>
+        </p>
+        <h2>Setup</h2>
+        <label for="xyz-file">Select XYZ file:</label>
+        <input type="file" id="xyz-file" accept=".xyz">
+        <form id="start_listening" method="POST" action="#">
+            <input type="submit" value="Start">
+        </form>
     </div>
-    <div>
-    <canvas id="plot-canvas-temp"></canvas>
+    <div class="middle">
+        <h2>Plots</h2>
+        <h2>Fields:</h2>
+        <ul id="fields-list"></ul>
+        <div id="log">
+        <canvas id="plot-canvas"></canvas>
+        </div>
+        <div id="sep canvas">
+        <canvas id="plot-canvas-temp"></canvas>
+        </div>
+    </div>
+    <div class="right">
+        <h2>Visualization:</h2>
+        <div id="visualization" class="mol-container"></div>
     </div>
 </body>
 </html>
