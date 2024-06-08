@@ -12,16 +12,18 @@
     $(document).ready(function() {
         var socket = io();
 
-        var currentField = "";
-        var model;
-
         var elementMolecule = document.getElementById('visualization');
         var configMolecule = {
             backgroundColor: 'black'
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
-        var initWithBenzene = true;
+        var initWithBenzene = false;
 
+        var xyzContent = "";
+        var ffContent = "";
+        var ffFileName = "";
+
+        // Handle example initialization for test purposes
         if (initWithBenzene) {
             let content = "12 \n\
  Atoms. Timestep: 0 \n\
@@ -43,8 +45,12 @@ H 53.72 50 50";
             viewerMolecule.render();
         }
 
+        // Handle file selection
         const input = document.getElementById('xyz-file');
         input.addEventListener('change', handleFileSelect, false);
+
+        const inputFF = document.getElementById('ff-file');
+        inputFF.addEventListener('change', handleForcefieldFileSelect, false);
 
         // Get the canvas element
         const canvas = document.getElementById('plot-canvas');
@@ -199,8 +205,18 @@ H 53.72 50 50";
             return false;
         });
 
+        $('form#generate_inputs').submit(function(event) {
+            console.log("Sending request to Generating inputs from javascript side");
+            socket.emit('generate_inputs', {
+                xyz: xyzContent,
+                ff: ffContent,
+                ffName: ffFileName
+            });
+            return false;
+        });
+
         function handleFileSelect(evt) {
-            console.log("File selected: " + evt.target.files[0].name);
+            console.log("XYZ File selected: " + evt.target.files[0].name);
             const file = evt.target.files[0];
 
             if (file) {
@@ -213,10 +229,35 @@ H 53.72 50 50";
                     // For example, if the file is a JSON, you can parse it as follows:
                     console.log("File contents:", contents);
 
-                    model = viewerMolecule.addModel(contents, 'xyz');
+                    viewerMolecule.addModel(contents, 'xyz');
                     viewerMolecule.setStyle({}, {stick: {}})
                     viewerMolecule.zoomTo();
                     viewerMolecule.render();
+
+                    xyzContent = contents;
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.log("No XYZ file was selected");
+            }
+        }
+
+        function handleForcefieldFileSelect(evt) {
+            console.log("Forcefield File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const contents = event.target.result;
+                    
+                    console.log("Forcefield content:", contents);
+
+                    ffContent = contents;
+                    ffFileName = file.name;
                 }
                 reader.readAsText(file);
             }
@@ -225,28 +266,6 @@ H 53.72 50 50";
                 console.log("No file was selected");
             }
         }
-        
-        // Load the benzene directly for now   
-        /*let moleculeUrl = "file:///" + "/home/matthieu/dev/radahn/models/benzene_reax/benzene.xyz"; 
-        jQuery.ajax( moleculeUrl, {
-            success: function(data) {
-                let v = viewer;
-                v.addModel(data, 'xyz');
-                v.setStyle({}, {stick: {}})
-                v.zoomTo();
-                v.render();
-            },
-            error: function(hdr, status, error) {
-                console.log("Failed to load the XYZ file from " + moleculeUrl + ": " + error);
-            },
-        })*/
-        //viewer.addModel(moleculeUrl, 'xyz');
-        //viewer.setStyle({}, {stick: {}})
-        //viewer.zoomTo();
-
-        //viewer.render();
-
-        
     });
     </script>
     <style>
@@ -275,11 +294,25 @@ H 53.72 50 50";
         Async mode is: <b>{{ async_mode }}</b><br>
         </p>
         <h2>Setup</h2>
+        <div>
         <label for="xyz-file">Select XYZ file:</label>
         <input type="file" id="xyz-file" accept=".xyz">
+        </div>
+        <div>
+        <label for="ff-file">Select Potential file:</label>
+        <input type="file" id="ff-file" accept=".ff">
+        </div>
+        <div>
         <form id="start_listening" method="POST" action="#">
             <input type="submit" value="Start">
         </form>
+        </div>
+        <div>
+        <form id="generate_inputs" method="POST" action="#">
+            <input type="submit" value="Generate">
+        </form>
+        </div>
+
     </div>
     <div class="middle">
         <h2>Plots</h2>
