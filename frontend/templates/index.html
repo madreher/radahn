@@ -13,6 +13,38 @@
         var socket = io();
 
         var currentField = "";
+        var model;
+
+        var elementMolecule = document.getElementById('visualization');
+        var configMolecule = {
+            backgroundColor: 'black'
+        } 
+        var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
+        var initWithBenzene = true;
+
+        if (initWithBenzene) {
+            let content = "12 \n\
+ Atoms. Timestep: 0 \n\
+C 53.88 52.15 50 \n\
+C 53.18 53.36 50 \n\
+C 51.78 53.36 50 \n\
+C 51.08 52.15 50 \n\
+C 51.78 50.94 50 \n\
+C 53.18 50.94 50 \n\
+H 54.96 52.15 50 \n\
+H 53.72 54.3 50 \n\
+H 51.24 54.3 50 \n\
+H 50 52.15 50 \n\
+H 51.24 50 50 \n\
+H 53.72 50 50";
+            viewerMolecule.addModel( content, "xyz");
+            viewerMolecule.setStyle({}, {stick: {}})
+            viewerMolecule.zoomTo();
+            viewerMolecule.render();
+        }
+
+        const input = document.getElementById('xyz-file');
+        input.addEventListener('change', handleFileSelect, false);
 
         // Get the canvas element
         const canvas = document.getElementById('plot-canvas');
@@ -112,10 +144,52 @@
 
         socket.on('zmq_message_atoms', function(data) {
             var msg = JSON.parse(data.message);
-            console.log('Received Atoms message on JS side:', msg);
+            //console.log('Received Atoms message on JS side:', msg);
             
+            if (!('positions' in msg)) {
+                console.log('The "positions" key is not present in the msg');
+                return;
+            }
 
-        })
+            
+            // Update the positions of the atoms in the viewer
+            let positions = msg['positions'];
+            
+            // Reshape the positions from 1D to 2D
+            let reshapedPositions = [];
+            while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
+            console.log(reshapedPositions);
+
+            let originPositions = [ [53.88, 52.1, 50], 
+                                    [53.18, 53.36, 50], 
+                                    [51.78, 53.36, 50], 
+                                    [51.08, 52.15, 50], 
+                                    [51.78, 50.94, 50], 
+                                    [53.18, 50.94, 50], 
+                                    [54.96, 52.15, 50], 
+                                    [53.72, 54.3, 50], 
+                                    [51.24, 54.3, 50], 
+                                    [50, 52.15, 50], 
+                                    [51.24, 50, 50], 
+                                    [53.72, 50, 50] ];
+            let simIt = msg['simIt'];
+            for(let i = 0; i < originPositions.length; i++) {
+                originPositions[i][0] += simIt * 0.001;
+                originPositions[i][1] += simIt * 0.001;
+                originPositions[i][2] += simIt * 0.001;
+            }
+            console.log(originPositions);
+
+            //model.setCoordinates(reshapedPositions, "array");
+            viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
+            //viewerMolecule.getModel().setCoordinates(originPositions, "array");
+            viewerMolecule.animate({loop: "forward", reps:1});
+            
+            $('#info-sim-it').empty();
+            $('#info-sim-it').append('Sim iteration: ' + msg['simIt']);
+            viewerMolecule.render();
+            
+        });
 
         // Handlers for the different forms in the page.
         // These accept data from the user and send it to the server in a
@@ -124,16 +198,6 @@
             socket.emit('start_listening');
             return false;
         });
-
-
-        let element = document.getElementById('visualization');
-        let config = {
-            backgroundColor: 'black'
-        } 
-        let viewer = $3Dmol.createViewer(element, config);
-
-        const input = document.getElementById('xyz-file');
-        input.addEventListener('change', handleFileSelect, false);
 
         function handleFileSelect(evt) {
             console.log("File selected: " + evt.target.files[0].name);
@@ -149,10 +213,10 @@
                     // For example, if the file is a JSON, you can parse it as follows:
                     console.log("File contents:", contents);
 
-                    viewer.addModel(contents, 'xyz');
-                    viewer.setStyle({}, {stick: {}})
-                    viewer.zoomTo();
-                    viewer.render();
+                    model = viewerMolecule.addModel(contents, 'xyz');
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    viewerMolecule.zoomTo();
+                    viewerMolecule.render();
                 }
                 reader.readAsText(file);
             }
@@ -231,6 +295,10 @@
     <div class="right">
         <h2>Visualization:</h2>
         <div id="visualization" class="mol-container"></div>
+        <div id="info">
+            <p id="info-sim-it"></p>
+        </div>
+        
     </div>
 </body>
 </html>
