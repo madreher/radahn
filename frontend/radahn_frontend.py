@@ -8,6 +8,9 @@ import uuid
 from pathlib import Path
 import os
 import numpy as np
+import subprocess
+import platform
+import time
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -19,18 +22,131 @@ socketio = SocketIO(app)
 #app = None
 #socketio = None
 
+# Threads listening to the KVS messages
 thread = None
 thread_lock = Lock()
+
+# Threads listening to the atoms messages
 threadAtoms = None
 thread_lockAtoms = Lock()
+
+# Threads generating inputs
 threadGenerateInputs = None
 thread_lockGenerateInputs = Lock()
 
+# Thread running Radahn. This generates inputs and execute the simulation on the local host
+threadRadahn = None
+thread_lockRadahn = Lock()
+
+
+# Default paths
 rootJobFolder = Path(os.getenv("HOME") + "/.radahn/jobs")
+radahnFolder = Path(os.getenv("HOME") + "/dev/radahn/build/install")
+radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+def convertCmd(cmd):
+    """
+    Converts the incoming cmd string into a format appropriate
+    for the system to pass to subprocess.run
+    """
+    if (platform.system() == 'Windows'):
+        return cmd.split()
+    return cmd
+
+def runAsyncProcess(taskname, cmd, cwd, runscript, env = {}):
+    """
+    Execute a command and check its return code.
+    Return the Popen object which can be polled by the caller
+
+    taskname: Name of the task to be used for logging
+    cmd: Command to execute
+    cwd: Job folder
+    runscript: Open file descriptor in which the command will be written
+    """
+    print("\n\nExecuting: " + cmd)
+    runscript.write(cmd + "\n\n")
+    stdOut = os.path.join(cwd, taskname + ".stdout.txt")
+    fileStdOut = open(stdOut, "w")
+    stdErr = os.path.join(cwd, taskname + ".stderr.txt")
+    fileStdErr = open(stdErr, "w")
+
+    if len(env) > 0:
+        result = subprocess.Popen(
+                convertCmd(cmd),
+                shell=True, cwd=cwd,
+                stdout=fileStdOut, stderr=fileStdErr, env=env)
+    else:
+        result = subprocess.Popen(
+                convertCmd(cmd),
+                shell=True, cwd=cwd,
+                stdout=fileStdOut, stderr=fileStdErr)
+
+    return result
+
+class JobRunner:
+    """
+    Process a serie of tasks asynchronously in a given order.
+
+    name: Name of the group of job used to name the runfile
+    jobFolder: folder in which the tasks will be executed
+    """
+
+    def __init__(self, name, jobFolder):
+        self.name = name
+        self.runScriptPath = os.path.join(jobFolder, f"{name}_run.sh")
+        self.runScriptFile = open(self.runScriptPath, "w")
+        self.runScriptFile.write("#! /bin/bash\n\n\n")
+        self.jobList = []
+        self.currentTask = 0
+        self.jobFolder = jobFolder
+        self.currentTaskHandler = None
+
+    def addTask(self, name, cmd, env = {}):
+        job = {}
+        job["name"] = name
+        job["cmd"] = cmd
+        job["folder"] =  self.jobFolder
+        job["env"] = env
+        self.jobList.append(job)
+
+    def processTasks(self):
+
+        # All the tasks are completed
+        if self.currentTask >= len(self.jobList):
+            return True
+
+        # Checking if the current task has already started
+        if self.currentTaskHandler == None:
+            # Not started yet, starting it
+            job = self.jobList[self.currentTask]
+            self.currentTaskHandler = runAsyncProcess(job["name"], job["cmd"], job["folder"], self.runScriptFile, job["env"])
+            return False
+        else:
+            # Task is already running, checking if it is completed
+            pollResult = self.currentTaskHandler.poll()
+
+            # Task is still running
+            if pollResult == None:
+                return False
+            else:
+                # Task is completed. Storing the result and updating the structure
+                self.jobList[self.currentTask]["result"] = pollResult
+                self.currentTaskHandler = None
+                self.currentTask = self.currentTask + 1
+
+                if self.currentTask >= len(self.jobList):
+                    return True
+                else:
+                    # The next task will be started at the next call
+                    return False
+
+    def getJobList(self):
+        return self.jobList
+
 
 def getElementsFromData(dataPath: str) -> str:
     """Get elements from data file
@@ -104,7 +220,7 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     
     return atoms
 
-def generate_inputs(xyz:str, ffContent:str, ffFileName:str):
+def generate_inputs(xyz:str, ffContent:str, ffFileName:str) -> str:
 
     # Create the job folder 
     jobID = uuid.uuid4()
@@ -187,7 +303,40 @@ timestep       0.5"""
     dataFile = jobFolder / "input.data"
     xyzToLammpsDataPBC(xyzFile, dataFile)
 
-    return 
+    return jobFolder
+
+
+def launch_simulation(xyz:str, ffContent:str, ffFileName:str):
+
+    app.logger.info("Received a request to launch the simulation. Generating the inputs...")
+    jobFolder = generate_inputs(xyz, ffContent, ffFileName)
+
+    app.logger.info("Input generated. Preparing the tasks...")
+    taskManager = JobRunner("radahn", jobFolder)
+
+    # Prepare the Vitamins input
+
+    # Name convention used by generate_inputs
+    dataFile = "input.data"
+    lammpsScriptFile = "input.lammps"
+
+    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps 30000 --ncores 2 --frequpdate 100 --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {ffFileName}"
+    taskManager.addTask("prepRadahn", cmdRadan)
+
+    # Launche simulation 
+    cmdLaunch = "./launch.LammpsSteered.sh"
+    taskManager.addTask("launchRadahn", cmdLaunch)
+
+    app.logger.info("Tasks prepared. Processing the tasks...")
+    # Processing the tasks
+    completed = False
+    while not completed:
+        completed = taskManager.processTasks()
+        time.sleep(1)
+
+    app.logger.info("Simulation completed.")
+
+
 
 
 def listen_to_zmq_socket():
@@ -245,7 +394,18 @@ def handle_generate_inputs(data):
             app.logger.info("Background thread generating inputs started.")
         else:
             app.logger.info("Background task generating inputs already started.")
-    
+
+@socketio.on('launch_simulation')
+def handle_launch_simulation(data):
+    app.logger.info("Received a request to launch the simulation.")
+    global threadRadahn
+    with thread_lockRadahn:
+        if threadRadahn is None:    
+            threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'])
+            app.logger.info("Background thread launching simulation started.")
+        else:
+            app.logger.info("Background task launching simulation already started.")
+
 
 #def run_zmq_thread():
 #    thread = threading.Thread(target=listen_to_zmq_socket)

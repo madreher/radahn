@@ -215,6 +215,16 @@ H 53.72 50 50";
             return false;
         });
 
+        $('form#launch_simulation').submit(function(event) {
+            console.log("Sending request to launch the simulation from javascript side");
+            socket.emit('launch_simulation', {
+                xyz: xyzContent,
+                ff: ffContent,
+                ffName: ffFileName
+            });
+            return false;
+        });
+
         function handleFileSelect(evt) {
             console.log("XYZ File selected: " + evt.target.files[0].name);
             const file = evt.target.files[0];
@@ -304,13 +314,18 @@ H 53.72 50 50";
         </div>
         <div>
         <form id="start_listening" method="POST" action="#">
-            <input type="submit" value="Start">
+            <input type="submit" value="Start listening">
         </form>
         </div>
         <div>
         <form id="generate_inputs" method="POST" action="#">
-            <input type="submit" value="Generate">
+            <input type="submit" value="Generate inputs">
         </form>
+        </div>
+        <div>
+            <form id="launch_simulation" method="POST" action="#">
+                <input type="submit" value="Launch">
+            </form>
         </div>
 
     </div>
