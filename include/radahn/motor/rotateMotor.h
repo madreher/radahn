@@ -150,7 +150,48 @@ public:
         return true;
     }
 
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) override
+    {
+        (void)version;
+        
+        if(!node.contains("name"))
+        {
+            spdlog::error("TName not found while trying to load a RotateMotor from json.");
+            return false;
+        }
+        m_name = node["name"].get<std::string>();
+        
+        if(!node.contains("selection"))
+        {
+            spdlog::error("Selection not found while trying to load the RotateMotor {} from json.", m_name);
+            return false;
+        }
+        m_currentState = radahn::core::AtomSet(node["selection"].get<std::set<radahn::core::atomIndexes_t>>());
+
+        m_px = radahn::core::DistanceQuantity(node.value("px", 0.0), units);
+        m_py = radahn::core::DistanceQuantity(node.value("py", 0.0), units);
+        m_pz = radahn::core::DistanceQuantity(node.value("pz", 0.0), units);
+        m_ax = radahn::core::atomPositions_t(node.value("ax", 0.0));
+        m_ay = radahn::core::atomPositions_t(node.value("ay", 0.0));
+        m_az = radahn::core::atomPositions_t(node.value("az", 0.0));
+        m_period = radahn::core::TimeQuantity(node.value("period", 0.0), units);
+        if(m_period.m_value <= 0.0)
+        {
+            spdlog::error("Period must be positive while trying to load the RotateMotor {} from json.", m_name);
+            return false;
+        }
+        m_requestedAngle = node.value("requestedAngle", 0.0);
+
+        if(m_requestedAngle <= 0.0)
+        {
+            spdlog::error("RequestedAngle must be positive while trying to load the RotateMotor {} from json. For a negative rotation, please flip the rotation axis.", m_name);
+            return false;
+        }
+        return true;
+    }
+
 protected:
+    // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::DistanceQuantity m_px;      // 3D point of the axe
     radahn::core::DistanceQuantity m_py;
@@ -160,10 +201,11 @@ protected:
     radahn::core::atomPositions_t m_az;
     radahn::core::TimeQuantity m_period;      // Period of a rotation
     double m_requestedAngle;
-    bool m_initialStateRegistered   = false;
-    radahn::core::AtomSet m_initialState;
+    
 
     // Variables used internally only to track the rotation
+    bool m_initialStateRegistered   = false;
+    radahn::core::AtomSet m_initialState;
     glm::dvec3 m_centroid;
     glm::dvec3 m_rotationAxis;
     glm::dvec3 m_trackedPointFirstIteration;            // Tracked atom taken when the motor started. It served as a starting point to track the rotation done

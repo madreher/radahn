@@ -2,8 +2,10 @@
 
 #include <string>
 #include <conduit/conduit.hpp>
+#include <nlohmann/json.hpp>
 
 #include <radahn/core/types.h>
+#include <radahn/core/units.h>
 
 namespace radahn {
 
@@ -32,9 +34,26 @@ public:
         const std::vector<radahn::core::atomPositions_t>& positions,
         conduit::Node& kvs) = 0;
     virtual bool appendCommandToConduitNode(conduit::Node& node) = 0;
+    void addDependency(std::shared_ptr<Motor> dependency) { m_dependencies.push_back(dependency); }
 
+    bool canStart() const 
+    { 
+        if( m_status != MotorStatus::MOTOR_WAIT )
+            return false;
+
+        for(const auto& dependency : m_dependencies)
+        {
+            if(dependency->getMotorStatus() != MotorStatus::MOTOR_SUCCESS)
+                return false;
+        } 
+
+        return true;
+    }
     bool startMotor()
     {
+        if(!canStart())
+            return false;
+            
         if(m_status == MotorStatus::MOTOR_WAIT)
         {
             m_status = MotorStatus::MOTOR_RUNNING;
@@ -44,9 +63,12 @@ public:
             return false;
     }
 
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) = 0;
+
 protected:
     std::string m_name;
-    MotorStatus m_status;
+    MotorStatus m_status = MotorStatus::MOTOR_WAIT;
+    std::vector<std::shared_ptr<Motor>> m_dependencies;
 };
 
 } // core

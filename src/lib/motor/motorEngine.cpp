@@ -5,6 +5,8 @@
 #include <radahn/motor/rotateMotor.h>
 #include <radahn/motor/forceMotor.h>
 #include <radahn/motor/torqueMotor.h>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 using namespace radahn::core;
 using namespace radahn::motor;
@@ -14,7 +16,8 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
     // Test setup
 
     // Declare test motors
-    m_motors.emplace_back(std::make_shared<BlankMotor>("testWait", 30000));
+    m_motorsMap["testWait"] = std::make_shared<BlankMotor>("testWait", 30000);
+    m_activeMotors.push_back(m_motorsMap["testWait"]);
     
     //std::set<atomIndexes_t> selectionMove = {1,2,3,4,5,6,7,8,9,10,11,12};
     
@@ -36,7 +39,7 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
     //    90.0));
 
     // Make them start immediatly
-    for(auto & motor : m_motors)
+    for(auto & motor : m_activeMotors)
         motor->startMotor();
 }
 
@@ -67,7 +70,7 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
 
     // Now we can update the motors with the sorted arrays
     bool result = true;
-    for(auto & motor : m_motors)
+    for(auto & motor : m_activeMotors)
         result &= motor->updateState(it, m_currentIndexes, m_currentPositions, m_currentKVS.add_child(motor->getMotorName()));
 
     m_currentIt = it;
@@ -78,14 +81,14 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
 bool radahn::motor::MotorEngine::getCommandsFromMotors(conduit::Node& node) const
 {
     bool result = true;
-    for(auto & motor : m_motors)
+    for(auto & motor : m_activeMotors)
         result &= motor->appendCommandToConduitNode(node);
     return result;
 }
 
 bool radahn::motor::MotorEngine::isCompleted() const
 {
-    for(auto & motor : m_motors)
+    for(auto & [name, motor] : m_motorsMap)
     {
         if(motor->getMotorStatus() !=  radahn::motor::MotorStatus::MOTOR_SUCCESS)
             return false;
@@ -96,5 +99,102 @@ bool radahn::motor::MotorEngine::isCompleted() const
 
 void radahn::motor::MotorEngine::clearMotors()
 {
-    m_motors.clear();
+    m_motorsMap.clear();
+    m_activeMotors.clear();
+    m_pendingMotors.clear();
+}
+
+bool radahn::motor::MotorEngine::loadFromJSON(const std::string& filename)
+{
+    json document = json::parse(std::ifstream(filename));
+    if(!document.contains("motors"))
+    {
+        spdlog::error("Could not find motors in JSON file {}.", filename);
+        return false;
+    }
+
+    for(auto & motor : document["motors"])
+    {
+        if(!motor.contains("type"))
+        {
+            spdlog::error("Could not find motor type for a motror in JSON file {}.", filename);
+            return false;
+        }
+
+        std::string type = motor["type"];
+        std::shared_ptr<Motor> motorPtr;
+        if(type == "blank")
+        {
+            motorPtr = std::make_shared<BlankMotor>();
+        }
+        else if(type == "move")
+        {
+            motorPtr = std::make_shared<MoveMotor>();
+        }
+        else if(type == "rotate")
+        {
+            motorPtr = std::make_shared<RotateMotor>();
+        }
+        else if(type == "force")
+        {
+            motorPtr = std::make_shared<ForceMotor>();
+        }
+        else if(type == "torque")
+        {
+            motorPtr = std::make_shared<TorqueMotor>();
+        }
+        else
+        {
+            spdlog::error("Unknown motor type {} in JSON file {}.", type, filename);
+            return false;
+        }
+
+        if(!motorPtr->loadFromJSON(motor, 0, radahn::core::SimUnits::LAMMPS_REAL))
+        {
+            spdlog::error("Could not load motor {} from JSON file {}.", type, filename);
+            return false;
+        }
+        else
+        {
+            m_motorsMap[motorPtr->getMotorName()] = motorPtr;
+            m_pendingMotors.push_back(motorPtr);
+        }    
+    }
+
+    // Process the dependencies
+    for(auto & motor : document["motors"])
+    {
+        if(motor.contains("dependencies"))
+        {
+            for(auto & dependency : motor["dependencies"])
+            {
+                if(m_motorsMap.find(dependency) == m_motorsMap.end())
+                {
+                    spdlog::error("Could not find dependency {} in JSON file {}.", dependency, filename);
+                    return false;
+                }
+                m_motorsMap[motor["name"]]->addDependency(m_motorsMap[dependency]);
+            }
+        }
+    }
+
+    // All the motors are loaded, filling the active list
+    for(auto & motor : m_pendingMotors)
+    {
+        if(motor->canStart())
+        {
+            motor->startMotor();
+            m_activeMotors.push_back(motor);
+        }
+    }
+
+    // Remove the motors which have been started
+    for(auto it = m_pendingMotors.begin(); it != m_pendingMotors.end();)
+    {
+        if((*it)->getMotorStatus() == radahn::motor::MotorStatus::MOTOR_RUNNING)
+            it = m_pendingMotors.erase(it);
+        else
+            it++;
+    }
+    return true;
 }

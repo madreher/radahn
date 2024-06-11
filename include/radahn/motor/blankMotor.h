@@ -23,14 +23,13 @@ public:
         conduit::Node& kvs) override;
         
     virtual bool appendCommandToConduitNode(conduit::Node& node) override;
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) override;
 
 protected:
     radahn::core::simIt_t m_nbStepsRequested = 0;
     radahn::core::simIt_t m_startStep = 0;
     radahn::core::simIt_t m_lastStep = 0;
     bool m_stepCountersSet = false;
-    std::set<radahn::core::atomIndexes_t> m_selection = {1, 2, 3};
-
 };
 
 }
