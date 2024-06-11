@@ -10,6 +10,8 @@
 <body>
     <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
+
+        // Global variables
         var socket = io();
 
         var elementMolecule = document.getElementById('visualization');
@@ -91,7 +93,7 @@ H 53.72 50 50";
         });
 
         socket.on('zmq_message', function(data) {
-            var msg = JSON.parse(data.message);
+            let msg = JSON.parse(data.message);
             console.log('Received ZMQ message on JS side:', data.message);
 
 
@@ -104,19 +106,13 @@ H 53.72 50 50";
             //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
             // Update the data in the chart instance
             chart.data.labels.push(msg['global']['simIt']);
-            chart.data.datasets[0].data.push({
-                x: chart.data.labels.indexOf(msg['global']['simIt']),
-                y: msg['global']['simIt']
-            });
+            chart.data.datasets[0].data.push(msg['global']['simIt']);
 
             // Update the chart
             chart.update();
 
             chartTemp.data.labels.push(msg['global']['simIt']);
-            chartTemp.data.datasets[0].data.push({
-                x: chartTemp.data.labels.indexOf(msg['global']['temp']),
-                y: msg['global']['temp']
-            });
+            chartTemp.data.datasets[0].data.push(msg['global']['temp']);
 
             // Update the chart
             chartTemp.update();
@@ -149,7 +145,7 @@ H 53.72 50 50";
         });
 
         socket.on('zmq_message_atoms', function(data) {
-            var msg = JSON.parse(data.message);
+            let msg = JSON.parse(data.message);
             //console.log('Received Atoms message on JS side:', msg);
             
             if (!('positions' in msg)) {
@@ -166,7 +162,7 @@ H 53.72 50 50";
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
             console.log(reshapedPositions);
 
-            let originPositions = [ [53.88, 52.1, 50], 
+            /*let originPositions = [ [53.88, 52.1, 50], 
                                     [53.18, 53.36, 50], 
                                     [51.78, 53.36, 50], 
                                     [51.08, 52.15, 50], 
@@ -184,7 +180,7 @@ H 53.72 50 50";
                 originPositions[i][1] += simIt * 0.001;
                 originPositions[i][2] += simIt * 0.001;
             }
-            console.log(originPositions);
+            console.log(originPositions);*/
 
             //model.setCoordinates(reshapedPositions, "array");
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");

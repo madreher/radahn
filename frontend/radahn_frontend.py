@@ -406,6 +406,8 @@ def handle_launch_simulation(data):
         else:
             app.logger.info("Background task launching simulation already started.")
 
+    handle_start_listening()
+
 
 #def run_zmq_thread():
 #    thread = threading.Thread(target=listen_to_zmq_socket)
