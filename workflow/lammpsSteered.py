@@ -16,6 +16,14 @@ from godrick.launcher import MainLauncher
 from godrick.communicator import MPIPairedCommunicator, MPICommunicatorProtocol, ZMQGateCommunicator, ZMQCommunicatorProtocol, ZMQBindingSide, CommunicatorGateSideFlag, CommunicatorMessageFormat
 
 def main():
+
+    # Default files used for testing.
+    # TODO: extend command line parser to provide the files via cli
+    benzeneFolder = "/home/matthieu/dev/radahn/models/benzene_reax"
+    fileDataPath =  benzeneFolder + "/input.data"
+    fileLmpPath = benzeneFolder + "/input.lmp"
+    filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
+
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 
@@ -38,6 +46,18 @@ def main():
 		                dest = "ncores",
 		                type=int)
     parser.set_defaults(ncores=1)
+    parser.add_argument("--lmpdata",
+                        help = "Lammps data file.",
+                        dest = "lmpdata",
+                        required = True)
+    parser.add_argument("--lmpinput",
+                        help = "Lammps input file.",
+                        dest = "lmpinput",
+                        required = True)
+    parser.add_argument("--potential",
+                        help = "Lammps potential file.",
+                        dest = "potential",
+                        required = True)
     
     args = parser.parse_args()
 
@@ -54,26 +74,39 @@ def main():
     nCoresHost = len(cluster.getListOfCores())
 
     # Checking the files necessary to run the simulation
-    # TODO: extend command line parser to provide the files via cli
-    benzeneFolder = "/home/matthieu/dev/radahn/models/benzene_reax"
-    fileDataPath =  benzeneFolder + "/input.data"
-    fileLmpPath = benzeneFolder + "/input.lmp"
-    filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
+    fileDataPath = Path(args.lmpdata)
+    if not fileDataPath.is_file():
+        raise FileNotFoundError(f"The data file {fileDataPath} requested by the user does not exist.")
+    
+    fileLmpPath = Path(args.lmpinput)
+    if not fileLmpPath.is_file():
+        raise FileNotFoundError(f"The input file {fileLmpPath} requested by the user does not exist.")
+    
+    filePotentialFile = Path(args.potential)
+    if not filePotentialFile.is_file():
+        raise FileNotFoundError(f"The potential file {filePotentialFile} requested by the user does not exist.")
+
+    
     workFolder = Path(args.workdir)
     if not workFolder.is_dir():
         raise FileNotFoundError(f"The working directory {workFolder} requested by the user does not exist.")
-    
-    # Everything is available, copying the model files to the workdir
-    shutil.copy2(fileDataPath, workFolder)
-    shutil.copy2(fileLmpPath, workFolder)
-    shutil.copy2(filePotentialFile, workFolder)
+
+    # Everything is available, copying the files in the working directory if needed
+    if not fileDataPath.parents[0].samefile(workFolder):
+        print(f"Copying {fileDataPath} from {fileDataPath.parents[0]} to {workFolder}")
+        shutil.copy2(fileDataPath, workFolder)
+    if not fileLmpPath.parents[0].samefile(workFolder):
+        shutil.copy2(fileLmpPath, workFolder)
+    if not filePotentialFile.parents[0].samefile(workFolder):
+        shutil.copy2(filePotentialFile, workFolder)
+
 
     # Workflow initialization
     workflow = Workflow("LammpsSteered")
     
     # Lammps Task declaration
     lammpsCmd = f"/home/matthieu/dev/radahn/build/install/bin/lammpsDriver --name lammps --config {workflow.getConfigurationFile()}"
-    lammpsCmd += " --initlmp input.lmp"
+    lammpsCmd += f" --initlmp {fileLmpPath.name}"
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
 
@@ -94,6 +127,7 @@ def main():
     engine.addInputPort("atoms")
     engine.addOutputPort("motorscmd")
     engine.addOutputPort("kvs")
+    engine.addOutputPort("atoms")
 
     # Communicator declaration
     simToEngine =  MPIPairedCommunicator(id="simToEngine", protocol=MPICommunicatorProtocol.PARTIAL_BCAST_GATHER)
@@ -106,8 +140,10 @@ def main():
     engineToSim.setNbToken(1)
 
     # Open gates
-    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON)
+    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50000)
     kvsEngine.connectToOutputPort(engine.getOutputPort("kvs"))
+    outAtomsEngine = ZMQGateCommunicator(name="atomsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50001)
+    outAtomsEngine.connectToOutputPort(engine.getOutputPort("atoms"))
 
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
@@ -115,6 +151,7 @@ def main():
     workflow.declareCommunicator(simToEngine)
     workflow.declareCommunicator(engineToSim)
     workflow.declareCommunicator(kvsEngine)
+    workflow.declareCommunicator(outAtomsEngine)
 
     # Process the workflow
     launcher = MainLauncher()

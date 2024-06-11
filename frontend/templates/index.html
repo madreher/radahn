@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask-SocketIO ZMQ Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>        
+</head>
+<body>
+    <script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+
+        // Global variables
+        var socket = io();
+
+        var elementMolecule = document.getElementById('visualization');
+        var configMolecule = {
+            backgroundColor: 'black'
+        } 
+        var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
+        var initWithBenzene = false;
+
+        var xyzContent = "";
+        var ffContent = "";
+        var ffFileName = "";
+
+        // Handle example initialization for test purposes
+        if (initWithBenzene) {
+            let content = "12 \n\
+ Atoms. Timestep: 0 \n\
+C 53.88 52.15 50 \n\
+C 53.18 53.36 50 \n\
+C 51.78 53.36 50 \n\
+C 51.08 52.15 50 \n\
+C 51.78 50.94 50 \n\
+C 53.18 50.94 50 \n\
+H 54.96 52.15 50 \n\
+H 53.72 54.3 50 \n\
+H 51.24 54.3 50 \n\
+H 50 52.15 50 \n\
+H 51.24 50 50 \n\
+H 53.72 50 50";
+            viewerMolecule.addModel( content, "xyz");
+            viewerMolecule.setStyle({}, {stick: {}})
+            viewerMolecule.zoomTo();
+            viewerMolecule.render();
+        }
+
+        // Handle file selection
+        const input = document.getElementById('xyz-file');
+        input.addEventListener('change', handleFileSelect, false);
+
+        const inputFF = document.getElementById('ff-file');
+        inputFF.addEventListener('change', handleForcefieldFileSelect, false);
+
+        // Get the canvas element
+        const canvas = document.getElementById('plot-canvas');
+        const canvaTemp = document.getElementById('plot-canvas-temp');
+
+        // Create a Chart.js instance
+        const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            datasets: [{
+            label: 'Timestep',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+        });
+        const chartTemp = new Chart(canvaTemp, {
+        type: 'line',
+        data: {
+            datasets: [{
+            label: 'Temperature (K)',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+        });
+
+        socket.on('zmq_message', function(data) {
+            let msg = JSON.parse(data.message);
+            console.log('Received ZMQ message on JS side:', data.message);
+
+
+            if (!('global' in msg)) {
+                console.log('The "global" key is not present in the msg');
+                return;
+            }
+
+
+            //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
+            // Update the data in the chart instance
+            chart.data.labels.push(msg['global']['simIt']);
+            chart.data.datasets[0].data.push(msg['global']['simIt']);
+
+            // Update the chart
+            chart.update();
+
+            chartTemp.data.labels.push(msg['global']['simIt']);
+            chartTemp.data.datasets[0].data.push(msg['global']['temp']);
+
+            // Update the chart
+            chartTemp.update();
+
+            // Find all fields
+            
+            function extractKeysAndValues(obj, parentKey = "") {
+                let result = [];
+                for (let key in obj) {
+                    if (obj.hasOwnProperty(key)) {
+                        let newKey = parentKey ? parentKey + "." + key : key;
+                        if (typeof obj[key] !== "object" || obj[key] === null) {
+                            result.push({key: newKey, value: obj[key]});
+                        }
+                        else {
+                            result = result.concat(extractKeysAndValues(obj[key], newKey));
+                        }
+                    }
+                }
+                return result;
+            }
+            
+            //let keys = extractKeys(msg);
+            let fields = extractKeysAndValues(msg);
+            
+            $('#fields-list').empty();
+            $.each(fields, function(index, key) {
+                $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
+            });
+        });
+
+        socket.on('zmq_message_atoms', function(data) {
+            let msg = JSON.parse(data.message);
+            //console.log('Received Atoms message on JS side:', msg);
+            
+            if (!('positions' in msg)) {
+                console.log('The "positions" key is not present in the msg');
+                return;
+            }
+
+            
+            // Update the positions of the atoms in the viewer
+            let positions = msg['positions'];
+            
+            // Reshape the positions from 1D to 2D
+            let reshapedPositions = [];
+            while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
+            console.log(reshapedPositions);
+
+            /*let originPositions = [ [53.88, 52.1, 50], 
+                                    [53.18, 53.36, 50], 
+                                    [51.78, 53.36, 50], 
+                                    [51.08, 52.15, 50], 
+                                    [51.78, 50.94, 50], 
+                                    [53.18, 50.94, 50], 
+                                    [54.96, 52.15, 50], 
+                                    [53.72, 54.3, 50], 
+                                    [51.24, 54.3, 50], 
+                                    [50, 52.15, 50], 
+                                    [51.24, 50, 50], 
+                                    [53.72, 50, 50] ];
+            let simIt = msg['simIt'];
+            for(let i = 0; i < originPositions.length; i++) {
+                originPositions[i][0] += simIt * 0.001;
+                originPositions[i][1] += simIt * 0.001;
+                originPositions[i][2] += simIt * 0.001;
+            }
+            console.log(originPositions);*/
+
+            //model.setCoordinates(reshapedPositions, "array");
+            viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
+            //viewerMolecule.getModel().setCoordinates(originPositions, "array");
+            viewerMolecule.animate({loop: "forward", reps:1});
+            
+            $('#info-sim-it').empty();
+            $('#info-sim-it').append('Sim iteration: ' + msg['simIt']);
+            viewerMolecule.render();
+            
+        });
+
+        // Handlers for the different forms in the page.
+        // These accept data from the user and send it to the server in a
+        // variety of ways
+        $('form#start_listening').submit(function(event) {
+            socket.emit('start_listening');
+            return false;
+        });
+
+        $('form#generate_inputs').submit(function(event) {
+            console.log("Sending request to Generating inputs from javascript side");
+            socket.emit('generate_inputs', {
+                xyz: xyzContent,
+                ff: ffContent,
+                ffName: ffFileName
+            });
+            return false;
+        });
+
+        $('form#launch_simulation').submit(function(event) {
+            console.log("Sending request to launch the simulation from javascript side");
+            socket.emit('launch_simulation', {
+                xyz: xyzContent,
+                ff: ffContent,
+                ffName: ffFileName
+            });
+            return false;
+        });
+
+        function handleFileSelect(evt) {
+            console.log("XYZ File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                // WTF is this? You have to give a lambda triggered if the load has been successful???
+                // HELLOOOOO?
+                reader.onload = function(event) {
+                    const contents = event.target.result;
+                    // Now you can parse the contents of the file
+                    // For example, if the file is a JSON, you can parse it as follows:
+                    console.log("File contents:", contents);
+
+                    viewerMolecule.addModel(contents, 'xyz');
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    viewerMolecule.zoomTo();
+                    viewerMolecule.render();
+
+                    xyzContent = contents;
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.log("No XYZ file was selected");
+            }
+        }
+
+        function handleForcefieldFileSelect(evt) {
+            console.log("Forcefield File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const contents = event.target.result;
+                    
+                    console.log("Forcefield content:", contents);
+
+                    ffContent = contents;
+                    ffFileName = file.name;
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.log("No file was selected");
+            }
+        }
+    });
+    </script>
+    <style>
+        .left {
+            float: left;
+            width: 33%;
+        }
+        .middle {
+            float: left;
+            width: 33%;
+        }
+        .right {
+            float: left;
+            width: 33%;
+        }
+
+        .mol-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+    </style>
+    <div class="left">
+        <h1>Radahn Mega Frontend</h1>
+        <p>
+        Async mode is: <b>{{ async_mode }}</b><br>
+        </p>
+        <h2>Setup</h2>
+        <div>
+        <label for="xyz-file">Select XYZ file:</label>
+        <input type="file" id="xyz-file" accept=".xyz">
+        </div>
+        <div>
+        <label for="ff-file">Select Potential file:</label>
+        <input type="file" id="ff-file" accept=".ff">
+        </div>
+        <div>
+        <form id="start_listening" method="POST" action="#">
+            <input type="submit" value="Start listening">
+        </form>
+        </div>
+        <div>
+        <form id="generate_inputs" method="POST" action="#">
+            <input type="submit" value="Generate inputs">
+        </form>
+        </div>
+        <div>
+            <form id="launch_simulation" method="POST" action="#">
+                <input type="submit" value="Launch">
+            </form>
+        </div>
+
+    </div>
+    <div class="middle">
+        <h2>Plots</h2>
+        <h2>Fields:</h2>
+        <ul id="fields-list"></ul>
+        <div id="log">
+        <canvas id="plot-canvas"></canvas>
+        </div>
+        <div id="sep canvas">
+        <canvas id="plot-canvas-temp"></canvas>
+        </div>
+    </div>
+    <div class="right">
+        <h2>Visualization:</h2>
+        <div id="visualization" class="mol-container"></div>
+        <div id="info">
+            <p id="info-sim-it"></p>
+        </div>
+        
+    </div>
+</body>
+</html>

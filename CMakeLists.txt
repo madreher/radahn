@@ -121,6 +121,7 @@ add_subdirectory(src)
 
 install(DIRECTORY 
             ${CMAKE_SOURCE_DIR}/workflow 
+            ${CMAKE_SOURCE_DIR}/frontend
         DESTINATION  
             ${CMAKE_INSTALL_PREFIX})
 
