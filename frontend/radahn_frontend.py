@@ -320,7 +320,7 @@ def launch_simulation(xyz:str, ffContent:str, ffFileName:str):
     dataFile = "input.data"
     lammpsScriptFile = "input.lammps"
 
-    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps 30000 --ncores 2 --frequpdate 100 --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {ffFileName}"
+    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps 30000 --ncores 2 --frequpdate 100 --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {ffFileName} --testmotorsetup"
     taskManager.addTask("prepRadahn", cmdRadan)
 
     # Launche simulation 
