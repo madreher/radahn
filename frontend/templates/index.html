@@ -24,6 +24,7 @@
         var xyzContent = "";
         var ffContent = "";
         var ffFileName = "";
+        var motorConfigContent = "";
 
         // Handle example initialization for test purposes
         if (initWithBenzene) {
@@ -53,6 +54,9 @@ H 53.72 50 50";
 
         const inputFF = document.getElementById('ff-file');
         inputFF.addEventListener('change', handleForcefieldFileSelect, false);
+
+        const inputMotor = document.getElementById('motor-file');
+        inputMotor.addEventListener('change', handleMotorFileSelect, false);
 
         // Get the canvas element
         const canvas = document.getElementById('plot-canvas');
@@ -206,7 +210,8 @@ H 53.72 50 50";
             socket.emit('generate_inputs', {
                 xyz: xyzContent,
                 ff: ffContent,
-                ffName: ffFileName
+                ffName: ffFileName,
+                motors: motorConfigContent
             });
             return false;
         });
@@ -216,7 +221,8 @@ H 53.72 50 50";
             socket.emit('launch_simulation', {
                 xyz: xyzContent,
                 ff: ffContent,
-                ffName: ffFileName
+                ffName: ffFileName,
+                motors: motorConfigContent
             });
             return false;
         });
@@ -272,6 +278,28 @@ H 53.72 50 50";
                 console.log("No file was selected");
             }
         }
+
+        function handleMotorFileSelect(evt) {
+            console.log("Motor Config File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const contents = event.target.result;
+                    
+                    //console.log("Forcefield content:", contents);
+
+                    motorConfigContent = contents;
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.log("No file was selected in motor configuration field.");
+            }
+        }
     });
     </script>
     <style>
@@ -301,22 +329,26 @@ H 53.72 50 50";
         </p>
         <h2>Setup</h2>
         <div>
-        <label for="xyz-file">Select XYZ file:</label>
-        <input type="file" id="xyz-file" accept=".xyz">
+            <label for="xyz-file">Select XYZ file:</label>
+            <input type="file" id="xyz-file" accept=".xyz">
         </div>
         <div>
-        <label for="ff-file">Select Potential file:</label>
-        <input type="file" id="ff-file" accept=".ff">
+            <label for="ff-file">Select Potential file:</label>
+            <input type="file" id="ff-file" accept=".ff">
         </div>
         <div>
-        <form id="start_listening" method="POST" action="#">
-            <input type="submit" value="Start listening">
-        </form>
+            <label for="motor-file">Select motor configuration file:</label>
+            <input type="file" id="motor-file" accept=".json">
         </div>
         <div>
-        <form id="generate_inputs" method="POST" action="#">
-            <input type="submit" value="Generate inputs">
-        </form>
+            <form id="start_listening" method="POST" action="#">
+                <input type="submit" value="Start listening">
+            </form>
+        </div>
+        <div>
+            <form id="generate_inputs" method="POST" action="#">
+                <input type="submit" value="Generate inputs">
+            </form>
         </div>
         <div>
             <form id="launch_simulation" method="POST" action="#">
