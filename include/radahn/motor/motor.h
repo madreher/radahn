@@ -50,10 +50,7 @@ public:
         return true;
     }
     bool startMotor()
-    {
-        if(!canStart())
-            return false;
-            
+    {        
         if(m_status == MotorStatus::MOTOR_WAIT)
         {
             m_status = MotorStatus::MOTOR_RUNNING;

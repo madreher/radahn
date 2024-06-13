@@ -78,6 +78,54 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
     return result;
 }
 
+bool radahn::motor::MotorEngine::updateMotorLists()
+{
+    // Remove the motors which are not running anymore
+    for(auto it = m_activeMotors.begin(); it != m_activeMotors.end();)
+    {
+        if((*it)->getMotorStatus() == radahn::motor::MotorStatus::MOTOR_FAILED)
+        {
+            spdlog::error("Motor {} failed. Abording the rest of the simulation.", (*it)->getMotorName());
+            return false;
+        }
+
+        if((*it)->getMotorStatus() == radahn::motor::MotorStatus::MOTOR_SUCCESS)
+        {
+            spdlog::info("Motor {} completed successfully.", (*it)->getMotorName());
+            it = m_activeMotors.erase(it);
+        }
+        else
+            it++;
+    }
+
+    // All the active motors are processed. Trying to start the remaining motors if possible
+    // TODO: improve this to check only the motors for which the parents have finished. Not a big deal now for so few motors in a graph.
+    for(auto & [name, motor] : m_motorsMap)
+    {
+        if(motor->getMotorStatus() == radahn::motor::MotorStatus::MOTOR_WAIT)
+        {
+            if (motor->canStart())
+            {
+                spdlog::info("Starting the motor {}.", name);
+                m_activeMotors.push_back(motor);
+                if(!motor->startMotor())
+                {
+                    spdlog::error("Failed to start the motor {}.", name);
+                    return false;
+                }
+            }
+        }
+    }
+
+    if(m_activeMotors.size() == 0 && !isCompleted())
+    {
+        spdlog::error("No motors are can be started but not all the motors have started. Is there a cyclic dependency in the motors?");
+        return false;
+    }
+
+    return true;
+}
+
 bool radahn::motor::MotorEngine::getCommandsFromMotors(conduit::Node& node) const
 {
     bool result = true;
@@ -107,6 +155,17 @@ void radahn::motor::MotorEngine::clearMotors()
 bool radahn::motor::MotorEngine::loadFromJSON(const std::string& filename)
 {
     json document = json::parse(std::ifstream(filename));
+
+    if(!document.contains("header"))
+    {
+        spdlog::error("Could not find header in JSON file {}.", filename);
+        return false;
+    }
+
+    uint32_t version = document["header"].value("version", 0u);
+    std::string units = document["header"].value("units", "LAMMPS_REAL");
+    radahn::core::SimUnits simUnits = radahn::core::from_string(units);
+
     if(!document.contains("motors"))
     {
         spdlog::error("Could not find motors in JSON file {}.", filename);
@@ -149,7 +208,7 @@ bool radahn::motor::MotorEngine::loadFromJSON(const std::string& filename)
             return false;
         }
 
-        if(!motorPtr->loadFromJSON(motor, 0, radahn::core::SimUnits::LAMMPS_REAL))
+        if(!motorPtr->loadFromJSON(motor, version, simUnits))
         {
             spdlog::error("Could not load motor {} from JSON file {}.", type, filename);
             return false;

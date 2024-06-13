@@ -26,6 +26,8 @@ public:
         std::vector<radahn::core::atomPositions_t>& positions);
 
     bool getCommandsFromMotors(conduit::Node& node) const;
+    bool updateMotorLists();
+
     bool isCompleted() const;
     void clearMotors();
 

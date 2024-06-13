@@ -14,7 +14,7 @@ mass           2 1.008
 
 
 pair_style     reaxff NULL mincap 1000
-pair_coeff     * * ffield.reax.Fe_O_C_H C H
+pair_coeff     * * ffield.reax.Fe_O_C_H.ff C H
 fix            ReaxFFSpec all qeq/reax 1 0.0 10.0 1e-8 reaxff.ff
 
 neighbor       2.5 bin

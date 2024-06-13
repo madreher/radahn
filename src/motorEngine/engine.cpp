@@ -193,6 +193,9 @@ int main(int argc, char** argv)
         receivedData.clear();
 
         engine.getCurrentKVS().print();
+
+        // Iterations is finished, processing the motor state and prepare the motor lists for the next iteration
+        engine.updateMotorLists();
     }
 
     //spdlog::info("Cleaning the motor engine...");
