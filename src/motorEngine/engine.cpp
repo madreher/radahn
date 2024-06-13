@@ -54,7 +54,7 @@ simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<ato
     size_t offset = 0;
     for(size_t i = 0; i < receivedData.size(); ++i)
     {
-        auto & simData = receivedData[0]["simdata"];
+        auto & simData = receivedData[i]["simdata"];
         simIt = simData["simIt"].as_uint64();
         atomIndexes_t* indices = simData["atomIDs"].value();
         uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());

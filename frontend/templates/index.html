@@ -160,12 +160,14 @@ H 53.72 50 50";
             
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
+            console.log("Original positions:", positions);
+            console.log("Original positions length:", positions.length);
             
             // Reshape the positions from 1D to 2D
             let reshapedPositions = [];
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-            console.log(reshapedPositions);
-
+            console.log("Reshaped positions:", reshapedPositions);
+            console.log("Reshaped positions length:", reshapedPositions.length);
             /*let originPositions = [ [53.88, 52.1, 50], 
                                     [53.18, 53.36, 50], 
                                     [51.78, 53.36, 50], 
