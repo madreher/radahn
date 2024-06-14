@@ -54,7 +54,7 @@ simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<ato
     size_t offset = 0;
     for(size_t i = 0; i < receivedData.size(); ++i)
     {
-        auto & simData = receivedData[0]["simdata"];
+        auto & simData = receivedData[i]["simdata"];
         simIt = simData["simIt"].as_uint64();
         atomIndexes_t* indices = simData["atomIDs"].value();
         uint64_t nbAtoms = static_cast<uint64_t>(simData["atomIDs"].dtype().number_of_elements());
@@ -77,6 +77,8 @@ int main(int argc, char** argv)
     std::string taskName;
     std::string configFile;
     std::string lmpInitialState;
+    std::string motorConfig;
+    bool useTestMotors = false;
 
     auto cli = lyra::cli()
         | lyra::opt( taskName, "name" )
@@ -87,12 +89,30 @@ int main(int argc, char** argv)
             ("Path to the config file.")
         | lyra::opt( lmpInitialState, "initlmp")
             ["--initlmp"]
-            ("Path to initial script to setup the system.");
+            ("Path to initial script to setup the system.")
+        | lyra::opt( motorConfig, "motors")
+            ["--motors"]
+            ("Path to the definition of the motors to use.")
+        | lyra::opt( useTestMotors)
+            ["--testmotors"]
+            ("Use the test motor setup.");
 
     auto result = cli.parse( { argc, argv } );
     if ( !result )
     {
         spdlog::critical("Unable to parse the command line: {}.", result.errorMessage());
+        exit(1);
+    }
+
+    if(useTestMotors && !motorConfig.empty())
+    {
+        spdlog::critical("You cannot use the test motors and the motor config at the same time.");
+        exit(1);
+    }
+
+    if(!useTestMotors && motorConfig.empty())
+    {
+        spdlog::critical("Motor configuration not provided and not using the test motors.");
         exit(1);
     }
 
@@ -111,7 +131,17 @@ int main(int argc, char** argv)
 
     // Create the engine and add a test set of motors
     auto engine = radahn::motor::MotorEngine();
-    engine.loadTestMotorSetup();
+
+    if(useTestMotors)
+    {
+        spdlog::info("Loading the test motor setup.");
+        engine.loadTestMotorSetup();
+    }
+    else
+    {
+        spdlog::info("Loading the motor setup {}.", motorConfig);
+        engine.loadFromJSON(motorConfig);    
+    }
 
     std::vector<conduit::Node> receivedData;
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
@@ -163,6 +193,9 @@ int main(int argc, char** argv)
         receivedData.clear();
 
         engine.getCurrentKVS().print();
+
+        // Iterations is finished, processing the motor state and prepare the motor lists for the next iteration
+        engine.updateMotorLists();
     }
 
     //spdlog::info("Cleaning the motor engine...");

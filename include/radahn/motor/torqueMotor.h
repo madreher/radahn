@@ -147,16 +147,50 @@ public:
         return true;
     }
 
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) override
+    {
+        (void)version;
+        
+        if(!node.contains("name"))
+        {
+            spdlog::error("TName not found while trying to load a TorqueMotor from json.");
+            return false;
+        }
+        m_name = node["name"].get<std::string>();
+        
+        if(!node.contains("selection"))
+        {
+            spdlog::error("Selection not found while trying to load the TorqueMotor {} from json.", m_name);
+            return false;
+        }
+        m_currentState = radahn::core::AtomSet(node["selection"].get<std::set<radahn::core::atomIndexes_t>>());
+
+        m_tx = radahn::core::TorqueQuantity(node.value("tx", 0.0), units);
+        m_ty = radahn::core::TorqueQuantity(node.value("ty", 0.0), units);
+        m_tz = radahn::core::TorqueQuantity(node.value("tz", 0.0), units);
+
+        m_requestedAngle = node.value("requestedAngle", 0.0);
+        if(m_requestedAngle <= 0.0)
+        {
+            spdlog::error("RequestedAngle must be positive while trying to load the RotateMotor {} from json. For a negative rotation, please flip the rotation axis.", m_name);
+            return false;
+        }
+
+        return true;
+    }
+
 protected:
+    // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::TorqueQuantity m_tx;
     radahn::core::TorqueQuantity m_ty;
     radahn::core::TorqueQuantity m_tz;
-    bool m_initialStateRegistered   = false;
-    radahn::core::AtomSet m_initialState;
+    
     double m_requestedAngle;
 
     // Variables used internally only to track the rotation
+    bool m_initialStateRegistered   = false;
+    radahn::core::AtomSet m_initialState;
     glm::dvec3 m_centroid;
     glm::dvec3 m_rotationAxis;
     glm::dvec3 m_trackedPointFirstIteration;            // Tracked atom taken when the motor started. It served as a starting point to track the rotation done

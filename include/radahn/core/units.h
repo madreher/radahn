@@ -31,6 +31,18 @@ constexpr const char* to_string(SimUnits u)// throw()
     }
 }
 
+constexpr SimUnits from_string(const std::string_view& str)// throw()
+{
+    if (str == "LAMMPS_METAL")
+        return SimUnits::LAMMPS_METAL;
+    if (str == "LAMMPS_REAL")
+        return SimUnits::LAMMPS_REAL;
+    if (str == "GROMACS")
+        return SimUnits::GROMACS;
+
+    throw std::invalid_argument("Unknown string given to from_string(const std::string&).");
+}
+
 // In this case, we are limiting ourselves to only positions, velocities, and forces, and only with 3 unit sets with few calls. 
 // If the use case becomes more complicated, it will be worth looking at proper unit libraries.
 

@@ -220,7 +220,7 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     
     return atoms
 
-def generate_inputs(xyz:str, ffContent:str, ffFileName:str) -> str:
+def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
 
     # Create the job folder 
     jobID = uuid.uuid4()
@@ -238,12 +238,18 @@ def generate_inputs(xyz:str, ffContent:str, ffFileName:str) -> str:
         f.write(ffContent)
         f.close()
 
+    if len(motors) > 0:
+        motorsFile = jobFolder / "motors.json"
+        with open(motorsFile, "w") as f:
+            f.write(motors)
+            f.close()
+
 
     dataFile = jobFolder / "input.data"
 
     # Generate the base Lammps script
     lammpsScriptFile = jobFolder / "input.lammps"
-    useAcks2 = True
+    useAcks2 = False
     with open(lammpsScriptFile, "w") as f:
         # Convert the XYZ to a .data file 
         atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
@@ -306,10 +312,10 @@ timestep       0.5"""
     return jobFolder
 
 
-def launch_simulation(xyz:str, ffContent:str, ffFileName:str):
+def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
 
     app.logger.info("Received a request to launch the simulation. Generating the inputs...")
-    jobFolder = generate_inputs(xyz, ffContent, ffFileName)
+    jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
 
     app.logger.info("Input generated. Preparing the tasks...")
     taskManager = JobRunner("radahn", jobFolder)
@@ -319,8 +325,13 @@ def launch_simulation(xyz:str, ffContent:str, ffFileName:str):
     # Name convention used by generate_inputs
     dataFile = "input.data"
     lammpsScriptFile = "input.lammps"
+    motorsFile = "motors.json"
 
     cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps 30000 --ncores 2 --frequpdate 100 --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {ffFileName}"
+    if len(motors) > 0:
+        cmdRadan += f" --motorconfig {motorsFile}"
+    else:
+        cmdRadan += " --testmotorsetup"
     taskManager.addTask("prepRadahn", cmdRadan)
 
     # Launche simulation 
@@ -390,7 +401,7 @@ def handle_generate_inputs(data):
     global threadGenerateInputs
     with thread_lockGenerateInputs:
         if threadGenerateInputs is None:
-            threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'])
+            threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'], data['motors'])
             app.logger.info("Background thread generating inputs started.")
         else:
             app.logger.info("Background task generating inputs already started.")
@@ -401,7 +412,7 @@ def handle_launch_simulation(data):
     global threadRadahn
     with thread_lockRadahn:
         if threadRadahn is None:    
-            threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'])
+            threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'], data['motors'])
             app.logger.info("Background thread launching simulation started.")
         else:
             app.logger.info("Background task launching simulation already started.")

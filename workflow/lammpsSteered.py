@@ -23,6 +23,8 @@ def main():
     fileDataPath =  benzeneFolder + "/input.data"
     fileLmpPath = benzeneFolder + "/input.lmp"
     filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
+    fileMotorConfig = ""
+    useTestMotorSetup = False
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -58,6 +60,15 @@ def main():
                         help = "Lammps potential file.",
                         dest = "potential",
                         required = True)
+    parser.add_argument("--motorconfig",
+                        help = "Motor configuration file.",
+                        dest = "motorconfig",
+                        required = False)
+    parser.add_argument("--testmotorsetup",
+                        help = "Use a test motor configuration.",
+                        dest = "testmotors",
+                        action='store_true',
+                        required = False)
     
     args = parser.parse_args()
 
@@ -85,8 +96,21 @@ def main():
     filePotentialFile = Path(args.potential)
     if not filePotentialFile.is_file():
         raise FileNotFoundError(f"The potential file {filePotentialFile} requested by the user does not exist.")
-
     
+    if args.motorconfig is not None:
+        fileMotorConfig = Path(args.motorconfig)
+        if not fileMotorConfig.is_file():
+            raise FileNotFoundError(f"The motor configuration file {fileMotorConfig} requested by the user does not exist.")
+
+    if args.testmotors:
+        useTestMotorSetup = True
+    
+    if useTestMotorSetup and args.motorconfig is not None:
+        raise ValueError("The --testmotors and --motorconfig options are mutually exclusive.")
+    
+    if not useTestMotorSetup and args.motorconfig is None:
+        raise ValueError("No motor configuration file provided. Please use --testmotors or --motorconfig.")
+
     workFolder = Path(args.workdir)
     if not workFolder.is_dir():
         raise FileNotFoundError(f"The working directory {workFolder} requested by the user does not exist.")
@@ -110,6 +134,7 @@ def main():
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
 
+
     if args.ncores + 1 > nCoresHost:
         raise ValueError(f"User requested {args.ncores+1} physical cores for Lammps and the engine, but the localhost only has {nCoresHost} physical cores.")
     splitResources = cluster.splitNodesByCoreRange([args.ncores, 1])
@@ -122,6 +147,10 @@ def main():
 
     # Engine Task declaration
     engineCmd = f"/home/matthieu/dev/radahn/build/install/bin/engine --name engine --config {workflow.getConfigurationFile()}"
+    if useTestMotorSetup:
+        engineCmd += " --testmotors"
+    if args.motorconfig is not None:
+        engineCmd += f" --motors {fileMotorConfig.name}"
     engineResources = splitResources[1]
     engine = MPITask(name="engine", cmdline=engineCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=engineResources)
     engine.addInputPort("atoms")

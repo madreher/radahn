@@ -46,3 +46,30 @@ bool radahn::motor::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
     radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(node, m_name);
     return true;
 }
+
+bool radahn::motor::BlankMotor::loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units)
+{
+    (void)version;
+    (void)units;
+    
+    if(!node.contains("name"))
+    {
+        spdlog::error("TName not found while trying to load a BlankMotor from json.");
+        return false;
+    }
+    m_name = node["name"].get<std::string>();
+
+    if(!node.contains("nbStepsRequested"))
+    {
+        spdlog::error("nbStepsRequested not found while trying to load a BlankMotor from json.");
+        return false;
+    }
+    m_nbStepsRequested = node["nbStepsRequested"].get<radahn::core::simIt_t>();
+    if(m_nbStepsRequested <= 0)
+    {
+        spdlog::error("nbStepsRequested must be > 0 while trying to load a BlankMotor from json.");
+        return false;
+    }
+
+    return true;
+}

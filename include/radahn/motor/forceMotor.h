@@ -84,7 +84,38 @@ public:
         return true;
     }
 
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) override
+    {
+        (void)version;
+        
+        if(!node.contains("name"))
+        {
+            spdlog::error("TName not found while trying to load a ForceMotor from json.");
+            return false;
+        }
+        m_name = node["name"].get<std::string>();
+        
+        if(!node.contains("selection"))
+        {
+            spdlog::error("Selection not found while trying to load the ForceMotor {} from json.", m_name);
+            return false;
+        }
+        m_currentState = radahn::core::AtomSet(node["selection"].get<std::set<radahn::core::atomIndexes_t>>());
+        
+        m_fx = radahn::core::ForceQuantity(node.value("fx", 0.0), units);
+        m_fy = radahn::core::ForceQuantity(node.value("fy", 0.0), units);
+        m_fz = radahn::core::ForceQuantity(node.value("fz", 0.0), units);
+        m_checkX = node.value("checkX", false);
+        m_checkY = node.value("checkY", false);
+        m_checkZ = node.value("checkZ", false);
+        m_dx = radahn::core::DistanceQuantity(node.value("dx", 0.0), units);
+        m_dy = radahn::core::DistanceQuantity(node.value("dy", 0.0), units);
+        m_dz = radahn::core::DistanceQuantity(node.value("dz", 0.0), units);
+        return true;
+    }
+
 protected:
+    // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::ForceQuantity m_fx;
     radahn::core::ForceQuantity m_fy;
@@ -95,6 +126,8 @@ protected:
     radahn::core::DistanceQuantity m_dx;
     radahn::core::DistanceQuantity m_dy;
     radahn::core::DistanceQuantity m_dz;
+
+    // Internal computation variables
     bool m_initialStateRegistered   = false;
     radahn::core::DistanceQuantity m_initialCx;          // initial center
     radahn::core::DistanceQuantity m_initialCy;

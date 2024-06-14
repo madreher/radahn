@@ -1,0 +1,28 @@
+{
+    "header":
+    {
+        "version": 0,
+        "units": "LAMMPS_REAL"
+    },
+    "motors":
+    [
+        {
+            "name": "forward",
+            "type": "move",
+            "selection": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "vx": 0.001,
+            "checkX": true,
+            "dx": 3.0
+
+        },
+        {
+            "name": "backward",
+            "type": "move",
+            "selection": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            "vx": -0.001,
+            "checkX": true,
+            "dx": -3.0,
+            "dependencies": ["forward"]
+        }
+    ]
+}
