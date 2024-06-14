@@ -249,7 +249,7 @@ def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
 
     # Generate the base Lammps script
     lammpsScriptFile = jobFolder / "input.lammps"
-    useAcks2 = True
+    useAcks2 = False
     with open(lammpsScriptFile, "w") as f:
         # Convert the XYZ to a .data file 
         atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
