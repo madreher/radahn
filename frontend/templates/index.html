@@ -17,10 +17,102 @@
         var socket = io();
 
         var elementMolecule = document.getElementById('visualization');
+        
         var configMolecule = {
-            backgroundColor: 'black'
+            backgroundColor: 'black',
+            nomouse: true
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
+
+        var isDrawing = false;
+        var startPoint = null;
+        var dx = null;
+        var dy = null;
+        var mapObjectsToScreen = null;
+        var selectedAtoms = [];
+
+        // Defining custom listener when needed, forwarding to 3dmol.js otherwise
+
+        // Event listener for mouse down (left click + Shift key)
+        viewerMolecule.container.addEventListener('mousedown', (event) => {
+            if (event.button === 0 && event.shiftKey) {
+                startPoint = { x: event.clientX, y: event.clientY };
+
+                console.log("Start point:", startPoint);
+                if(viewerMolecule.getModel() != null)
+                {
+                    isDrawing = true;
+                    mapObjectsToScreen = viewerMolecule.modelToScreen(viewerMolecule.getModel().getInternalState().atoms);
+                    console.log("mapObjectsToScreen:", mapObjectsToScreen);
+                    selectedAtoms = [];
+                }
+                else 
+                {
+                    console.log("Model is null");
+                }
+            }
+            else {
+                //console.log("Left button detected but not intercepted. Foward to 3Dmol.js");
+                viewerMolecule._handleMouseDown(event);
+            }
+        });
+
+        // Event listener for mouse move
+        viewerMolecule.container.addEventListener('mousemove', (event) => {
+            if (isDrawing) {
+                // Calculate distance between current point and start point
+                dx = event.clientX - startPoint.x;
+                dy = event.clientY - startPoint.y;
+
+                //console.log("dx:", dx, "dy:", dy);
+
+            }
+            else 
+            {
+                //console.log("Mouse move detected but not intercepted. Foward to 3Dmol.js");
+                viewerMolecule._handleMouseMove(event);
+            }
+        });
+
+        // Event listener for mouse up
+        viewerMolecule.container.addEventListener('mouseup', () => {
+            if (isDrawing) {
+                isDrawing = false;
+                
+
+                console.log(`Stopping drawing, will do the selection at this point within the rectangle. Looking for atoms between (${startPoint.x}, ${startPoint.y}) and (${startPoint.x + dx}, ${startPoint.y + dy})`);
+                for(let i = 0; i < mapObjectsToScreen.length; i++)
+                {
+                    if(mapObjectsToScreen[i].x >= startPoint.x && mapObjectsToScreen[i].x <= startPoint.x + dx && mapObjectsToScreen[i].y >= startPoint.y && mapObjectsToScreen[i].y <= startPoint.y + dy)
+                    {
+                        selectedAtoms.push(i);
+                    }
+                }
+                console.log("Selected atoms:", selectedAtoms);
+                viewerMolecule.getModel().setStyle({'serial': selectedAtoms}, {'stick': {'color': 'yellow'}});
+                viewerMolecule.render();
+                
+                
+                startPoint = null;
+            }
+            else 
+            {
+                //console.log("Mouse up detected but not intercepted. Foward to 3Dmol.js");
+                viewerMolecule._handleMouseUp(event);
+            }
+        });
+
+        viewerMolecule.container.addEventListener('mousewheel', (event) => {
+                //console.log("Mouse wheel detected but not intercepted. Foward to 3Dmol.js");
+                viewerMolecule._handleMouseScroll(event);
+        });
+
+        viewerMolecule.container.addEventListener('DOMMouseScroll', (event) => {
+                //console.log("DOM Mouse wheel detected but not intercepted. Foward to 3Dmol.js");
+                viewerMolecule._handleMouseScroll(event);
+        });
+
+
         var initWithBenzene = false;
 
         var xyzContent = "";
