@@ -36,6 +36,8 @@
         var mapObjectsToScreen = null;
         var selectedAtoms = [];
 
+        var savedSelections = {};
+
         // Defining custom listener when needed, forwarding to 3dmol.js otherwise
 
         // Event listener for mouse down (left click + Shift key)
@@ -505,6 +507,19 @@ H 53.72 50 50";
                 console.log("No file was selected in motor configuration field.");
             }
         }
+
+        // Make it global so that it's accessible to the save button
+        window.saveSelectionInternal = function() {
+            if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
+                savedSelections[document.getElementById('save-selection').value] = selectedAtoms;
+                console.log("Added the selection " + document.getElementById('save-selection').value)
+            }
+            else 
+            {
+                console.log("No selection was selected or a name was not given")
+            }
+            console.log("Saved selections:", savedSelections);
+        }
     });
     </script>
     <style>
@@ -634,6 +649,9 @@ H 53.72 50 50";
                 <p id="info-sim-it">Current Timestep: 0</p>
                 <label id="current-selection-label">Current Selection: </label>
                 <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
+                <label>Save current selection as:</label>
+                <input type="text" id="save-selection" name="save-selection"></input>
+                <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
             </div>
         </div>
         
