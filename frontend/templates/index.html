@@ -105,7 +105,19 @@
                 console.log("Selected atoms:", selectedAtoms);
                 viewerMolecule.getModel().setStyle({'serial': selectedAtoms}, {'stick': {'color': 'yellow'}});
                 viewerMolecule.render();
-                
+
+                // Updating the current selection field
+                $('#current-selection').empty();
+                if(selectedAtoms.length > 0)
+                {
+                    let strSelection = "";
+                    for(let i = 0; i < selectedAtoms.length; i++)
+                    {
+                        strSelection += selectedAtoms[i] + " ";
+                    }
+                    document.getElementById('current-selection').value = strSelection;
+                    console.log("Current selection:", strSelection);
+                }
                 
                 startPoint = null;
             }
@@ -379,33 +391,13 @@ H 53.72 50 50";
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
             console.log("Reshaped positions:", reshapedPositions);
             console.log("Reshaped positions length:", reshapedPositions.length);
-            /*let originPositions = [ [53.88, 52.1, 50], 
-                                    [53.18, 53.36, 50], 
-                                    [51.78, 53.36, 50], 
-                                    [51.08, 52.15, 50], 
-                                    [51.78, 50.94, 50], 
-                                    [53.18, 50.94, 50], 
-                                    [54.96, 52.15, 50], 
-                                    [53.72, 54.3, 50], 
-                                    [51.24, 54.3, 50], 
-                                    [50, 52.15, 50], 
-                                    [51.24, 50, 50], 
-                                    [53.72, 50, 50] ];
-            let simIt = msg['simIt'];
-            for(let i = 0; i < originPositions.length; i++) {
-                originPositions[i][0] += simIt * 0.001;
-                originPositions[i][1] += simIt * 0.001;
-                originPositions[i][2] += simIt * 0.001;
-            }
-            console.log(originPositions);*/
 
-            //model.setCoordinates(reshapedPositions, "array");
+
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
-            //viewerMolecule.getModel().setCoordinates(originPositions, "array");
             viewerMolecule.animate({loop: "forward", reps:1});
             
             $('#info-sim-it').empty();
-            $('#info-sim-it').append('Sim iteration: ' + msg['simIt']);
+            $('#info-sim-it').append('Current Timestep: ' + msg['simIt']);
             viewerMolecule.render();
             
         });
@@ -576,6 +568,16 @@ H 53.72 50 50";
             /*background-color: rgba(196, 39, 135, 1); */
             background-color: rgba(0, 0, 0, 0);
         }
+
+        #info {
+            position: relative;
+            top: 450px;
+            left: 0;
+        }
+
+        #current-selection {
+            width: 100%;
+        }
     </style>
     <div class="left">
         <h1>Radahn Mega Frontend</h1>
@@ -628,9 +630,11 @@ H 53.72 50 50";
         <div id="wrapper">  
             <div id="visualization" class="mol-container"></div>
             <canvas id="visualization-overlay" class="mol-overlay"></canvas>
-        </div>
-        <div id="info">
-            <p id="info-sim-it"></p>
+            <div id="info">
+                <p id="info-sim-it">Current Timestep: 0</p>
+                <label id="current-selection-label">Current Selection: </label>
+                <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
+            </div>
         </div>
         
     </div>
