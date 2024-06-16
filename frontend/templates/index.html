@@ -17,6 +17,8 @@
         var socket = io();
 
         var elementMolecule = document.getElementById('visualization');
+        var elementMoleculeOverlay = document.getElementById('visualization-overlay');
+        var overlayContext = elementMoleculeOverlay.getContext('2d');
         
         var configMolecule = {
             backgroundColor: 'black',
@@ -28,6 +30,9 @@
         var startPoint = null;
         var dx = null;
         var dy = null;
+        var startPointOverlay = null;
+        var dxOverlay = null;
+        var dyOverlay = null;
         var mapObjectsToScreen = null;
         var selectedAtoms = [];
 
@@ -64,7 +69,16 @@
                 dx = event.clientX - startPoint.x;
                 dy = event.clientY - startPoint.y;
 
-                //console.log("dx:", dx, "dy:", dy);
+                overlayContext.beginPath();
+                //overlayContext.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                //overlayContext.fillRect(startPoint.x, startPoint.y, dx, dy);
+                let rect3DMol = elementMolecule.getBoundingClientRect();
+                overlayContext.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                overlayContext.rect(startPoint.x, startPoint.y, dx, dy);
+                overlayContext.stroke();
+
+                console.log("dx:", dx, "dy:", dy);
+                console.log("Rect 3Dmol:", rect3DMol);
 
             }
             else 
@@ -111,6 +125,59 @@
                 //console.log("DOM Mouse wheel detected but not intercepted. Foward to 3Dmol.js");
                 viewerMolecule._handleMouseScroll(event);
         });
+
+        // Forward events from the overlay to the molecule canvas
+        elementMoleculeOverlay.addEventListener('mousedown', (event) => {
+            viewerMolecule.container.dispatchEvent(new MouseEvent('mousedown', event)); // Forward to 3Dmol.js (not the molecule canvas) for selection event);
+            if (event.button === 0 && event.shiftKey) {
+                startPointOverlay = { x: event.clientX, y: event.clientY };
+            }
+        });
+        elementMoleculeOverlay.addEventListener('mousemove', (event) => {
+            viewerMolecule.container.dispatchEvent(new MouseEvent('mousemove', event));
+            if(isDrawing)
+            {
+                // Get the rectangle of the canvas
+                let rectOverlay = elementMoleculeOverlay.getBoundingClientRect();
+
+                // Calculate the scale factor between the canvas and the bitmap
+                let scaleX = elementMoleculeOverlay.width / rectOverlay.width;
+                let scaleY = elementMoleculeOverlay.height /rectOverlay.height;
+                dxOverlay = (event.clientX - startPointOverlay.x) * scaleX;
+                dyOverlay = (event.clientY - startPointOverlay.y) * scaleY;
+
+                // Substract the top left corner of the canvas from the startPoint
+                let newStartPoint = {
+                    x: (startPointOverlay.x - rectOverlay.left) * scaleX,
+                    y: (startPointOverlay.y - rectOverlay.top) * scaleY
+                }
+
+                //overlayContext.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                //overlayContext.fillRect(newStartPoint.x, newStartPoint.y, dxOverlay, dyOverlay);
+                overlayContext.clearRect(0, 0, elementMoleculeOverlay.width, elementMoleculeOverlay.height);
+                overlayContext.beginPath();
+                overlayContext.strokeStyle = 'rgba(255, 0, 0, 1.0)';
+                overlayContext.rect(newStartPoint.x, newStartPoint.y, dxOverlay, dyOverlay);
+                overlayContext.stroke();
+                
+                console.log("Rect overlay: ", rectOverlay, "scaleX:", scaleX, "scaleY:", scaleY);
+            }
+        });
+        elementMoleculeOverlay.addEventListener('mouseup', (event) => {
+            viewerMolecule.container.dispatchEvent(new MouseEvent('mouseup', event));
+            if(!isDrawing)
+            {
+                // Clear the overlay
+                overlayContext.clearRect(0, 0, elementMoleculeOverlay.width, elementMoleculeOverlay.height);
+            }
+        });
+        elementMoleculeOverlay.addEventListener('mousewheel', (event) => {
+            viewerMolecule.container.dispatchEvent(new MouseEvent('mousewheel', event));
+        });
+        elementMoleculeOverlay.addEventListener('DOMMouseScroll', (event) => {
+            viewerMolecule.container.dispatchEvent(new MouseEvent('DOMMouseScroll', event));
+        })
+
 
 
         var initWithBenzene = false;
@@ -462,10 +529,52 @@ H 53.72 50 50";
             width: 33%;
         }
 
-        .mol-container {
+        /*.wrapper {
             width: 100%;
             height: 400px;
             position: relative;
+            z-index: 0;
+        }
+
+        .mol-container {
+            width: 100%;
+            height: 400px;
+            position:relative;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        .mol-overlay {
+            width: 100%;
+            height: 400px;
+            position:relative;
+            top: 0;
+            left: 0;
+            background-color: rgba(196, 39, 135, 1); 
+            z-index: 1; 
+        }*/
+        #wrapper {
+            position: relative;
+        }
+
+        #visualization {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0; /* Ensure it's above visualization-overlay */
+            width: 100%;
+            height: 400px;
+        }
+
+        #visualization-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* Ensure it's below visualization */
+            width: 100%;
+            height: 400px;
+            /*background-color: rgba(196, 39, 135, 1); */
+            background-color: rgba(0, 0, 0, 0);
         }
     </style>
     <div class="left">
@@ -516,7 +625,10 @@ H 53.72 50 50";
     </div>
     <div class="right">
         <h2>Visualization:</h2>
-        <div id="visualization" class="mol-container"></div>
+        <div id="wrapper">  
+            <div id="visualization" class="mol-container"></div>
+            <canvas id="visualization-overlay" class="mol-overlay"></canvas>
+        </div>
         <div id="info">
             <p id="info-sim-it"></p>
         </div>
