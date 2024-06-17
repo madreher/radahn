@@ -66,6 +66,10 @@
                     mapObjectsToScreen = viewerMolecule.modelToScreen(viewerMolecule.getModel().getInternalState().atoms);
                     console.log("mapObjectsToScreen:", mapObjectsToScreen);
                     selectedAtoms = [];
+
+                    // Clear the current selection
+                    document.getElementById('current-selection').value = "";
+                    refreshMolecule();
                 }
                 else 
                 {
