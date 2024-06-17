@@ -16,6 +16,14 @@
         // Global variables
         var socket = io();
 
+        // Clear all the inputs at the start 
+        var allInputs = document.querySelectorAll('input');
+        allInputs.forEach(input => {
+            if (input.type === 'text') {
+                input.value = '';
+            }
+        });
+
         var elementMolecule = document.getElementById('visualization');
         var elementMoleculeOverlay = document.getElementById('visualization-overlay');
         var overlayContext = elementMoleculeOverlay.getContext('2d');
