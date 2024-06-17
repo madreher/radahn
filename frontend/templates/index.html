@@ -48,6 +48,8 @@
         var dyOverlay = null;
         var mapObjectsToScreen = null;
         var selectedAtoms = [];
+        currentLabelsType = "none";
+        var currentLabels = [];
 
         var savedSelections = {};
         updateDynamicTable();
@@ -469,6 +471,14 @@ H 53.72 50 50";
                     viewerMolecule.addModel(contents, 'xyz');
                     viewerMolecule.setStyle({}, {stick: {}})
                     viewerMolecule.zoomTo();
+                    //let atoms = viewerMolecule.getModel().getInternalState().atoms;
+                    //if(atoms.length > 0)
+                    //{
+                    //    for(let i = 0; i < atoms.length; i++)
+                    //    {
+                    //        viewerMolecule.addLabel(""+atoms[i].index, {frontsize: 11.5, inFront:true, position: atoms[i], opacity: 0.5});
+                    //    }
+                    //}
                     viewerMolecule.render();
 
                     xyzContent = contents;
@@ -639,8 +649,46 @@ H 53.72 50 50";
                     break;
                 }
             }
-            //viewerMolecule.getModel().setStyle({}, {'stick': {'color': 'yellow'}});
-            //viewerMolecule.setStyle({}, {stick: {}})
+
+            
+            let labelType = document.getElementById("atom-label").value;
+            if(labelType != currentLabelsType) {
+                //<option value="none">None</option>
+                //<option value="index">Index</option>
+
+                // Remove the previous labels
+                if(currentLabels.length > 0) {
+                    for(let i = 0; i < currentLabels.length; i++) {
+                        viewerMolecule.removeLabel(currentLabels[i]);
+                    }
+                    currentLabels = [];
+                }
+
+                // Process the new labels
+                currentLabelsType = labelType;
+                switch(labelType) {
+                    case "none": {
+                        // Nothing to do
+                        break;
+                    }
+                    case "index": {
+                        let atoms = viewerMolecule.getModel().getInternalState().atoms;
+                        if(atoms.length > 0)
+                        {
+                            for(let i = 0; i < atoms.length; i++)
+                            {
+                                currentLabels.push(viewerMolecule.addLabel(""+atoms[i].index, {frontsize: 11.5, inFront:true, position: atoms[i], opacity: 0.5}));
+                            }
+                        }
+                        break;
+                    }
+                    default: {
+                        // Nothing to do
+                        break;
+                    }
+                }
+            }
+            
             
             viewerMolecule.render();
         }
@@ -750,6 +798,11 @@ H 53.72 50 50";
                 <select id="color-by">
                     <option value="atom-type">Atom Type</option>
                     <option value="selection">Selection</option>
+                </select>
+                <label>Label:</label>
+                <select id="atom-label">
+                    <option value="none">None</option>
+                    <option value="index">Index</option>
                 </select>
                 <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                 <p id="info-sim-it">Current Timestep: 0</p>
