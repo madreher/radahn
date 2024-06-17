@@ -45,6 +45,7 @@
         var selectedAtoms = [];
 
         var savedSelections = {};
+        updateDynamicTable();
 
         // Defining custom listener when needed, forwarding to 3dmol.js otherwise
 
@@ -471,6 +472,60 @@ H 53.72 50 50";
             }
         }
 
+        // Function to create and update the dynamic table
+        function updateDynamicTable() {
+            const tableContainer = document.getElementById('dynamic-table-container');
+            tableContainer.innerHTML = ''; // Clear previous content
+
+            // Create a table element
+            const table = document.createElement('table');
+            table.className = 'dynamic-table';
+            table.setAttribute('border', '1');
+
+            // Create table header
+            const headerRow = table.insertRow();
+            const headers = ['Name', 'Number of Atoms', 'Color', 'Edit', 'Delete'];
+            headers.forEach(headerText => {
+                const header = document.createElement('th');
+                header.textContent = headerText;
+                headerRow.appendChild(header);
+            });
+
+            // Populate the table with saved selections
+            Object.entries(savedSelections).forEach(([name, entry]) => {
+                const row = table.insertRow();
+                const cellName = row.insertCell();
+                cellName.textContent = name;
+
+                const cellNumAtoms = row.insertCell();
+                cellNumAtoms.textContent = entry.atomIndexes.length;
+
+                // You can customize the color representation based on the selection
+                const cellColor = row.insertCell();
+                //cellColor.textContent = 'PLACEHOLDER';
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = entry.color;
+                colorInput.readOnly = true;
+                cellColor.appendChild(colorInput);
+
+                // Add Edit and Delete buttons
+                const cellEdit = row.insertCell();
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                cellEdit.appendChild(editButton);
+
+                const cellDelete = row.insertCell();
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                cellDelete.appendChild(deleteButton);
+            });
+
+            // Append the table to the container
+            tableContainer.appendChild(table);
+        }
+
+
         function handleForcefieldFileSelect(evt) {
             console.log("Forcefield File selected: " + evt.target.files[0].name);
             const file = evt.target.files[0];
@@ -516,17 +571,53 @@ H 53.72 50 50";
             }
         }
 
-        // Make it global so that it's accessible to the save button
+        // Make the function global so that it's accessible to the "save" button
         window.saveSelectionInternal = function() {
             if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
-                savedSelections[document.getElementById('save-selection').value] = selectedAtoms;
+                savedSelections[document.getElementById('save-selection').value] = {
+                    atomIndexes: selectedAtoms, 
+                    name: document.getElementById('save-selection').value,
+                    color: document.getElementById('selection-color').value};
                 console.log("Added the selection " + document.getElementById('save-selection').value)
+
+                // Update the table
+                updateDynamicTable();
             }
             else 
             {
                 console.log("No selection was selected or a name was not given")
             }
             console.log("Saved selections:", savedSelections);
+        }
+
+        window.refreshMolecule = function() {
+            console.log("Refreshing the molecule");
+            let vizStyle = document.getElementById("color-by").value;
+
+            //<option value="atom-type">Atom Type</option>
+            //<option value="selection">Selection</option>
+            switch(vizStyle) {
+                case "atom-type": {
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    break;
+                }
+                case "selection": {
+                    // We first color by atom type for every atoms, then we re-color by selection
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    Object.entries(savedSelections).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+                    break;
+                }
+                default: {
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    break;
+                }
+            }
+            //viewerMolecule.getModel().setStyle({}, {'stick': {'color': 'yellow'}});
+            //viewerMolecule.setStyle({}, {stick: {}})
+            
+            viewerMolecule.render();
         }
     });
     </script>
@@ -544,30 +635,6 @@ H 53.72 50 50";
             width: 33%;
         }
 
-        /*.wrapper {
-            width: 100%;
-            height: 400px;
-            position: relative;
-            z-index: 0;
-        }
-
-        .mol-container {
-            width: 100%;
-            height: 400px;
-            position:relative;
-            top: 0;
-            left: 0;
-            z-index: 0;
-        }
-        .mol-overlay {
-            width: 100%;
-            height: 400px;
-            position:relative;
-            top: 0;
-            left: 0;
-            background-color: rgba(196, 39, 135, 1); 
-            z-index: 1; 
-        }*/
         #wrapper {
             position: relative;
         }
@@ -654,12 +721,20 @@ H 53.72 50 50";
             <div id="visualization" class="mol-container"></div>
             <canvas id="visualization-overlay" class="mol-overlay"></canvas>
             <div id="info">
+                <label>Color by:</label>
+                <select id="color-by">
+                    <option value="atom-type">Atom Type</option>
+                    <option value="selection">Selection</option>
+                </select>
+                <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                 <p id="info-sim-it">Current Timestep: 0</p>
                 <label id="current-selection-label">Current Selection: </label>
                 <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
                 <label>Save current selection as:</label>
                 <input type="text" id="save-selection" name="save-selection"></input>
+                <input type="color" id="selection-color" name="selection-color"></input>
                 <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
+                <div id="dynamic-table-container"></div>
             </div>
         </div>
         
