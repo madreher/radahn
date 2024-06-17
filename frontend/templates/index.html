@@ -13,6 +13,11 @@
     <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
 
+        // TODOs:
+        // - Add support for multiple molecules
+        // - Clear the molecule, selection table, and plots when a new molecule is loaded
+
+
         // Global variables
         var socket = io();
 
@@ -513,11 +518,27 @@ H 53.72 50 50";
                 const cellEdit = row.insertCell();
                 const editButton = document.createElement('button');
                 editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => {
+                    // Load the selection into the form
+                    document.getElementById('save-selection').value = name;
+                    document.getElementById('selection-color').value = entry.color;
+                    let strSelection = "";
+                    for(let i = 0; i < entry.atomIndexes.length; i++)
+                    {
+                        strSelection += entry.atomIndexes[i] + " ";
+                    }
+                    document.getElementById('current-selection').value = strSelection;
+                })
                 cellEdit.appendChild(editButton);
 
                 const cellDelete = row.insertCell();
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    delete savedSelections[name];
+                    updateDynamicTable();
+                    refreshMolecule();
+                })
                 cellDelete.appendChild(deleteButton);
             });
 
