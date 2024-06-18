@@ -16,6 +16,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addOutput("MotorName", "string");
         this.properties = {
             name: "defaultBlank", 
+            dependencies: [],
             nbSteps: 1000, 
             valid: true, 
             errorMsg: "OK"
@@ -27,7 +28,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     }
     BlankNode.title = "Blank Motor"
     BlankNode.prototype.onExecute = function(){
-        this.dependencies = [this.getInputData(0)];
+        this.properties.dependencies = [this.getInputData(0)];
         if(this.properties.nbSteps <= 0)
         {
             this.properties.valid = false;
@@ -41,6 +42,20 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
         this.setOutputData(0, this.properties.name);
     }
+
+    BlankNode.prototype.onGetRadahnDict = function(motorArray)
+    {
+        // Has the watch the format needed by blankMotor.cpp
+        result = {
+            "type": "blank",
+            "dependencies": this.properties.dependencies,
+            "name": this.properties.name,
+            "nbStepsRequested": this.properties.nbSteps
+        };
+
+        motorArray.push(result);
+    }
+
     LiteGraph.registerNodeType("motor/BlankMotor", BlankNode);
 
     // Move motor
@@ -50,6 +65,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addOutput("MotorName", "string");
         this.properties = {
             name: "defaultMove", 
+            dependencies: [],
             selectionName: "",
             vx: 0.0,
             vy: 0.0,
@@ -81,7 +97,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     MoveMotor.title = "Move Motor"
     MoveMotor.prototype.onExecute = function(){
-        this.dependencies = [this.getInputData(0)];
+        this.properties.dependencies = [this.getInputData(0)];
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -101,6 +117,26 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
         this.setOutputData(0, this.properties.name);
     }
+    MoveMotor.prototype.onGetRadahnDict = function(motorArray)
+    {
+        result = {
+            "type": "move",
+            "dependencies": this.properties.dependencies,
+            "name": this.properties.name,
+            "selectionName" : this.properties.selectionName,
+            "vx": this.properties.vx,
+            "vy": this.properties.vy,
+            "vz": this.properties.vz,
+            "checkX": this.properties.checkx,
+            "checkY": this.properties.checky,
+            "checkZ": this.properties.checkz,
+            "dx": this.properties.dx,
+            "dy": this.properties.dy,
+            "dz": this.properties.dz
+        };
+
+        motorArray.push(result);
+    }
     LiteGraph.registerNodeType("motor/MoveMotor", MoveMotor);
 
     // Force motor
@@ -110,6 +146,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addOutput("MotorName", "string");
         this.properties = {
             name: "defaultMove", 
+            dependencies: [],
             selectionName: "",
             fx: 0.0,
             fy: 0.0,
@@ -141,7 +178,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     ForceMotor.title = "Force Motor"
     ForceMotor.prototype.onExecute = function(){
-        this.dependencies = [this.getInputData(0)];
+        this.properties.dependencies = [this.getInputData(0)];
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -161,6 +198,28 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
         this.setOutputData(0, this.properties.name);
     }
+
+    ForceMotor.prototype.onGetRadahnDict = function(motorArray)
+    {
+        result = {
+            "type": "force",
+            "dependencies": this.properties.dependencies,
+            "name": this.properties.name,
+            "selectionName" : this.properties.selectionName,
+            "fx": this.properties.fx,
+            "fy": this.properties.fy,
+            "fz": this.properties.fz,
+            "checkX": this.properties.checkx,
+            "checkY": this.properties.checky,
+            "checkZ": this.properties.checkz,
+            "dx": this.properties.dx,
+            "dy": this.properties.dy,
+            "dz": this.properties.dz
+        };
+
+        motorArray.push(result);
+    }
+
     LiteGraph.registerNodeType("motor/ForceMotor", ForceMotor);
 
     // Rotate motor
@@ -170,6 +229,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addOutput("MotorName", "string");
         this.properties = {
             name: "defaultRotate", 
+            dependencies: [],
             selectionName: "",
             px: 0.0,
             py: 0.0,
@@ -198,7 +258,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     RotateMotor.title = "Rotate Motor"
     RotateMotor.prototype.onExecute = function(){
-        this.dependencies = [this.getInputData(0)];
+        this.properties.dependencies = [this.getInputData(0)];
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -212,6 +272,27 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
         this.setOutputData(0, this.properties.name);
     }
+
+    RotateMotor.prototype.onGetRadahnDict = function(motorArray)
+    {
+        result = {
+            "type": "rotate",
+            "dependencies": this.properties.dependencies,
+            "name": this.properties.name,
+            "selectionName" : this.properties.selectionName,
+            "px": this.properties.px,
+            "py": this.properties.py,
+            "pz": this.properties.pz,
+            "ax": this.properties.ax,
+            "ay": this.properties.ay,
+            "az": this.properties.az,
+            "period": this.properties.period,
+            "requestedAngle": this.properties.angle
+        };
+
+        motorArray.push(result);
+    }
+
     LiteGraph.registerNodeType("motor/RotateMotor", RotateMotor);
 
     // Torque motor
@@ -221,6 +302,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addOutput("MotorName", "string");
         this.properties = {
             name: "defaultTorque", 
+            dependencies: [],
             selectionName: "",
             tx: 0.0,
             ty: 0.0,
@@ -241,7 +323,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     TorqueMotor.title = "Torque Motor"
     TorqueMotor.prototype.onExecute = function(){
-        this.dependencies = [this.getInputData(0)];
+        this.properties.dependencies = [this.getInputData(0)];
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -255,5 +337,34 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
         this.setOutputData(0, this.properties.name);
     }
+
+    TorqueMotor.prototype.onGetRadahnDict = function(motorArray)
+    {
+        result = {
+            "type": "torque",
+            "dependencies": this.properties.dependencies,
+            "name": this.properties.name,
+            "selectionName" : this.properties.selectionName,
+            "tx": this.properties.tx,
+            "ty": this.properties.ty,
+            "tz": this.properties.tz,
+            "requestedAngle": this.properties.angle
+        };
+
+        motorArray.push(result);
+    }
+
     LiteGraph.registerNodeType("motor/TorqueMotor", TorqueMotor);
+}
+
+radahnGraphUtil.generateJSON = function(lGraph)
+{
+    let nodes = lGraph._nodes;
+    console.log("List of motors:");
+    nodesArray = []
+    nodes.forEach(node => {
+        node.onGetRadahnDict(nodesArray);
+    });
+
+    console.log(nodesArray);
 }
