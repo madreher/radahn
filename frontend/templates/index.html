@@ -8,10 +8,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.1.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://3Dmol.org/build/3Dmol-min.js"></script>        
-    <script src="https://cdn.jsdelivr.net/npm/litegraph.iyobo@0.7/build/litegraph.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/litegraph.iyobo@0.7/css/litegraph.min.css" rel="stylesheet">
+    <script src="/static/js/litegraph.min.js"></script>
+    <link href="/static/css/litegraph.css" rel="stylesheet">
 </head>
-<body>
+<body style='width:100%;height:100vh;'>
     <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
 
@@ -21,16 +21,11 @@
 
 
         // Global variables
+
+        //SocketIO
         var socket = io();
 
-        // Clear all the inputs at the start 
-        var allInputs = document.querySelectorAll('input');
-        allInputs.forEach(input => {
-            if (input.type === 'text') {
-                input.value = '';
-            }
-        });
-
+        // 3Dmol
         var elementMolecule = document.getElementById('visualization');
         var elementMoleculeOverlay = document.getElementById('visualization-overlay');
         var overlayContext = elementMoleculeOverlay.getContext('2d');
@@ -52,9 +47,28 @@
         var selectedAtoms = [];
         currentLabelsType = "none";
         var currentLabels = [];
-
         var savedSelections = {};
         updateDynamicTable();
+
+        // Node Editor
+        var nodeEditor = new LGraph();
+        var nodeEditorCanvas = new LGraphCanvas("#node-canvas", nodeEditor);
+
+        var nodeConst = LiteGraph.createNode("basic/const");
+        nodeConst.pos = [200, 200];
+        nodeEditor.add(nodeConst);
+        nodeConst.setValue(4.5);
+
+        nodeEditor.start();
+
+
+        // Miscalaneous
+        var allInputs = document.querySelectorAll('input');
+        allInputs.forEach(input => {
+            if (input.type === 'text') {
+                input.value = '';
+            }
+        });
 
         // Defining custom listener when needed, forwarding to 3dmol.js otherwise
 
@@ -704,6 +718,7 @@ H 53.72 50 50";
         .middle {
             float: left;
             width: 33%;
+            height: 100%;
         }
         .right {
             float: left;
@@ -744,10 +759,10 @@ H 53.72 50 50";
             width: 100%;
         }
 
-        #node-canvas {
-            width: 100%;
+        /*#node-canvas {
+            width: 50%;
             height: 50%;
-        }
+        }*/
     </style>
     <div class="left">
         <h1>Radahn Mega Frontend</h1>
@@ -795,7 +810,7 @@ H 53.72 50 50";
         <canvas id="plot-canvas-temp"></canvas>
         </div>
         <div id="node_section">
-            <canvas id="node-canvas"></canvas>
+            <canvas id="node-canvas" width="1024" height="720" style="border: 1px solid"></canvas>
         </div>
     </div>
     <div class="right">
