@@ -9,6 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.1.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://3Dmol.org/build/3Dmol-min.js"></script>        
     <script src="/static/js/litegraph.min.js"></script>
+    <script src="/static/js/radahn_graph.js"></script>
     <link href="/static/css/litegraph.css" rel="stylesheet">
 </head>
 <body style='width:100%;height:100vh;'>
@@ -53,11 +54,13 @@
         // Node Editor
         var nodeEditor = new LGraph();
         var nodeEditorCanvas = new LGraphCanvas("#node-canvas", nodeEditor);
+        radahnGraphUtil.setupRadahnGraph(nodeEditor);
 
-        var nodeConst = LiteGraph.createNode("basic/const");
-        nodeConst.pos = [200, 200];
-        nodeEditor.add(nodeConst);
-        nodeConst.setValue(4.5);
+        //var nodeConst = LiteGraph.createNode("basic/const");
+        //nodeConst.pos = [200, 200];
+        //nodeEditor.add(nodeConst);
+        //nodeConst.setValue(4.5);
+
 
         nodeEditor.start();
 
