@@ -474,7 +474,8 @@ H 53.72 50 50";
         });
 
         $('form#print_motors').submit(function(event) {
-            radahnGraphUtil.generateJSON(nodeEditor);
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            console.log(radahnJSONContent);
             return false;
         });
 
