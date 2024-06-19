@@ -25,6 +25,7 @@ def main():
     filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
     fileMotorConfig = ""
     useTestMotorSetup = False
+    forceMaxSteps = False
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -69,6 +70,11 @@ def main():
                         dest = "testmotors",
                         action='store_true',
                         required = False)
+    parser.add_argument("--forcemaxsteps",
+                        help="Force the simulation to run for the requested number of steps, even if all the motors have completed.",
+                        dest="forcemaxsteps",
+                        action='store_true',
+                        required=False)
     
     args = parser.parse_args()
 
@@ -104,12 +110,14 @@ def main():
 
     if args.testmotors:
         useTestMotorSetup = True
+    if args.forcemaxsteps:
+        forceMaxSteps = True
     
     if useTestMotorSetup and args.motorconfig is not None:
         raise ValueError("The --testmotors and --motorconfig options are mutually exclusive.")
     
-    if not useTestMotorSetup and args.motorconfig is None:
-        raise ValueError("No motor configuration file provided. Please use --testmotors or --motorconfig.")
+    if not useTestMotorSetup and args.motorconfig is None and not forceMaxSteps:
+        raise ValueError("No motor configuration file provided. Please use --testmotors or --motorconfig or --forcemaxsteps.")
 
     workFolder = Path(args.workdir)
     if not workFolder.is_dir():
@@ -151,6 +159,8 @@ def main():
         engineCmd += " --testmotors"
     if args.motorconfig is not None:
         engineCmd += f" --motors {fileMotorConfig.name}"
+    if forceMaxSteps:
+        engineCmd += f" --forcemaxsteps"
     engineResources = splitResources[1]
     engine = MPITask(name="engine", cmdline=engineCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=engineResources)
     engine.addInputPort("atoms")

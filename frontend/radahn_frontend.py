@@ -331,7 +331,7 @@ def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
     if len(motors) > 0:
         cmdRadan += f" --motorconfig {motorsFile}"
     else:
-        cmdRadan += " --testmotorsetup"
+        cmdRadan += " --forcemaxsteps"
     taskManager.addTask("prepRadahn", cmdRadan)
 
     # Launche simulation 

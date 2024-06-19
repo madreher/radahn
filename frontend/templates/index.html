@@ -477,7 +477,8 @@ H 53.72 50 50";
         $('form#print_motors').submit(function(event) {
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
             //console.log(radahnJSONContent);
-            console['log']('form#print_motors', radahnJSONContent);
+            //console['log']('form#print_motors', radahnJSONContent);
+            console.log(radahnJSONContent);
             return false;
         });
 
@@ -770,7 +771,7 @@ H 53.72 50 50";
             width: 100%;
         }
 
-        #log-container { overflow: auto; height: 150px; }
+        #log-container { overflow: auto; height: 300px; }
 
         .log-warn { color: orange }
         .log-error { color: red }
