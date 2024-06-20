@@ -220,7 +220,8 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     
     return atoms
 
-def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
+#def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
+def generate_inputs(config:dict) -> str:
 
     # Create the job folder 
     jobID = uuid.uuid4()
@@ -230,18 +231,18 @@ def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
     # Create the necessary inputs files 
     xyzFile = jobFolder / "input.xyz"
     with open(xyzFile, "w") as f:
-        f.write(xyz)
+        f.write(config["xyz"])
         f.close()
 
-    ffFile = jobFolder / ffFileName
+    ffFile = jobFolder / config["ffName"]
     with open(ffFile, "w") as f:
-        f.write(ffContent)
+        f.write(config["ffContent"])
         f.close()
 
-    if len(motors) > 0:
+    if len(config['motors']) > 0:
         motorsFile = jobFolder / "motors.json"
         with open(motorsFile, "w") as f:
-            f.write(motors)
+            f.write(config["motors"])
             f.close()
 
 
@@ -273,7 +274,7 @@ def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
         #for i in range(len(indexes)):
         #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
         scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
-        scriptContent += f'pair_coeff     * * {ffFileName}{elements}\n'
+        scriptContent += f'pair_coeff     * * {config["ffName"]}{elements}\n'
         if useAcks2:
             scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
         else:
@@ -308,14 +309,19 @@ timestep       0.5"""
     # Generate the data file
     dataFile = jobFolder / "input.data"
     xyzToLammpsDataPBC(xyzFile, dataFile)
+    socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
+    app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
 
     return jobFolder
 
 
-def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
-
+#def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
+def launch_simulation(config:dict):
     app.logger.info("Received a request to launch the simulation. Generating the inputs...")
-    jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
+    #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
+    #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
+    jobFolder = generate_inputs(config)
+    
 
     app.logger.info("Input generated. Preparing the tasks...")
     taskManager = JobRunner("radahn", jobFolder)
@@ -327,10 +333,10 @@ def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
     lammpsScriptFile = "input.lammps"
     motorsFile = "motors.json"
 
-    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps 30000 --ncores 2 --frequpdate 100 --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {ffFileName}"
-    if len(motors) > 0:
+    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {config['max_timestep']} --ncores {config['number_cores']} --frequpdate {config['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {config['ffName']}"
+    if len(config['motors']) > 0:
         cmdRadan += f" --motorconfig {motorsFile}"
-    else:
+    if config['force_timestep']:
         cmdRadan += " --forcemaxsteps"
     taskManager.addTask("prepRadahn", cmdRadan)
 
@@ -401,7 +407,8 @@ def handle_generate_inputs(data):
     global threadGenerateInputs
     with thread_lockGenerateInputs:
         if threadGenerateInputs is None:
-            threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'], data['motors'])
+            #threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'], data['motors'])
+            threadGenerateInputs = socketio.start_background_task(generate_inputs, data)
             app.logger.info("Background thread generating inputs started.")
         else:
             app.logger.info("Background task generating inputs already started.")
@@ -412,7 +419,8 @@ def handle_launch_simulation(data):
     global threadRadahn
     with thread_lockRadahn:
         if threadRadahn is None:    
-            threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'], data['motors'])
+            #threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'], data['motors'])
+            threadRadahn = socketio.start_background_task(launch_simulation, data)
             app.logger.info("Background thread launching simulation started.")
         else:
             app.logger.info("Background task launching simulation already started.")

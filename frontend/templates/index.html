@@ -69,7 +69,7 @@
         // Miscalaneous
         var allInputs = document.querySelectorAll('input');
         allInputs.forEach(input => {
-            if (input.type === 'text') {
+            if (input.type == 'text') {
                 input.value = '';
             }
         });
@@ -444,6 +444,11 @@ H 53.72 50 50";
             
         });
 
+        socket.on('job_folder', function(data) {
+            console.log('Received Job Folder message on JS side:', data.message);
+            document.getElementById('job_folder').value = data.message;
+        });
+
         // Handlers for the different forms in the page.
         // These accept data from the user and send it to the server in a
         // variety of ways
@@ -454,23 +459,48 @@ H 53.72 50 50";
 
         $('form#generate_inputs').submit(function(event) {
             console.log("Sending request to Generating inputs from javascript side");
-            socket.emit('generate_inputs', {
-                xyz: xyzContent,
-                ff: ffContent,
-                ffName: ffFileName,
-                motors: motorConfigContent
-            });
+
+            // Get the settings from the editor
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let numberCores = document.getElementById("num_cores").value;
+            let maxTimestep = document.getElementById("num_timesteps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value;
+            let updateFrequency = document.getElementById("update_frequency").value;
+            let configDict = {  }
+
+            configDict['number_cores'] = numberCores;
+            configDict['max_timestep'] = maxTimestep;
+            configDict['force_timestep'] = forceTimestep;
+            configDict['update_frequency'] = updateFrequency;
+            configDict['motors'] = radahnJSONContent;
+            configDict['xyz'] = xyzContent;
+            configDict['ffContent'] = ffContent;
+            configDict['ffName'] = ffFileName;
+
+            socket.emit('generate_inputs', configDict);
             return false;
         });
 
         $('form#launch_simulation').submit(function(event) {
             console.log("Sending request to launch the simulation from javascript side");
-            socket.emit('launch_simulation', {
-                xyz: xyzContent,
-                ff: ffContent,
-                ffName: ffFileName,
-                motors: motorConfigContent
-            });
+            // Get the settings from the editor
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let numberCores = document.getElementById("num_cores").value;
+            let maxTimestep = document.getElementById("num_timesteps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value;
+            let updateFrequency = document.getElementById("update_frequency").value;
+            let configDict = {  }
+
+            configDict['number_cores'] = numberCores;
+            configDict['max_timestep'] = maxTimestep;
+            configDict['force_timestep'] = forceTimestep;
+            configDict['update_frequency'] = updateFrequency;
+            configDict['motors'] = radahnJSONContent;
+            configDict['xyz'] = xyzContent;
+            configDict['ffContent'] = ffContent;
+            configDict['ffName'] = ffFileName;
+
+            socket.emit('launch_simulation', configDict);
             return false;
         });
 
@@ -773,6 +803,9 @@ H 53.72 50 50";
 
         #log-container { overflow: auto; height: 300px; }
 
+        #span_job_folder { display: block; overflow: hidden; padding-right: 10px;}
+        #job_folder { width: 100%; }
+
         .log-warn { color: orange }
         .log-error { color: red }
         .log-info { color: skyblue }
@@ -797,6 +830,22 @@ H 53.72 50 50";
             <label for="motor-file">Select motor configuration file:</label>
             <input type="file" id="motor-file" accept=".json">
         </div>
+        <div>
+            <label>Number of cores:</label>
+            <input type="number" id="num_cores" name="num_cores" value="1"></input>
+        </div>
+        <div>
+            <label>Maximum number of timesteps:</label>
+            <input type="number" id="num_timesteps" name="num_timesteps" value="10000"></input>
+        </div>
+        <div>
+            <label>Force maximum number of steps:</label>
+            <input type="checkbox" id="force_max_steps" name="force_max_steps" value="false"></input>
+        </div>
+        <div>
+            <label>Update frequency:</label>
+            <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
+        </div>
         <h2>Simulation Operation</h2>
         <div>
             <form id="start_listening" method="POST" action="#">
@@ -817,6 +866,10 @@ H 53.72 50 50";
             <form id="print_motors" method="POST" action="#">
                 <input type="submit" value="Print motors">
             </form>
+        </div>
+        <div>
+            <label>Job Folder: </label>
+            <span id="span_job_folder"><input type="text" id="job_folder" name="job_folder" value="" readonly></input></span>
         </div>
         <h2>Log Console</h2>
         <div id="log-container">

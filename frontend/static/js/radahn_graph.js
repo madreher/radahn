@@ -376,6 +376,11 @@ radahnGraphUtil.generateJSON = function(lGraph, selectionTable)
         return "";
     }
 
+    if(nodesArray.length == 0)
+    {
+        return "";
+    }
+
     // Switch the selection name by the Lammps indices
     // Not using a foreach because need to return the function is something goes wrong
     for(let i = 0; i < nodesArray.length; ++i)
