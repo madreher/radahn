@@ -8,6 +8,7 @@
 #include <conduit/conduit.hpp>
 
 #include <radahn/motor/motorEngine.h>
+#include <radahn/lmp/lammpsCommandsUtils.h>
 
 using namespace radahn::core;
 using namespace radahn::motor;
@@ -79,6 +80,7 @@ int main(int argc, char** argv)
     std::string lmpInitialState;
     std::string motorConfig;
     bool useTestMotors = false;
+    bool forceMaxSteps = false;
 
     auto cli = lyra::cli()
         | lyra::opt( taskName, "name" )
@@ -95,7 +97,10 @@ int main(int argc, char** argv)
             ("Path to the definition of the motors to use.")
         | lyra::opt( useTestMotors)
             ["--testmotors"]
-            ("Use the test motor setup.");
+            ("Use the test motor setup.")
+        | lyra::opt( forceMaxSteps)
+            ["--forcemaxsteps"]
+            ("Continue the simulation until the maximum number of steps given, even if all the motors have completed.");
 
     auto result = cli.parse( { argc, argv } );
     if ( !result )
@@ -110,9 +115,9 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    if(!useTestMotors && motorConfig.empty())
+    if(!useTestMotors && motorConfig.empty() && !forceMaxSteps)
     {
-        spdlog::critical("Motor configuration not provided and not using the test motors.");
+        spdlog::critical("Motor configuration not provided, not using the test motors and not forcing the maximum number of steps. Nothing to do.");
         exit(1);
     }
 
@@ -137,7 +142,7 @@ int main(int argc, char** argv)
         spdlog::info("Loading the test motor setup.");
         engine.loadTestMotorSetup();
     }
-    else
+    else if(!motorConfig.empty())
     {
         spdlog::info("Loading the motor setup {}.", motorConfig);
         engine.loadFromJSON(motorConfig);    
@@ -167,22 +172,36 @@ int main(int argc, char** argv)
 
         if(engine.isCompleted())
         {
-            spdlog::info("Motor engine has completed. Exiting the main loop.");
-            engine.getCurrentKVS().print();
-            break;
+            if(forceMaxSteps)
+            {
+                // Sending a blank command in this case to keep the loop going. The Lammps
+                // component will send a terminate message when the maximum number of steps has been reached.
+                conduit::Node output;
+                radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(output["lmpcmds"].append(), "motorEngine");
+                handler.push("motorscmd", output);
+            }
+            else
+            {
+                spdlog::info("Motor engine has completed. Exiting the main loop.");
+                engine.getCurrentKVS().print();
+                break;
+            }
         }
+        else 
+        {
+            // Get commands from the motor
+            conduit::Node output;
+            engine.getCommandsFromMotors(output["lmpcmds"].append());
 
-        // Get commands from the motor
-        conduit::Node output;
-        engine.getCommandsFromMotors(output["lmpcmds"].append());
-
-        handler.push("motorscmd", output);
+            handler.push("motorscmd", output);
+        }
 
         // This is kinda dangerous because the push operation may modify the Node
         // In this case it's fine because it's the instruction before the next iteration
         conduit::Node temporalData = engine.getCurrentKVS();
         temporalData["global"] = receivedData[0]["thermos"];
         handler.push("kvs", temporalData);
+
 
         // Send the atom positions to the outside 
         conduit::Node atoms;

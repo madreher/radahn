@@ -174,14 +174,15 @@ public:
         m_ax = radahn::core::atomPositions_t(node.value("ax", 0.0));
         m_ay = radahn::core::atomPositions_t(node.value("ay", 0.0));
         m_az = radahn::core::atomPositions_t(node.value("az", 0.0));
+        
         m_period = radahn::core::TimeQuantity(node.value("period", 0.0), units);
         if(m_period.m_value <= 0.0)
         {
             spdlog::error("Period must be positive while trying to load the RotateMotor {} from json.", m_name);
             return false;
         }
-        m_requestedAngle = node.value("requestedAngle", 0.0);
 
+        m_requestedAngle = node.value("requestedAngle", 0.0);
         if(m_requestedAngle <= 0.0)
         {
             spdlog::error("RequestedAngle must be positive while trying to load the RotateMotor {} from json. For a negative rotation, please flip the rotation axis.", m_name);

@@ -8,10 +8,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.1.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://3Dmol.org/build/3Dmol-min.js"></script>        
-    <script src="https://cdn.jsdelivr.net/npm/litegraph.iyobo@0.7/build/litegraph.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/litegraph.iyobo@0.7/css/litegraph.min.css" rel="stylesheet">
+    <script src="/static/js/litegraph.min.js"></script>
+    <script src="/static/js/console_redirect.js"></script>
+    <script src="/static/js/radahn_graph.js"></script>
+    <link href="/static/css/litegraph.css" rel="stylesheet">
 </head>
-<body>
+<body style='width:100%;height:100vh;'>
     <script type="text/javascript" charset="utf-8">
     $(document).ready(function() {
 
@@ -21,16 +23,11 @@
 
 
         // Global variables
+
+        //SocketIO
         var socket = io();
 
-        // Clear all the inputs at the start 
-        var allInputs = document.querySelectorAll('input');
-        allInputs.forEach(input => {
-            if (input.type === 'text') {
-                input.value = '';
-            }
-        });
-
+        // 3Dmol
         var elementMolecule = document.getElementById('visualization');
         var elementMoleculeOverlay = document.getElementById('visualization-overlay');
         var overlayContext = elementMoleculeOverlay.getContext('2d');
@@ -52,9 +49,30 @@
         var selectedAtoms = [];
         currentLabelsType = "none";
         var currentLabels = [];
-
         var savedSelections = {};
         updateDynamicTable();
+
+        // Node Editor
+        var nodeEditor = new LGraph();
+        var nodeEditorCanvas = new LGraphCanvas("#node-canvas", nodeEditor);
+        radahnGraphUtil.setupRadahnGraph(nodeEditor);
+
+        //var nodeConst = LiteGraph.createNode("basic/const");
+        //nodeConst.pos = [200, 200];
+        //nodeEditor.add(nodeConst);
+        //nodeConst.setValue(4.5);
+
+
+        nodeEditor.start();
+
+
+        // Miscalaneous
+        var allInputs = document.querySelectorAll('input');
+        allInputs.forEach(input => {
+            if (input.type == 'text') {
+                input.value = '';
+            }
+        });
 
         // Defining custom listener when needed, forwarding to 3dmol.js otherwise
 
@@ -63,7 +81,7 @@
             if (event.button === 0 && event.shiftKey) {
                 startPoint = { x: event.clientX, y: event.clientY };
 
-                console.log("Start point:", startPoint);
+                console.log("Start point for selection:", startPoint);
                 if(viewerMolecule.getModel() != null)
                 {
                     isDrawing = true;
@@ -77,7 +95,7 @@
                 }
                 else 
                 {
-                    console.log("Model is null");
+                    console.log("Model is empty, selection not tracked");
                 }
             }
             else {
@@ -196,7 +214,7 @@
                 overlayContext.rect(newStartPoint.x, newStartPoint.y, dxOverlay, dyOverlay);
                 overlayContext.stroke();
                 
-                console.log("Rect overlay: ", rectOverlay, "scaleX:", scaleX, "scaleY:", scaleY);
+                //console.log("Rect overlay: ", rectOverlay, "scaleX:", scaleX, "scaleY:", scaleY);
             }
         });
         elementMoleculeOverlay.addEventListener('mouseup', (event) => {
@@ -345,7 +363,7 @@ H 53.72 50 50";
 
         socket.on('zmq_message', function(data) {
             let msg = JSON.parse(data.message);
-            console.log('Received ZMQ message on JS side:', data.message);
+            //console.log('Received ZMQ message on JS side:', data.message);
 
 
             if (!('global' in msg)) {
@@ -407,14 +425,14 @@ H 53.72 50 50";
             
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
-            console.log("Original positions:", positions);
-            console.log("Original positions length:", positions.length);
+            //console.log("Original positions:", positions);
+            //console.log("Original positions length:", positions.length);
             
             // Reshape the positions from 1D to 2D
             let reshapedPositions = [];
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-            console.log("Reshaped positions:", reshapedPositions);
-            console.log("Reshaped positions length:", reshapedPositions.length);
+            //console.log("Reshaped positions:", reshapedPositions);
+            //console.log("Reshaped positions length:", reshapedPositions.length);
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
@@ -426,6 +444,11 @@ H 53.72 50 50";
             
         });
 
+        socket.on('job_folder', function(data) {
+            console.log('Job folder information received:', data.message);
+            document.getElementById('job_folder').value = data.message;
+        });
+
         // Handlers for the different forms in the page.
         // These accept data from the user and send it to the server in a
         // variety of ways
@@ -435,24 +458,103 @@ H 53.72 50 50";
         });
 
         $('form#generate_inputs').submit(function(event) {
-            console.log("Sending request to Generating inputs from javascript side");
-            socket.emit('generate_inputs', {
-                xyz: xyzContent,
-                ff: ffContent,
-                ffName: ffFileName,
-                motors: motorConfigContent
-            });
+
+            console.log("Requesting to generate Lammps input files in a job folder.");
+
+            if(xyzContent.length == 0){
+                console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
+                return false;
+            }
+
+            if(ffContent.length == 0){
+                console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
+                return false;
+            }
+
+            // Get the settings from the editor
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let numberCores = document.getElementById("num_cores").value;
+            let maxTimestep = document.getElementById("num_timesteps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value === "true";
+            let updateFrequency = document.getElementById("update_frequency").value;
+            let configDict = {  }
+
+            configDict['number_cores'] = numberCores;
+            configDict['max_timestep'] = maxTimestep;
+            configDict['force_timestep'] = forceTimestep;
+            configDict['update_frequency'] = updateFrequency;
+            configDict['motors'] = radahnJSONContent;
+            configDict['xyz'] = xyzContent;
+            configDict['ffContent'] = ffContent;
+            configDict['ffName'] = ffFileName;
+
+            socket.emit('generate_inputs', configDict);
             return false;
         });
 
         $('form#launch_simulation').submit(function(event) {
-            console.log("Sending request to launch the simulation from javascript side");
-            socket.emit('launch_simulation', {
-                xyz: xyzContent,
-                ff: ffContent,
-                ffName: ffFileName,
-                motors: motorConfigContent
-            });
+            console.log('Requesting to launch simulation.');
+
+            if(xyzContent.length == 0){
+                console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
+                return false;
+            }
+
+            if(ffContent.length == 0){
+                console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
+                return false;
+            }
+
+            // Get the settings from the editor
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let numberCores = document.getElementById("num_cores").value;
+            let maxTimestep = document.getElementById("num_timesteps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value === "true";
+            let updateFrequency = document.getElementById("update_frequency").value;
+            let configDict = {  };
+
+
+            if(radahnJSONContent.length == 0 && !forceTimestep){
+                console.warn("No motors were declared and the option 'Force max step' is not set. Enabling the option automatically.");
+                forceTimestep = true;
+            }
+
+            if(numberCores < 1){
+                console.warn("The number of cores must be greater than 0. Switching the number of cores to 1.");
+                numberCores = 1;
+            }
+            if(updateFrequency < 1){
+                console.warn("The update frequency must be greater than 0. Switching the update frequency to 100.");                
+                updateFrequency = 100;
+            }
+
+            configDict['number_cores'] = numberCores;
+            configDict['max_timestep'] = maxTimestep;
+            configDict['force_timestep'] = forceTimestep;
+            configDict['update_frequency'] = updateFrequency;
+            configDict['motors'] = radahnJSONContent;
+            configDict['xyz'] = xyzContent;
+            configDict['ffContent'] = ffContent;
+            configDict['ffName'] = ffFileName;
+
+            socket.emit('launch_simulation', configDict);
+            return false;
+        });
+
+        $('form#print_motors').submit(function(event) {
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            console.log(radahnJSONContent);
+            return false;
+        });
+
+        $('form#open_job_folder').submit(function(event) {
+            jobFolder = document.getElementById("job_folder").value;
+            if(jobFolder.length == 0){
+                console.error("No job folder was specified. Please specify a job folder. ");
+                return false;
+            }
+            console.log("Requesting to open job folder: " + jobFolder);
+            socket.emit('open_job_folder', {'jobFolder': jobFolder});
             return false;
         });
 
@@ -468,28 +570,21 @@ H 53.72 50 50";
                     const contents = event.target.result;
                     // Now you can parse the contents of the file
                     // For example, if the file is a JSON, you can parse it as follows:
-                    console.log("File contents:", contents);
+                    //console.log("File contents:", contents);
 
                     viewerMolecule.addModel(contents, 'xyz');
                     viewerMolecule.setStyle({}, {stick: {}})
                     viewerMolecule.zoomTo();
-                    //let atoms = viewerMolecule.getModel().getInternalState().atoms;
-                    //if(atoms.length > 0)
-                    //{
-                    //    for(let i = 0; i < atoms.length; i++)
-                    //    {
-                    //        viewerMolecule.addLabel(""+atoms[i].index, {frontsize: 11.5, inFront:true, position: atoms[i], opacity: 0.5});
-                    //    }
-                    //}
                     viewerMolecule.render();
 
                     xyzContent = contents;
+                    console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
                 }
                 reader.readAsText(file);
             }
             else 
             {
-                console.log("No XYZ file was selected");
+                console.warn("No XYZ file was selected");
             }
         }
 
@@ -573,7 +668,7 @@ H 53.72 50 50";
                 reader.onload = function(event) {
                     const contents = event.target.result;
                     
-                    console.log("Forcefield content:", contents);
+                    console.info("Forcefield " + file.name + " loaded.");
 
                     ffContent = contents;
                     ffFileName = file.name;
@@ -582,7 +677,7 @@ H 53.72 50 50";
             }
             else 
             {
-                console.log("No file was selected");
+                console.warn("No forcefield file was selected");
             }
         }
 
@@ -599,12 +694,13 @@ H 53.72 50 50";
                     //console.log("Forcefield content:", contents);
 
                     motorConfigContent = contents;
+                    console.info("Motor config " + file.name + " loaded.");
                 }
                 reader.readAsText(file);
             }
             else 
             {
-                console.log("No file was selected in motor configuration field.");
+                console.warn("No file was selected in motor configuration field.");
             }
         }
 
@@ -628,7 +724,7 @@ H 53.72 50 50";
         }
 
         window.refreshMolecule = function() {
-            console.log("Refreshing the molecule");
+            //console.log("Refreshing the molecule");
             let vizStyle = document.getElementById("color-by").value;
 
             //<option value="atom-type">Atom Type</option>
@@ -704,6 +800,7 @@ H 53.72 50 50";
         .middle {
             float: left;
             width: 33%;
+            height: 100%;
         }
         .right {
             float: left;
@@ -744,17 +841,22 @@ H 53.72 50 50";
             width: 100%;
         }
 
-        #node-canvas {
-            width: 100%;
-            height: 50%;
-        }
+        #log-container { overflow: auto; height: 300px; }
+
+        #span_job_folder { display: block; overflow: hidden; padding-right: 10px;}
+        #job_folder { width: 60%; }
+
+        .log-warn { color: orange }
+        .log-error { color: red }
+        .log-info { color: skyblue }
+        .log-log { color: black }
+
+        .log-warn, .log-error { font-weight: bold; }
     </style>
     <div class="left">
         <h1>Radahn Mega Frontend</h1>
-        <p>
-        Async mode is: <b>{{ async_mode }}</b><br>
-        </p>
-        <h2>Setup</h2>
+        
+        <h2>Model Definition</h2>
         <div>
             <label for="xyz-file">Select XYZ file:</label>
             <input type="file" id="xyz-file" accept=".xyz">
@@ -763,26 +865,61 @@ H 53.72 50 50";
             <label for="ff-file">Select Potential file:</label>
             <input type="file" id="ff-file" accept=".ff">
         </div>
+        <h2>Radahn Setup</h2>
         <div>
             <label for="motor-file">Select motor configuration file:</label>
             <input type="file" id="motor-file" accept=".json">
         </div>
         <div>
+            <label>Number of cores:</label>
+            <input type="number" id="num_cores" name="num_cores" value="1"></input>
+        </div>
+        <div>
+            <label>Maximum number of timesteps:</label>
+            <input type="number" id="num_timesteps" name="num_timesteps" value="10000"></input>
+        </div>
+        <div>
+            <label>Force maximum number of steps:</label>
+            <input type="checkbox" id="force_max_steps" name="force_max_steps" value="false"></input>
+        </div>
+        <div>
+            <label>Update frequency:</label>
+            <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
+        </div>
+        <h2>Simulation Operation</h2>
+        <!--div>
             <form id="start_listening" method="POST" action="#">
                 <input type="submit" value="Start listening">
             </form>
-        </div>
+        </div-->
         <div>
             <form id="generate_inputs" method="POST" action="#">
-                <input type="submit" value="Generate inputs">
+                <input type="submit" value="Generate inputs"></input>
             </form>
-        </div>
-        <div>
+        <!--/div>
+        <div-->
             <form id="launch_simulation" method="POST" action="#">
-                <input type="submit" value="Launch">
+                <input type="submit" value="Launch"></input>
             </form>
         </div>
-
+        <!--div>
+            <form id="print_motors" method="POST" action="#">
+                <input type="submit" value="Print motors">
+            </form>
+        </div-->
+        <div>
+            <span id="span_job_folder">
+            <label>Job Folder: </label>
+            <input type="text" id="job_folder" name="job_folder" value="" readonly></input>
+            <form id="open_job_folder" method="POST" action="#">
+                <input type="submit" value="Open"></input>
+            </form>
+            </span>
+        </div>
+        <h2>Log Console</h2>
+        <div id="log-container">
+            <pre id="log"></pre>
+          </div>
     </div>
     <div class="middle">
         <h2>Plots</h2>
@@ -795,7 +932,7 @@ H 53.72 50 50";
         <canvas id="plot-canvas-temp"></canvas>
         </div>
         <div id="node_section">
-            <canvas id="node-canvas"></canvas>
+            <canvas id="node-canvas" width="1024" height="720" style="border: 1px solid"></canvas>
         </div>
     </div>
     <div class="right">
