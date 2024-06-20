@@ -3,8 +3,6 @@ var radahnGraphUtil = {}
 
 radahnGraphUtil.setupRadahnGraph = function(lGraph)
 {
-    console.log("calling setupRadahnGraph");
-
     // Remove the default types of nodes, we will only used types defined in this utility module.
     //console.log(lGraph);
     LiteGraph.clearRegisteredTypes();

@@ -16,7 +16,7 @@ function rewireLoggingToElement(eleLocator, eleOverflowLocator, autoScroll) {
     function fixLoggingFunc(name) {
         console['old' + name] = console[name];
         console[name] = function(...arguments) {
-            const output = produceOutput(name, arguments);
+            const output = "[" + name + "] " + produceOutput(name, arguments);
             const eleLog = eleLocator();
 
             if (autoScroll) {

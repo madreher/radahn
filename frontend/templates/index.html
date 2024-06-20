@@ -81,7 +81,7 @@
             if (event.button === 0 && event.shiftKey) {
                 startPoint = { x: event.clientX, y: event.clientY };
 
-                console.log("Start point:", startPoint);
+                console.log("Start point for selection:", startPoint);
                 if(viewerMolecule.getModel() != null)
                 {
                     isDrawing = true;
@@ -95,7 +95,7 @@
                 }
                 else 
                 {
-                    console.log("Model is null");
+                    console.log("Model is empty, selection not tracked");
                 }
             }
             else {
@@ -214,7 +214,7 @@
                 overlayContext.rect(newStartPoint.x, newStartPoint.y, dxOverlay, dyOverlay);
                 overlayContext.stroke();
                 
-                console.log("Rect overlay: ", rectOverlay, "scaleX:", scaleX, "scaleY:", scaleY);
+                //console.log("Rect overlay: ", rectOverlay, "scaleX:", scaleX, "scaleY:", scaleY);
             }
         });
         elementMoleculeOverlay.addEventListener('mouseup', (event) => {
@@ -363,7 +363,7 @@ H 53.72 50 50";
 
         socket.on('zmq_message', function(data) {
             let msg = JSON.parse(data.message);
-            console.log('Received ZMQ message on JS side:', data.message);
+            //console.log('Received ZMQ message on JS side:', data.message);
 
 
             if (!('global' in msg)) {
@@ -425,14 +425,14 @@ H 53.72 50 50";
             
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
-            console.log("Original positions:", positions);
-            console.log("Original positions length:", positions.length);
+            //console.log("Original positions:", positions);
+            //console.log("Original positions length:", positions.length);
             
             // Reshape the positions from 1D to 2D
             let reshapedPositions = [];
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-            console.log("Reshaped positions:", reshapedPositions);
-            console.log("Reshaped positions length:", reshapedPositions.length);
+            //console.log("Reshaped positions:", reshapedPositions);
+            //console.log("Reshaped positions length:", reshapedPositions.length);
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
@@ -445,7 +445,7 @@ H 53.72 50 50";
         });
 
         socket.on('job_folder', function(data) {
-            console.log('Received Job Folder message on JS side:', data.message);
+            console.log('Job folder information received:', data.message);
             document.getElementById('job_folder').value = data.message;
         });
 
@@ -458,7 +458,18 @@ H 53.72 50 50";
         });
 
         $('form#generate_inputs').submit(function(event) {
-            console.log("Sending request to Generating inputs from javascript side");
+
+            console.log("Requesting to generate Lammps input files in a job folder.");
+
+            if(xyzContent.length == 0){
+                console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
+                return false;
+            }
+
+            if(ffContent.length == 0){
+                console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
+                return false;
+            }
 
             // Get the settings from the editor
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
@@ -482,14 +493,40 @@ H 53.72 50 50";
         });
 
         $('form#launch_simulation').submit(function(event) {
-            console.log("Sending request to launch the simulation from javascript side");
+            console.log('Requesting to launch simulation.');
+
+            if(xyzContent.length == 0){
+                console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
+                return false;
+            }
+
+            if(ffContent.length == 0){
+                console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
+                return false;
+            }
+
             // Get the settings from the editor
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
-            let forceTimestep = document.getElementById("force_max_steps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value === "true";
             let updateFrequency = document.getElementById("update_frequency").value;
-            let configDict = {  }
+            let configDict = {  };
+
+
+            if(radahnJSONContent.length == 0 && !forceTimestep){
+                console.warn("No motors were declared and the option 'Force max step' is not set. Enabling the option automatically.");
+                forceTimestep = true;
+            }
+
+            if(numberCores < 1){
+                console.warn("The number of cores must be greater than 0. Switching the number of cores to 1.");
+                numberCores = 1;
+            }
+            if(updateFrequency < 1){
+                console.warn("The update frequency must be greater than 0. Switching the update frequency to 100.");                
+                updateFrequency = 100;
+            }
 
             configDict['number_cores'] = numberCores;
             configDict['max_timestep'] = maxTimestep;
@@ -524,7 +561,7 @@ H 53.72 50 50";
                     const contents = event.target.result;
                     // Now you can parse the contents of the file
                     // For example, if the file is a JSON, you can parse it as follows:
-                    console.log("File contents:", contents);
+                    //console.log("File contents:", contents);
 
                     viewerMolecule.addModel(contents, 'xyz');
                     viewerMolecule.setStyle({}, {stick: {}})
@@ -540,6 +577,7 @@ H 53.72 50 50";
                     viewerMolecule.render();
 
                     xyzContent = contents;
+                    console.log("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
                 }
                 reader.readAsText(file);
             }
@@ -629,7 +667,7 @@ H 53.72 50 50";
                 reader.onload = function(event) {
                     const contents = event.target.result;
                     
-                    console.log("Forcefield content:", contents);
+                    console.log("Forcefield " + file.name + " loaded.");
 
                     ffContent = contents;
                     ffFileName = file.name;
@@ -684,7 +722,7 @@ H 53.72 50 50";
         }
 
         window.refreshMolecule = function() {
-            console.log("Refreshing the molecule");
+            //console.log("Refreshing the molecule");
             let vizStyle = document.getElementById("color-by").value;
 
             //<option value="atom-type">Atom Type</option>
@@ -847,26 +885,26 @@ H 53.72 50 50";
             <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
         </div>
         <h2>Simulation Operation</h2>
-        <div>
+        <!--div>
             <form id="start_listening" method="POST" action="#">
                 <input type="submit" value="Start listening">
             </form>
-        </div>
+        </div-->
         <div>
             <form id="generate_inputs" method="POST" action="#">
                 <input type="submit" value="Generate inputs">
             </form>
-        </div>
-        <div>
+        <!--/div>
+        <div-->
             <form id="launch_simulation" method="POST" action="#">
                 <input type="submit" value="Launch">
             </form>
         </div>
-        <div>
+        <!--div>
             <form id="print_motors" method="POST" action="#">
                 <input type="submit" value="Print motors">
             </form>
-        </div>
+        </div-->
         <div>
             <label>Job Folder: </label>
             <span id="span_job_folder"><input type="text" id="job_folder" name="job_folder" value="" readonly></input></span>
