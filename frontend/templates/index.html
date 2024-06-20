@@ -475,7 +475,7 @@ H 53.72 50 50";
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
-            let forceTimestep = document.getElementById("force_max_steps").value;
+            let forceTimestep = document.getElementById("force_max_steps").value === "true";
             let updateFrequency = document.getElementById("update_frequency").value;
             let configDict = {  }
 
@@ -543,9 +543,18 @@ H 53.72 50 50";
 
         $('form#print_motors').submit(function(event) {
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
-            //console.log(radahnJSONContent);
-            //console['log']('form#print_motors', radahnJSONContent);
             console.log(radahnJSONContent);
+            return false;
+        });
+
+        $('form#open_job_folder').submit(function(event) {
+            jobFolder = document.getElementById("job_folder").value;
+            if(jobFolder.length == 0){
+                console.error("No job folder was specified. Please specify a job folder. ");
+                return false;
+            }
+            console.log("Requesting to open job folder: " + jobFolder);
+            socket.emit('open_job_folder', {'jobFolder': jobFolder});
             return false;
         });
 
@@ -566,24 +575,16 @@ H 53.72 50 50";
                     viewerMolecule.addModel(contents, 'xyz');
                     viewerMolecule.setStyle({}, {stick: {}})
                     viewerMolecule.zoomTo();
-                    //let atoms = viewerMolecule.getModel().getInternalState().atoms;
-                    //if(atoms.length > 0)
-                    //{
-                    //    for(let i = 0; i < atoms.length; i++)
-                    //    {
-                    //        viewerMolecule.addLabel(""+atoms[i].index, {frontsize: 11.5, inFront:true, position: atoms[i], opacity: 0.5});
-                    //    }
-                    //}
                     viewerMolecule.render();
 
                     xyzContent = contents;
-                    console.log("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
+                    console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
                 }
                 reader.readAsText(file);
             }
             else 
             {
-                console.log("No XYZ file was selected");
+                console.warn("No XYZ file was selected");
             }
         }
 
@@ -667,7 +668,7 @@ H 53.72 50 50";
                 reader.onload = function(event) {
                     const contents = event.target.result;
                     
-                    console.log("Forcefield " + file.name + " loaded.");
+                    console.info("Forcefield " + file.name + " loaded.");
 
                     ffContent = contents;
                     ffFileName = file.name;
@@ -676,7 +677,7 @@ H 53.72 50 50";
             }
             else 
             {
-                console.log("No file was selected");
+                console.warn("No forcefield file was selected");
             }
         }
 
@@ -693,12 +694,13 @@ H 53.72 50 50";
                     //console.log("Forcefield content:", contents);
 
                     motorConfigContent = contents;
+                    console.info("Motor config " + file.name + " loaded.");
                 }
                 reader.readAsText(file);
             }
             else 
             {
-                console.log("No file was selected in motor configuration field.");
+                console.warn("No file was selected in motor configuration field.");
             }
         }
 
@@ -842,7 +844,7 @@ H 53.72 50 50";
         #log-container { overflow: auto; height: 300px; }
 
         #span_job_folder { display: block; overflow: hidden; padding-right: 10px;}
-        #job_folder { width: 100%; }
+        #job_folder { width: 60%; }
 
         .log-warn { color: orange }
         .log-error { color: red }
@@ -892,12 +894,12 @@ H 53.72 50 50";
         </div-->
         <div>
             <form id="generate_inputs" method="POST" action="#">
-                <input type="submit" value="Generate inputs">
+                <input type="submit" value="Generate inputs"></input>
             </form>
         <!--/div>
         <div-->
             <form id="launch_simulation" method="POST" action="#">
-                <input type="submit" value="Launch">
+                <input type="submit" value="Launch"></input>
             </form>
         </div>
         <!--div>
@@ -906,8 +908,13 @@ H 53.72 50 50";
             </form>
         </div-->
         <div>
+            <span id="span_job_folder">
             <label>Job Folder: </label>
-            <span id="span_job_folder"><input type="text" id="job_folder" name="job_folder" value="" readonly></input></span>
+            <input type="text" id="job_folder" name="job_folder" value="" readonly></input>
+            <form id="open_job_folder" method="POST" action="#">
+                <input type="submit" value="Open"></input>
+            </form>
+            </span>
         </div>
         <h2>Log Console</h2>
         <div id="log-container">

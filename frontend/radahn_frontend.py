@@ -11,6 +11,8 @@ import numpy as np
 import subprocess
 import platform
 import time
+import sys
+import platform
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -37,6 +39,10 @@ thread_lockGenerateInputs = Lock()
 # Thread running Radahn. This generates inputs and execute the simulation on the local host
 threadRadahn = None
 thread_lockRadahn = Lock()
+
+# Thread opening the job folder
+threadOpenJobFolder = None
+thread_lockOpenJobFolder = Lock()
 
 
 # Default paths
@@ -379,6 +385,30 @@ def listen_to_zmq_socketAtoms():
         #app.logger.info("Received a message from ZMQ on python side: %s", message)
         socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
         #time.sleep(1)  # wait for 1 second before receiving the next message
+
+def open_job_folder(jobFolder):
+    # Windows method 
+    if platform.system() == 'Windows':
+        os.startfile(jobFolder)
+    elif platform.system() == 'Darwin':
+        subprocess.call(['open', jobFolder])
+    elif platform.system() == 'Linux':
+        app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
+        subprocess.call(['xdg-open', jobFolder])
+    else:
+        app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+
+
+@socketio.on('open_job_folder')
+def handle_open_job_folder(data):
+    app.logger.info("Received a request to open the job folder.")
+    global threadOpenJobFolder
+    with thread_lockOpenJobFolder:
+        if threadOpenJobFolder is None:
+            threadOpenJobFolder = socketio.start_background_task(open_job_folder, data['jobFolder'])
+            app.logger.info("Background thread opening job folder started.")
+        else:
+            app.logger.info("Background task opening job folder already started.")
 
 # Receive the test request from client and send back a test response
 @socketio.on('start_listening')
