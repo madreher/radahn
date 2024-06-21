@@ -44,6 +44,7 @@
         var dy = null;
         var startPointOverlay = null;
         var dxOverlay = null;
+
         var dyOverlay = null;
         var mapObjectsToScreen = null;
         var selectedAtoms = [];
@@ -56,15 +57,13 @@
         var nodeEditor = new LGraph();
         var nodeEditorCanvas = new LGraphCanvas("#node-canvas", nodeEditor);
         radahnGraphUtil.setupRadahnGraph(nodeEditor);
-
-        //var nodeConst = LiteGraph.createNode("basic/const");
-        //nodeConst.pos = [200, 200];
-        //nodeEditor.add(nodeConst);
-        //nodeConst.setValue(4.5);
-
-
         nodeEditor.start();
 
+        // KVS temporal data
+        var kvsData = {};
+        var listKVSFields = [];
+        var firstPlotKey = null;
+        var secondPlotKey = null;
 
         // Miscalaneous
         var allInputs = document.querySelectorAll('input');
@@ -278,11 +277,11 @@ H 53.72 50 50";
         const canvaTemp = document.getElementById('plot-canvas-temp');
 
         // Create a Chart.js instance
-        const chart = new Chart(canvas, {
+        const chart1 = new Chart(canvas, {
         type: 'line',
         data: {
             datasets: [{
-            label: 'Timestep',
+            label: 'Undefined',
             data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
@@ -319,11 +318,11 @@ H 53.72 50 50";
             }
         }
         });
-        const chartTemp = new Chart(canvaTemp, {
+        const chart2 = new Chart(canvaTemp, {
         type: 'line',
         data: {
             datasets: [{
-            label: 'Temperature (K)',
+            label: 'Undefined',
             data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
@@ -374,17 +373,17 @@ H 53.72 50 50";
 
             //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
             // Update the data in the chart instance
-            chart.data.labels.push(msg['global']['simIt']);
-            chart.data.datasets[0].data.push(msg['global']['simIt']);
+            //chart.data.labels.push(msg['global']['simIt']);
+            //chart.data.datasets[0].data.push(msg['global']['simIt']);
 
             // Update the chart
-            chart.update();
+            //chart.update();
 
-            chartTemp.data.labels.push(msg['global']['simIt']);
-            chartTemp.data.datasets[0].data.push(msg['global']['temp']);
+            //chartTemp.data.labels.push(msg['global']['simIt']);
+            //chartTemp.data.datasets[0].data.push(msg['global']['temp']);
 
             // Update the chart
-            chartTemp.update();
+            //chartTemp.update();
 
             // Find all fields
             
@@ -406,11 +405,67 @@ H 53.72 50 50";
             
             //let keys = extractKeys(msg);
             let fields = extractKeysAndValues(msg);
+
+            // Updating the internal map
+            let simIt = msg['global']['simIt'];
+            for (let i = 0; i < fields.length; i++) {
+                if(fields[i].key in kvsData) {
+                    // The keys is already in the object, appending the data to the same key
+                    kvsData[fields[i].key].it.push(simIt);
+                    kvsData[fields[i].key].values.push(fields[i].value);
+
+                    // Updating the plots if necessary
+                    if(firstPlotKey === fields[i].key) {
+                        chart1.data.labels.push(simIt);
+                        chart1.data.datasets[0].data.push(fields[i].value);
+                        chart1.update();
+                    }
+
+                    if(secondPlotKey === fields[i].key) {
+                        chart2.data.labels.push(simIt);
+                        chart2.data.datasets[0].data.push(fields[i].value);
+                        chart2.update();
+                    }
+                }
+                else {
+                    // The keys is not in the object, creating a new key
+                    kvsData[fields[i].key] = {
+                        it: [simIt],
+                        values: [fields[i].value]
+                    };
+
+                    listKVSFields.push(fields[i].key);
+
+                    // Updating the UI
+                    let selectionPlot1 = document.getElementById('select-plot1');
+                    selectionPlot1.options.length = 0;
+                    for(let i = 0; i < listKVSFields.length; i++) {
+                        let opt = listKVSFields[i];
+                        let el = document.createElement("option");
+                        el.textContent = opt;
+                        el.value = opt;
+                        selectionPlot1.appendChild(el);
+                    }
+                    let selectionPlot2 = document.getElementById('select-plot2');
+                    selectionPlot2.options.length = 0;
+                    for(let i = 0; i < listKVSFields.length; i++) {
+                        let opt = listKVSFields[i];
+                        let el = document.createElement("option");
+                        el.textContent = opt;
+                        el.value = opt;
+                        selectionPlot2.appendChild(el);
+                    }
+                }
+            }
             
-            $('#fields-list').empty();
-            $.each(fields, function(index, key) {
-                $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
-            });
+            //console.log(kvsData);
+
+
+            
+            //$('#fields-list').empty();
+            //$.each(fields, function(index, key) {
+            //    $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
+            //});
         });
 
         socket.on('zmq_message_atoms', function(data) {
@@ -704,6 +759,33 @@ H 53.72 50 50";
             }
         }
 
+        window.updatePlots = function() {
+            console.log("Updating plot configuration");
+            // Get the current fields selected
+            let plot1Field = document.getElementById("select-plot1").value;
+            if(plot1Field != "none" && (firstPlotKey === null || firstPlotKey !== plot1Field))
+            {
+                // Update the plot
+                chart1.data.datasets[0].label = plot1Field;
+                chart1.data.labels = kvsData[plot1Field].it;
+                chart1.data.datasets[0].data = kvsData[plot1Field].values; 
+                chart1.update();
+
+                firstPlotKey = plot1Field;
+            }
+            let plot2Field = document.getElementById("select-plot2").value;
+            if(plot2Field != "none" && (secondPlotKey === null || secondPlotKey !== plot2Field))
+            {
+                // Update the plot
+                chart2.data.datasets[0].label = plot2Field;
+                chart2.data.labels = kvsData[plot2Field].it;
+                chart2.data.datasets[0].data = kvsData[plot2Field].values; 
+                chart2.update();
+
+                secondPlotKey = plot2Field;
+            }
+        }
+
         // Make the function global so that it's accessible to the "save" button
         window.saveSelectionInternal = function() {
             if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
@@ -923,14 +1005,23 @@ H 53.72 50 50";
     </div>
     <div class="middle">
         <h2>Plots</h2>
-        <h2>Fields:</h2>
-        <ul id="fields-list"></ul>
-        <div id="log">
+        <label>Plots 1:</label>
+        <select id="select-plot1">
+            <option value="none">None</option>
+        </select>
+        <label>Plots 2:</label>
+        <select id="select-plot2">
+            <option value="none">None</option>
+        </select>
+        <button id="updatePlots" onclick="updatePlots()">Update Plots</button>
+
+        <div id="plot_section">
         <canvas id="plot-canvas"></canvas>
         </div>
         <div id="sep canvas">
         <canvas id="plot-canvas-temp"></canvas>
         </div>
+        <h2>Motor Graph</h2>
         <div id="node_section">
             <canvas id="node-canvas" width="1024" height="720" style="border: 1px solid"></canvas>
         </div>
