@@ -416,17 +416,21 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable)
 radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable)
 {
     anchorNodes = [];
-    Object.entries(anchorTable).forEach((value, key) => {
+    // Go though each element of the anchor table
+
+    for(const [key, value] of Object.entries(anchorTable))
+    {
         let anchorNode = {
             "name": key,
             "selection": value.atomIndexes
-        }
+        };
+        console.log(anchorNode);
         for(let j = 0; j < anchorNode["selection"].length; ++j)
         {
             anchorNode["selection"][j] = anchorNode["selection"][j] + 1;
         }
         anchorNodes.push(anchorNode);
-    });
+    }
 
     if(anchorNodes.length == 0)
     {

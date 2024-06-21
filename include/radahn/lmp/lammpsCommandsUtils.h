@@ -121,6 +121,10 @@ class LammpsCommandsUtils
 public:
     LammpsCommandsUtils(){}
     std::string getIntegrationGroup() const { return m_integrateGroupName; }
+    void declarePermanentAnchorGroup(const std::string& groupName) { 
+        m_permanentAnchorName = groupName; 
+        m_hasPermanentAnchor = true;
+    }
 
     bool loadCommandsFromConduit(conduit::Node& cmds);
     bool writeDoCommands(std::vector<std::string>& cmds) const;
@@ -165,6 +169,8 @@ protected:
     std::vector<std::shared_ptr<LammpsCommand>> m_cmds;
     std::string m_integrateGroupName = "integrateGRP";
     std::string m_nonIntegrateGroupName = "nonintegrateGRP";
+    bool m_hasPermanentAnchor = false;
+    std::string m_permanentAnchorName;
 };
 
 } // core

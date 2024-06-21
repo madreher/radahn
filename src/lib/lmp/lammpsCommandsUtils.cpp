@@ -439,9 +439,21 @@ bool radahn::lmp::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>&
     if(nonIntegrationGroup.size() == 0)
     {
         // All the groups can be moved
-        std::stringstream cmd1;
-        cmd1<<"group "<<m_nonIntegrateGroupName<<" empty";
-        cmdsStr.push_back(cmd1.str());
+
+        if(m_hasPermanentAnchor)
+        {
+            // No unmovable motors, but a permanent anchor
+            std::stringstream cmd1;
+            cmd1<<"group "<<m_nonIntegrateGroupName<<" union "<<m_permanentAnchorName;
+            cmdsStr.push_back(cmd1.str());
+        }
+        else 
+        {   
+            // No permanent anchor, no unmovable motors
+            std::stringstream cmd1;
+            cmd1<<"group "<<m_nonIntegrateGroupName<<" empty";
+            cmdsStr.push_back(cmd1.str());
+        }
     }
     else
     {
@@ -449,6 +461,11 @@ bool radahn::lmp::LammpsCommandsUtils::writeDoCommands(std::vector<std::string>&
         cmd1<<"group "<<m_nonIntegrateGroupName<<" union ";
         for(auto & grp : nonIntegrationGroup)
             cmd1<<" "<<grp;
+
+        if(m_hasPermanentAnchor)
+        {
+            cmd1<<" "<<m_permanentAnchorName;
+        }
         cmdsStr.push_back(cmd1.str());
     }
     std::stringstream ss;
