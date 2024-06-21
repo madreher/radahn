@@ -124,8 +124,8 @@
                 overlayContext.rect(startPoint.x, startPoint.y, dx, dy);
                 overlayContext.stroke();
 
-                console.log("dx:", dx, "dy:", dy);
-                console.log("Rect 3Dmol:", rect3DMol);
+                //console.log("dx:", dx, "dy:", dy);
+                //console.log("Rect 3Dmol:", rect3DMol);
 
             }
             else 
@@ -376,21 +376,6 @@ H 53.72 50 50";
                 return;
             }
 
-
-            //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
-            // Update the data in the chart instance
-            //chart.data.labels.push(msg['global']['simIt']);
-            //chart.data.datasets[0].data.push(msg['global']['simIt']);
-
-            // Update the chart
-            //chart.update();
-
-            //chartTemp.data.labels.push(msg['global']['simIt']);
-            //chartTemp.data.datasets[0].data.push(msg['global']['temp']);
-
-            // Update the chart
-            //chartTemp.update();
-
             // Find all fields
             
             function extractKeysAndValues(obj, parentKey = "") {
@@ -463,15 +448,7 @@ H 53.72 50 50";
                     }
                 }
             }
-            
-            //console.log(kvsData);
-
-
-            
-            //$('#fields-list').empty();
-            //$.each(fields, function(index, key) {
-            //    $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
-            //});
+        
         });
 
         socket.on('zmq_message_atoms', function(data) {
@@ -486,14 +463,11 @@ H 53.72 50 50";
             
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
-            //console.log("Original positions:", positions);
-            //console.log("Original positions length:", positions.length);
+
             
             // Reshape the positions from 1D to 2D
             let reshapedPositions = [];
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-            //console.log("Reshaped positions:", reshapedPositions);
-            //console.log("Reshaped positions length:", reshapedPositions.length);
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
@@ -945,6 +919,14 @@ H 53.72 50 50";
                     });
                     break;
                 }
+                case "anchor": {
+                    // We first color by atom type for every atoms, then we re-color by selection
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    Object.entries(savedAnchors).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+                    break;
+                }
                 default: {
                     viewerMolecule.setStyle({}, {stick: {}})
                     break;
@@ -1157,6 +1139,7 @@ H 53.72 50 50";
                 <select id="color-by">
                     <option value="atom-type">Atom Type</option>
                     <option value="selection">Selection</option>
+                    <option value="anchor">Anchor</option>
                 </select>
                 <label>Label:</label>
                 <select id="atom-label">
