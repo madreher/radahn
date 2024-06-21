@@ -507,7 +507,8 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -522,6 +523,7 @@ H 53.72 50 50";
             configDict['xyz'] = xyzContent;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
+            configDict['lmp_groups'] = lammpsJSONContent;
 
             socket.emit('generate_inputs', configDict);
             return false;
@@ -541,7 +543,8 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -571,6 +574,7 @@ H 53.72 50 50";
             configDict['xyz'] = xyzContent;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
+            configDict['lmp_groups'] = lammpsJSONContent;
 
             socket.emit('launch_simulation', configDict);
             return false;

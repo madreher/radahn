@@ -251,6 +251,12 @@ def generate_inputs(config:dict) -> str:
             f.write(config["motors"])
             f.close()
 
+    if len(config['lmp_groups']) > 0:
+        lmp_groupsFile = jobFolder / "lmp_groups.json"
+        with open(lmp_groupsFile, "w") as f:
+            f.write(config["lmp_groups"])
+            f.close()
+
 
     dataFile = jobFolder / "input.data"
 
