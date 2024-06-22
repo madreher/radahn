@@ -38,20 +38,26 @@
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
 
+        // Selection drawing tracking
         var isDrawing = false;
         var startPoint = null;
         var dx = null;
         var dy = null;
         var startPointOverlay = null;
         var dxOverlay = null;
-
         var dyOverlay = null;
         var mapObjectsToScreen = null;
+
+        // Selection table
         var selectedAtoms = [];
         currentLabelsType = "none";
         var currentLabels = [];
         var savedSelections = {};
         updateDynamicTable();
+
+        // Anchor table
+        var savedAnchors = {};
+        updateAnchorTable();
 
         // Node Editor
         var nodeEditor = new LGraph();
@@ -118,8 +124,8 @@
                 overlayContext.rect(startPoint.x, startPoint.y, dx, dy);
                 overlayContext.stroke();
 
-                console.log("dx:", dx, "dy:", dy);
-                console.log("Rect 3Dmol:", rect3DMol);
+                //console.log("dx:", dx, "dy:", dy);
+                //console.log("Rect 3Dmol:", rect3DMol);
 
             }
             else 
@@ -370,21 +376,6 @@ H 53.72 50 50";
                 return;
             }
 
-
-            //$('#log').append('<br>' + $('<div/>').text(msg['global']['step']).html());
-            // Update the data in the chart instance
-            //chart.data.labels.push(msg['global']['simIt']);
-            //chart.data.datasets[0].data.push(msg['global']['simIt']);
-
-            // Update the chart
-            //chart.update();
-
-            //chartTemp.data.labels.push(msg['global']['simIt']);
-            //chartTemp.data.datasets[0].data.push(msg['global']['temp']);
-
-            // Update the chart
-            //chartTemp.update();
-
             // Find all fields
             
             function extractKeysAndValues(obj, parentKey = "") {
@@ -457,15 +448,7 @@ H 53.72 50 50";
                     }
                 }
             }
-            
-            //console.log(kvsData);
-
-
-            
-            //$('#fields-list').empty();
-            //$.each(fields, function(index, key) {
-            //    $('#fields-list').append('<li>' + fields[index].key + ': ' + fields[index].value + '</li>');
-            //});
+        
         });
 
         socket.on('zmq_message_atoms', function(data) {
@@ -480,14 +463,11 @@ H 53.72 50 50";
             
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
-            //console.log("Original positions:", positions);
-            //console.log("Original positions length:", positions.length);
+
             
             // Reshape the positions from 1D to 2D
             let reshapedPositions = [];
             while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-            //console.log("Reshaped positions:", reshapedPositions);
-            //console.log("Reshaped positions length:", reshapedPositions.length);
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
@@ -527,7 +507,8 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -542,6 +523,7 @@ H 53.72 50 50";
             configDict['xyz'] = xyzContent;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
+            configDict['lmp_groups'] = lammpsJSONContent;
 
             socket.emit('generate_inputs', configDict);
             return false;
@@ -561,7 +543,8 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -591,6 +574,7 @@ H 53.72 50 50";
             configDict['xyz'] = xyzContent;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
+            configDict['lmp_groups'] = lammpsJSONContent;
 
             socket.emit('launch_simulation', configDict);
             return false;
@@ -710,6 +694,74 @@ H 53.72 50 50";
 
             // Append the table to the container
             tableContainer.appendChild(table);
+
+            // Update the list of saved selections in the anchor drop menu
+            const anchorSourceSelect = document.getElementById('anchor-source');
+            anchorSourceSelect.innerHTML = '';
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'current-selection';
+            defaultOption.textContent = 'Current selection';
+            anchorSourceSelect.appendChild(defaultOption);
+            Object.keys(savedSelections).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                anchorSourceSelect.appendChild(option);
+            });
+        }
+
+        // Handle the htlm generation for the anchor table
+        function updateAnchorTable()
+        {
+            const tableContainer = document.getElementById('dynamic-anchor-table-container');
+            tableContainer.innerHTML = ''; // Clear previous content
+
+            // Create a table element
+            const table = document.createElement('table');
+            table.className = 'dynamic-table';
+            table.setAttribute('border', '1');
+
+            // Create table header
+            const headerRow = table.insertRow();
+            const headers = ['Name', 'Number of Atoms', 'Color', 'Delete'];
+            headers.forEach(headerText => {
+                const header = document.createElement('th');
+                header.textContent = headerText;
+                headerRow.appendChild(header);
+            });
+
+            // Populate the table with saved selections
+            Object.entries(savedAnchors).forEach(([name, entry]) => {
+                const row = table.insertRow();
+                const cellName = row.insertCell();
+                cellName.textContent = name;
+
+                const cellNumAtoms = row.insertCell();
+                cellNumAtoms.textContent = entry.atomIndexes.length;
+
+                // You can customize the color representation based on the selection
+                const cellColor = row.insertCell();
+                //cellColor.textContent = 'PLACEHOLDER';
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = entry.color;
+                colorInput.readOnly = true;
+                cellColor.appendChild(colorInput);
+
+                // Delete button with action
+                const cellDelete = row.insertCell();
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    delete savedAnchors[name];
+                    updateAnchorTable();
+                    refreshMolecule();
+                })
+                cellDelete.appendChild(deleteButton);
+            });
+
+            // Append the table to the container
+            tableContainer.appendChild(table);
         }
 
 
@@ -793,7 +845,7 @@ H 53.72 50 50";
                     atomIndexes: selectedAtoms, 
                     name: document.getElementById('save-selection').value,
                     color: document.getElementById('selection-color').value};
-                console.log("Added the selection " + document.getElementById('save-selection').value)
+                console.log("Added the selection " + document.getElementById('save-selection').value);
 
                 // Update the table
                 updateDynamicTable();
@@ -803,6 +855,53 @@ H 53.72 50 50";
                 console.log("No selection was selected or a name was not given")
             }
             console.log("Saved selections:", savedSelections);
+        }
+
+        window.saveAnchor = function() {
+            // Get the name of the anchor
+            let anchorName = document.getElementById('save-anchor').value;
+            if(anchorName.length == 0)
+            {
+                console.warn("No name was given for the anchor");
+                return;
+            }
+
+            // Get the name of the selection associated with the anchor
+            let selectionName = document.getElementById('anchor-source').value;
+            if(selectionName === "current-selection")
+            {
+                if(selectedAtoms.length > 0)
+                {
+                    // Using the current selection for the new anchor
+                    savedAnchors[anchorName] = {
+                        name: anchorName,
+                        color: document.getElementById('anchor-color').value,
+                        atomIndexes: selectedAtoms
+                    };
+                    console.log("Added the anchor " + anchorName);
+
+                    // Update the table
+                    updateAnchorTable();
+                }
+            }
+            else if(selectionName in savedSelections)
+            {
+                savedAnchors[anchorName] = {
+                    name: anchorName,
+                    color: document.getElementById('anchor-color').value,
+                    atomIndexes: savedSelections[selectionName].atomIndexes
+                };
+                console.log("Added the anchor " + anchorName);
+
+                // Update the table
+                updateAnchorTable(); 
+            }
+            else 
+            {
+                console.warn("The selection " + selectionName + " does not exist");
+            }
+
+            return;
         }
 
         window.refreshMolecule = function() {
@@ -820,6 +919,14 @@ H 53.72 50 50";
                     // We first color by atom type for every atoms, then we re-color by selection
                     viewerMolecule.setStyle({}, {stick: {}})
                     Object.entries(savedSelections).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+                    break;
+                }
+                case "anchor": {
+                    // We first color by atom type for every atoms, then we re-color by selection
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    Object.entries(savedAnchors).forEach(([name, entry]) => {
                         viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
                     });
                     break;
@@ -1036,6 +1143,7 @@ H 53.72 50 50";
                 <select id="color-by">
                     <option value="atom-type">Atom Type</option>
                     <option value="selection">Selection</option>
+                    <option value="anchor">Anchor</option>
                 </select>
                 <label>Label:</label>
                 <select id="atom-label">
@@ -1046,11 +1154,19 @@ H 53.72 50 50";
                 <p id="info-sim-it">Current Timestep: 0</p>
                 <label id="current-selection-label">Current Selection: </label>
                 <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
-                <label>Save current selection as:</label>
+                <label>Selection name:</label>
                 <input type="text" id="save-selection" name="save-selection"></input>
                 <input type="color" id="selection-color" name="selection-color"></input>
                 <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
                 <div id="dynamic-table-container"></div>
+                <label>Anchor name:</label>
+                <input type="text" id="save-anchor" name="save-anchor"></input>
+                <input type="color" id="anchor-color" name="anchor-color"></input>
+                <select id="anchor-source">
+                    <option value="current-selection">Current selection</option>
+                </select>
+                <button id="save-anchor-button" onclick="saveAnchor()">Save</button>
+                <div id="dynamic-anchor-table-container"></div>
             </div>
         </div>
         

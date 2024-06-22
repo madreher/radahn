@@ -24,6 +24,7 @@ def main():
     fileLmpPath = benzeneFolder + "/input.lmp"
     filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
     fileMotorConfig = ""
+    fileLmpGroups = ""
     useTestMotorSetup = False
     forceMaxSteps = False
 
@@ -65,6 +66,10 @@ def main():
                         help = "Motor configuration file.",
                         dest = "motorconfig",
                         required = False)
+    parser.add_argument("--lmpgroups",
+                        help="Path to configuration file defining global groups in the simulation",
+                        dest="lmpgroups",
+                        required=False)
     parser.add_argument("--testmotorsetup",
                         help = "Use a test motor configuration.",
                         dest = "testmotors",
@@ -107,6 +112,11 @@ def main():
         fileMotorConfig = Path(args.motorconfig)
         if not fileMotorConfig.is_file():
             raise FileNotFoundError(f"The motor configuration file {fileMotorConfig} requested by the user does not exist.")
+        
+    if args.lmpgroups is not None:
+        fileLmpGroups = Path(args.lmpgroups)
+        if not fileLmpGroups.is_file():
+            raise FileNotFoundError(f"The group configuration file {fileLmpGroups} requested by the user does not exist.")
 
     if args.testmotors:
         useTestMotorSetup = True
@@ -141,6 +151,8 @@ def main():
     lammpsCmd += f" --initlmp {fileLmpPath.name}"
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
+    if args.lmpgroups is not None:
+        lammpsCmd += f" --lmpgroups {fileLmpGroups.name}"
 
 
     if args.ncores + 1 > nCoresHost:

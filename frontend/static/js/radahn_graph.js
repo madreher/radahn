@@ -26,7 +26,19 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     }
     BlankNode.title = "Blank Motor"
     BlankNode.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+
+        this.setOutputData(0, this.properties.name);
+    }
+
+    BlankMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.nbSteps <= 0)
         {
             this.properties.valid = false;
@@ -37,8 +49,6 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.valid = false;
             this.properties.errorMsg = "The name of a motor cannot be empty.";
         }
-
-        this.setOutputData(0, this.properties.name);
     }
 
     BlankNode.prototype.onGetRadahnDict = function(motorArray)
@@ -95,7 +105,20 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     MoveMotor.title = "Move Motor"
     MoveMotor.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+        
+
+        this.setOutputData(0, this.properties.name);
+    }
+
+    MoveMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -112,8 +135,6 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.valid = false;
             this.properties.errorMsg = "At least one direction must be checked.";
         }
-
-        this.setOutputData(0, this.properties.name);
     }
     MoveMotor.prototype.onGetRadahnDict = function(motorArray)
     {
@@ -143,7 +164,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addInput("Dependency", "string");
         this.addOutput("MotorName", "string");
         this.properties = {
-            name: "defaultMove", 
+            name: "defaultForce", 
             dependencies: [],
             selectionName: "",
             fx: 0.0,
@@ -151,7 +172,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             fz: 0.0,
             checkx: false,
             checky: false,
-            checkx: false,
+            checkz: false,
             dx: 0.0, 
             dy: 0.0,
             dz: 0.0,
@@ -176,7 +197,19 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     ForceMotor.title = "Force Motor"
     ForceMotor.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+        
+        this.setOutputData(0, this.properties.name);
+    }
+
+    ForceMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -188,13 +221,12 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.errorMsg = "The name of a selection cannot be empty.";
         }
 
-        if(!this.properties.checkx && !this.properties.checky && !this.properties.checkz)
+        if(!(this.properties.checkx || this.properties.checky || this.properties.checkz))
         {
             this.properties.valid = false;
             this.properties.errorMsg = "At least one direction must be checked.";
+            console.log(this.properties.checkx, this.properties.checky, this.properties.checkz);
         }
-
-        this.setOutputData(0, this.properties.name);
     }
 
     ForceMotor.prototype.onGetRadahnDict = function(motorArray)
@@ -256,7 +288,19 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     RotateMotor.title = "Rotate Motor"
     RotateMotor.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+
+        this.setOutputData(0, this.properties.name);
+    }
+
+    RotateMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -267,8 +311,6 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.valid = false;
             this.properties.errorMsg = "The name of a selection cannot be empty.";
         }
-
-        this.setOutputData(0, this.properties.name);
     }
 
     RotateMotor.prototype.onGetRadahnDict = function(motorArray)
@@ -321,7 +363,19 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 
     TorqueMotor.title = "Torque Motor"
     TorqueMotor.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+
+        this.setOutputData(0, this.properties.name);
+    }
+
+    TorqueMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.name.length <= 0)
         {
             this.properties.valid = false;
@@ -332,8 +386,6 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.valid = false;
             this.properties.errorMsg = "The name of a selection cannot be empty.";
         }
-
-        this.setOutputData(0, this.properties.name);
     }
 
     TorqueMotor.prototype.onGetRadahnDict = function(motorArray)
@@ -355,17 +407,18 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     LiteGraph.registerNodeType("motor/TorqueMotor", TorqueMotor);
 }
 
-radahnGraphUtil.generateJSON = function(lGraph, selectionTable)
+radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable)
 {
     let nodes = lGraph._nodes;
+
     //console.log("List of motors:");
     nodesArray = []
     let valid = true;
     nodes.forEach(node => {
-        if(!node.properties.valid)
+        if(node.onValidate() && !node.properties.valid)
         {
             valid = false;
-            console.log("The motor ", node.properties.name, " is not valid. Error: ", node.properties.errorMsg);
+            console.error("The motor ", node.properties.name, " is not valid. Error: ", node.properties.errorMsg);
         }
         node.onGetRadahnDict(nodesArray);
     });
@@ -410,5 +463,36 @@ radahnGraphUtil.generateJSON = function(lGraph, selectionTable)
     radahnJSON["motors"] = nodesArray;
 
     //console.log(JSON.stringify(radahnJSON));
+    return JSON.stringify(radahnJSON);
+}
+
+radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable)
+{
+    anchorNodes = [];
+    // Go though each element of the anchor table
+
+    for(const [key, value] of Object.entries(anchorTable))
+    {
+        let anchorNode = {
+            "name": key,
+            "selection": value.atomIndexes
+        };
+        console.log(anchorNode);
+        for(let j = 0; j < anchorNode["selection"].length; ++j)
+        {
+            anchorNode["selection"][j] = anchorNode["selection"][j] + 1;
+        }
+        anchorNodes.push(anchorNode);
+    }
+
+    if(anchorNodes.length == 0)
+    {
+        return "";
+    }
+
+    let radahnJSON = {}
+    radahnJSON["header"] = { "version": 0, "units": "LAMMPS_REAL", "generator": "Radahn_frontendV1"};
+    radahnJSON["anchors"] = anchorNodes;
+
     return JSON.stringify(radahnJSON);
 }

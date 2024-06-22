@@ -61,6 +61,9 @@ public:
             distances[1] = currentCenter[1]-m_initialCy.m_value;
             distances[2] = currentCenter[2]-m_initialCz.m_value;
             spdlog::info("Current distance: {} {} {}", distances[0], distances[1], distances[2] );
+            kvs["distanceX"] = distances[0];
+            kvs["distanceY"] = distances[1];
+            kvs["distanceZ"] = distances[2];
 
             bool validX = !m_checkX || (m_dx.m_value < 0.0 && distances[0] <= m_dx.m_value) || (m_dx.m_value >= 0.0 && distances[0] >= m_dx.m_value);
             bool validY = !m_checkY || (m_dy.m_value < 0.0 && distances[1] <= m_dy.m_value) || (m_dy.m_value >= 0.0 && distances[1] >= m_dy.m_value);

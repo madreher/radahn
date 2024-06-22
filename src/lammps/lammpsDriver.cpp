@@ -11,6 +11,9 @@
 #include <lyra/lyra.hpp>
 #include <spdlog/spdlog.h>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 // lammps includes
 #include "lammps.h"
 #include "input.h"
@@ -19,6 +22,44 @@
 
 using namespace LAMMPS_NS;
 using namespace radahn::core;
+
+std::vector<uint32_t> getAnchorsIds(const std::string& jsonConfigPath)
+{
+    json document = json::parse(std::ifstream(jsonConfigPath));
+
+    if(!document.contains("header"))
+    {
+        spdlog::error("Could not find header in JSON file {}.", jsonConfigPath);
+        return {};
+    }
+
+    uint32_t version = document["header"].value("version", 0u);
+    if(version != 0)
+    {
+        spdlog::error("Unsupported version {} in JSON file {}.", version, jsonConfigPath);
+        return {};
+    }
+    if(!document.contains("anchors"))
+    {
+        spdlog::info("Could not find anchors in JSON file {}.", jsonConfigPath);
+        return {};
+    }
+
+    std::vector<uint32_t> ids;
+    for(auto & anchor : document["anchors"])
+    {
+        if(!anchor.contains("selection"))
+        {
+            spdlog::info("Could not find selection in JSON file {}.", jsonConfigPath);
+            return {};
+        }
+        for(auto & id: anchor["selection"])
+        {
+            ids.push_back(id);
+        }
+    }
+    return ids;
+}
 
 bool executeScript(LAMMPS* lps, const std::string& scriptPath)
 {
@@ -111,6 +152,7 @@ int main(int argc, char** argv)
     std::string taskName;
     std::string configFile;
     std::string lmpInitialState;
+    std::string lmpGroupsFile;
     uint64_t maxNVESteps  = 1000;
     uint32_t intervalSteps = 100;
     uint64_t currentStep = 0;
@@ -130,7 +172,11 @@ int main(int argc, char** argv)
             ("Total number of steps to run the NVE.")
         | lyra::opt( intervalSteps, "interalsteps")
             ["--intervalsteps"]
-            ("Number of steps to run between checking the inputs.");
+            ("Number of steps to run between checking the inputs.")
+        | lyra::opt( lmpGroupsFile, "lmpgroups")
+            ["--lmpgroups"]
+            ("Path to the definition of the groups to use.")
+        ;
 
     auto result = cli.parse( { argc, argv } );
     if ( !result )
@@ -159,6 +205,27 @@ int main(int argc, char** argv)
 
     executeScript(lps, lmpInitialState);
 
+    // Declare the global groups if provided
+    bool hasPermanentAnchor = false;
+    const std::string permanentAnchorName = "permanentAnchor";
+    if(lmpGroupsFile != "")
+    {
+        //executeScript(lps, lmpGroups);
+        spdlog::info("Loading groups from {}.", lmpGroupsFile);
+        auto anchorIDS = getAnchorsIds(lmpGroupsFile);
+        if(anchorIDS.size() > 0)
+        {
+            std::stringstream commandGroup;
+            commandGroup << "group " << permanentAnchorName << " id";
+            for(auto & id : anchorIDS)
+            {
+                commandGroup << " " << id;
+            }
+            executeCommand(lps, commandGroup.str());
+            hasPermanentAnchor = true;
+        }
+    }
+
     std::vector<conduit::Node> receivedData;
     while(currentStep < maxNVESteps)
     {
@@ -181,6 +248,9 @@ int main(int argc, char** argv)
         }
 
         auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
+        if(hasPermanentAnchor)
+            cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
+
         if(resultReceive == godrick::MessageResponse::MESSAGES)
         {
             spdlog::info("Lammps received a regular message.");
