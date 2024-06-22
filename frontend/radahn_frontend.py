@@ -343,45 +343,49 @@ def generate_inputs(configTask:dict) -> str:
 
 
 #def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
-def launch_simulation(config:dict):
-    app.logger.info("Received a request to launch the simulation. Generating the inputs...")
-    #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
-    #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
-    jobFolder = generate_inputs(config)
-    
+def launch_simulation(configTask:dict):
+    try:
+        app.logger.info("Received a request to launch the simulation. Generating the inputs...")
+        #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
+        #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
+        jobFolder = generate_inputs(configTask)
+        
 
-    app.logger.info("Input generated. Preparing the tasks...")
-    taskManager = JobRunner("radahn", jobFolder)
+        app.logger.info("Input generated. Preparing the tasks...")
+        taskManager = JobRunner("radahn", jobFolder)
 
-    # Prepare the Vitamins input
+        # Prepare the Vitamins input
 
-    # Name convention used by generate_inputs
-    dataFile = "input.data"
-    lammpsScriptFile = "input.lammps"
-    motorsFile = "motors.json"
-    lmpGroupFile = "lmp_groups.json"
+        # Name convention used by generate_inputs
+        dataFile = "input.data"
+        lammpsScriptFile = "input.lammps"
+        motorsFile = "motors.json"
+        lmpGroupFile = "lmp_groups.json"
 
-    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {config['max_timestep']} --ncores {config['number_cores']} --frequpdate {config['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {config['ffName']}"
-    if len(config['motors']) > 0:
-        cmdRadan += f" --motorconfig {motorsFile}"
-    if config['force_timestep']:
-        cmdRadan += " --forcemaxsteps"
-    if len(config['lmp_groups']) > 0:
-        cmdRadan += f" --lmpgroups {lmpGroupFile}"
-    taskManager.addTask("prepRadahn", cmdRadan)
+        cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {configTask['max_timestep']} --ncores {configTask['number_cores']} --frequpdate {configTask['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {configTask['ffName']}"
+        if len(configTask['motors']) > 0:
+            cmdRadan += f" --motorconfig {motorsFile}"
+        if configTask['force_timestep']:
+            cmdRadan += " --forcemaxsteps"
+        if len(configTask['lmp_groups']) > 0:
+            cmdRadan += f" --lmpgroups {lmpGroupFile}"
+        taskManager.addTask("prepRadahn", cmdRadan)
 
-    # Launche simulation 
-    cmdLaunch = "./launch.LammpsSteered.sh"
-    taskManager.addTask("launchRadahn", cmdLaunch)
+        # Launche simulation 
+        cmdLaunch = "./launch.LammpsSteered.sh"
+        taskManager.addTask("launchRadahn", cmdLaunch)
 
-    app.logger.info("Tasks prepared. Processing the tasks...")
-    # Processing the tasks
-    completed = False
-    while not completed:
-        completed = taskManager.processTasks()
-        time.sleep(1)
+        app.logger.info("Tasks prepared. Processing the tasks...")
+        # Processing the tasks
+        completed = False
+        while not completed:
+            completed = taskManager.processTasks()
+            time.sleep(1)
 
-    app.logger.info("Simulation completed.")
+        app.logger.info("Simulation completed.")
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
 
 
 
@@ -393,12 +397,18 @@ def listen_to_zmq_socket(configTask:dict):
         socket.connect("tcp://localhost:50000")
         socket.setsockopt(zmq.SUBSCRIBE, b"")
         app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
-        while True:
+
+        # This function may be called without a thread, so we need to check if there is a thread context
+        checkEvent = "threadName" in configTask
+        if checkEvent:
+            threadTable[configTask["threadName"]]["event"].set()
+        while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
             message = socket.recv()
             socketio.emit('zmq_message', {'message': message.decode('utf-8')})
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
 
 def listen_to_zmq_socketAtoms(configTask:dict):
     try:
@@ -406,13 +416,17 @@ def listen_to_zmq_socketAtoms(configTask:dict):
         socket = context.socket(zmq.SUB)
         socket.connect("tcp://localhost:50001")
         socket.setsockopt(zmq.SUBSCRIBE, b"")
+        checkEvent = "threadName" in configTask
         app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
-        while True:
+        if checkEvent:
+            threadTable[configTask["threadName"]]["event"].set()
+        while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
             message = socket.recv()
             socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
 
 def open_job_folder(configTask:dict):
 
