@@ -143,7 +143,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.addInput("Dependency", "string");
         this.addOutput("MotorName", "string");
         this.properties = {
-            name: "defaultMove", 
+            name: "defaultForce", 
             dependencies: [],
             selectionName: "",
             fx: 0.0,
@@ -151,7 +151,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             fz: 0.0,
             checkx: false,
             checky: false,
-            checkx: false,
+            checkz: false,
             dx: 0.0, 
             dy: 0.0,
             dz: 0.0,
