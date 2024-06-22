@@ -26,7 +26,19 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     }
     BlankNode.title = "Blank Motor"
     BlankNode.prototype.onExecute = function(){
-        this.properties.dependencies = [this.getInputData(0)];
+        if(this.getInputData(0) != null)
+            this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
+
+        this.setOutputData(0, this.properties.name);
+    }
+
+    BlankMotor.prototype.onValidate = function()
+    {
+        this.properties.valid = true;
+        this.properties.errorMsg = "OK";
+
         if(this.properties.nbSteps <= 0)
         {
             this.properties.valid = false;
@@ -37,8 +49,6 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             this.properties.valid = false;
             this.properties.errorMsg = "The name of a motor cannot be empty.";
         }
-
-        this.setOutputData(0, this.properties.name);
     }
 
     BlankNode.prototype.onGetRadahnDict = function(motorArray)
@@ -97,6 +107,8 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     MoveMotor.prototype.onExecute = function(){
         if(this.getInputData(0) != null)
             this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
         
 
         this.setOutputData(0, this.properties.name);
@@ -187,6 +199,8 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     ForceMotor.prototype.onExecute = function(){
         if(this.getInputData(0) != null)
             this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
         
         this.setOutputData(0, this.properties.name);
     }
@@ -276,6 +290,8 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     RotateMotor.prototype.onExecute = function(){
         if(this.getInputData(0) != null)
             this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
 
         this.setOutputData(0, this.properties.name);
     }
@@ -349,6 +365,8 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     TorqueMotor.prototype.onExecute = function(){
         if(this.getInputData(0) != null)
             this.properties.dependencies = [this.getInputData(0)];
+        else 
+            this.properties.dependencies = [];
 
         this.setOutputData(0, this.properties.name);
     }
