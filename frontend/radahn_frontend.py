@@ -1,7 +1,7 @@
 from flask import Flask, render_template 
 import logging
 import threading
-from threading import Lock
+from threading import Lock, Event
 import zmq
 from flask_socketio import SocketIO
 import uuid
@@ -13,6 +13,7 @@ import platform
 import time
 import sys
 import platform
+from copy import copy, deepcopy
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -43,6 +44,15 @@ thread_lockRadahn = Lock()
 # Thread opening the job folder
 threadOpenJobFolder = None
 thread_lockOpenJobFolder = Lock()
+
+# Thread table for all the tasks which can be executed
+# Note: not all the tasks are going to be using events
+threadTable = {}
+threadTable["listenKVS"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["listenAtoms"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["generateInputs"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["runSimulation"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["openJobFolder"] = {"thread": None, "lock": Lock(), "event": Event()}
 
 
 # Default paths
@@ -371,7 +381,7 @@ def launch_simulation(config:dict):
 
 
 
-def listen_to_zmq_socket():
+def listen_to_zmq_socket(configTask:dict):
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect("tcp://localhost:50000")
@@ -379,11 +389,9 @@ def listen_to_zmq_socket():
     app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
     while True:
         message = socket.recv()
-        #app.logger.info("Received a message from ZMQ on python side: %s", message)
         socketio.emit('zmq_message', {'message': message.decode('utf-8')})
-        #time.sleep(1)  # wait for 1 second before receiving the next message
 
-def listen_to_zmq_socketAtoms():
+def listen_to_zmq_socketAtoms(configTask:dict):
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect("tcp://localhost:50001")
@@ -391,30 +399,39 @@ def listen_to_zmq_socketAtoms():
     app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
     while True:
         message = socket.recv()
-        #app.logger.info("Received a message from ZMQ on python side: %s", message)
         socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
-        #time.sleep(1)  # wait for 1 second before receiving the next message
 
-def open_job_folder(jobFolder):
-    # Windows method 
-    if platform.system() == 'Windows':
-        os.startfile(jobFolder)
-    elif platform.system() == 'Darwin':
-        subprocess.call(['open', jobFolder])
-    elif platform.system() == 'Linux':
-        app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
-        subprocess.call(['xdg-open', jobFolder])
-    else:
-        app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+def open_job_folder(configTask:dict):
+
+    try:
+        jobFolder = configTask["jobFolder"]
+        if platform.system() == 'Windows':
+            os.startfile(jobFolder)
+        elif platform.system() == 'Darwin':
+            subprocess.call(['open', jobFolder])
+        elif platform.system() == 'Linux':
+            app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
+            subprocess.call(['xdg-open', jobFolder])
+        else:
+            app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+        
 
 
 @socketio.on('open_job_folder')
 def handle_open_job_folder(data):
     app.logger.info("Received a request to open the job folder.")
-    global threadOpenJobFolder
-    with thread_lockOpenJobFolder:
-        if threadOpenJobFolder is None:
-            threadOpenJobFolder = socketio.start_background_task(open_job_folder, data['jobFolder'])
+
+    global threadTable
+
+    with threadTable["openJobFolder"]["lock"]:
+
+        if threadTable["openJobFolder"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "openJobFolder"
+            threadTable["openJobFolder"]["thread"] = socketio.start_background_task(open_job_folder, configTask)
             app.logger.info("Background thread opening job folder started.")
         else:
             app.logger.info("Background task opening job folder already started.")
@@ -423,31 +440,38 @@ def handle_open_job_folder(data):
 @socketio.on('start_listening')
 def handle_start_listening():
     app.logger.info("Received a request to start listening to the simulation.")
-    global thread
-    with thread_lock:
-        if thread is None:
-            thread = socketio.start_background_task(listen_to_zmq_socket)
+
+    global threadTable
+
+    with threadTable["listenKVS"]["lock"]:
+        if threadTable["listenKVS"]["thread"] is None:
+            configTask = {"threadName": "listenKVS" }
+            threadTable["listenKVS"]["thread"] = socketio.start_background_task(listen_to_zmq_socket, configTask)
             app.logger.info("Background thread listening for KVS started.")
         else:
             app.logger.info("Background task listening to KVS already started.")
 
-    global threadAtoms
-    with thread_lockAtoms:
-        if threadAtoms is None:
-            threadAtoms = socketio.start_background_task(listen_to_zmq_socketAtoms)
+    with threadTable["listenAtoms"]["lock"]:
+        if threadTable["listenAtoms"]["thread"] is None:
+            configTask = {"threadName": "listenAtoms" }
+            threadTable["listenAtoms"]["thread"] = socketio.start_background_task(listen_to_zmq_socketAtoms, configTask)
             app.logger.info("Background thread listening for atoms started.")
         else:
             app.logger.info("Background task listening to atoms already started.")
-    #emit('test_response', {'data': 'Test response sent'})
+
 
 @socketio.on('generate_inputs')
 def handle_generate_inputs(data):
     app.logger.info("Received a request to generate inputs.")
-    global threadGenerateInputs
-    with thread_lockGenerateInputs:
-        if threadGenerateInputs is None:
-            #threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'], data['motors'])
-            threadGenerateInputs = socketio.start_background_task(generate_inputs, data)
+
+    global threadTable
+
+    with threadTable["generateInputs"]["lock"]:
+        #if threadGenerateInputs is None:
+        if threadTable["generateInputs"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "generateInputs"
+            threadTable["generateInputs"]["thread"] = socketio.start_background_task(generate_inputs, configTask)
             app.logger.info("Background thread generating inputs started.")
         else:
             app.logger.info("Background task generating inputs already started.")
@@ -455,11 +479,13 @@ def handle_generate_inputs(data):
 @socketio.on('launch_simulation')
 def handle_launch_simulation(data):
     app.logger.info("Received a request to launch the simulation.")
-    global threadRadahn
-    with thread_lockRadahn:
-        if threadRadahn is None:    
-            #threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'], data['motors'])
-            threadRadahn = socketio.start_background_task(launch_simulation, data)
+    global threadTable
+
+    with threadTable["runSimulation"]["lock"]:   
+        if threadTable["runSimulation"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "runSimulation"
+            threadTable["runSimulation"]["thread"] = socketio.start_background_task(launch_simulation, configTask)
             app.logger.info("Background thread launching simulation started.")
         else:
             app.logger.info("Background task launching simulation already started.")
@@ -467,16 +493,7 @@ def handle_launch_simulation(data):
     handle_start_listening()
 
 
-#def run_zmq_thread():
-#    thread = threading.Thread(target=listen_to_zmq_socket)
-#    thread.daemon = True
-#    thread.start()
-
 
 
 if __name__ == '__main__':
-    #app = Flask(__name__)
-    #app.config['SECRET_KEY'] = 'secret!'
-    #socketio = SocketIO(app)
-    #run_zmq_thread()
     socketio.run(app, host='localhost', port=5000)

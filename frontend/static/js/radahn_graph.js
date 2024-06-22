@@ -8,7 +8,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     LiteGraph.clearRegisteredTypes();
 
     // Blank motor
-    function BlankNode()
+    function BlankMotor()
     {
         this.addInput("Dependency", "string");
         this.addOutput("MotorName", "string");
@@ -24,8 +24,8 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         //this.widgets_up = true;
         this.size = [300, 80];
     }
-    BlankNode.title = "Blank Motor"
-    BlankNode.prototype.onExecute = function(){
+    BlankMotor.title = "Blank Motor"
+    BlankMotor.prototype.onExecute = function(){
         if(this.getInputData(0) != null)
             this.properties.dependencies = [this.getInputData(0)];
         else 
@@ -51,7 +51,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         }
     }
 
-    BlankNode.prototype.onGetRadahnDict = function(motorArray)
+    BlankMotor.prototype.onGetRadahnDict = function(motorArray)
     {
         // Has the watch the format needed by blankMotor.cpp
         result = {
@@ -64,7 +64,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         motorArray.push(result);
     }
 
-    LiteGraph.registerNodeType("motor/BlankMotor", BlankNode);
+    LiteGraph.registerNodeType("motor/BlankMotor", BlankMotor);
 
     // Move motor
     function MoveMotor()
