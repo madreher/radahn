@@ -1,7 +1,7 @@
 from flask import Flask, render_template 
 import logging
 import threading
-from threading import Lock
+from threading import Lock, Event
 import zmq
 from flask_socketio import SocketIO
 import uuid
@@ -13,6 +13,7 @@ import platform
 import time
 import sys
 import platform
+from copy import copy, deepcopy
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -43,6 +44,15 @@ thread_lockRadahn = Lock()
 # Thread opening the job folder
 threadOpenJobFolder = None
 thread_lockOpenJobFolder = Lock()
+
+# Thread table for all the tasks which can be executed
+# Note: not all the tasks are going to be using events
+threadTable = {}
+threadTable["listenKVS"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["listenAtoms"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["generateInputs"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["runSimulation"] = {"thread": None, "lock": Lock(), "event": Event()}
+threadTable["openJobFolder"] = {"thread": None, "lock": Lock(), "event": Event()}
 
 
 # Default paths
@@ -227,194 +237,232 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     return atoms
 
 #def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
-def generate_inputs(config:dict) -> str:
+def generate_inputs(configTask:dict) -> str:
 
     # Create the job folder 
     jobID = uuid.uuid4()
     jobFolder = rootJobFolder / str(jobID)
     os.makedirs(jobFolder)
 
-    # Create the necessary inputs files 
-    xyzFile = jobFolder / "input.xyz"
-    with open(xyzFile, "w") as f:
-        f.write(config["xyz"])
-        f.close()
-
-    ffFile = jobFolder / config["ffName"]
-    with open(ffFile, "w") as f:
-        f.write(config["ffContent"])
-        f.close()
-
-    if len(config['motors']) > 0:
-        motorsFile = jobFolder / "motors.json"
-        with open(motorsFile, "w") as f:
-            f.write(config["motors"])
+    try:
+        # Create the necessary inputs files 
+        xyzFile = jobFolder / "input.xyz"
+        with open(xyzFile, "w") as f:
+            f.write(configTask["xyz"])
             f.close()
 
-    if len(config['lmp_groups']) > 0:
-        lmp_groupsFile = jobFolder / "lmp_groups.json"
-        with open(lmp_groupsFile, "w") as f:
-            f.write(config["lmp_groups"])
+        ffFile = jobFolder / configTask["ffName"]
+        with open(ffFile, "w") as f:
+            f.write(configTask["ffContent"])
             f.close()
 
+        if len(configTask['motors']) > 0:
+            motorsFile = jobFolder / "motors.json"
+            with open(motorsFile, "w") as f:
+                f.write(configTask["motors"])
+                f.close()
 
-    dataFile = jobFolder / "input.data"
-
-    # Generate the base Lammps script
-    lammpsScriptFile = jobFolder / "input.lammps"
-    useAcks2 = False
-    with open(lammpsScriptFile, "w") as f:
-        # Convert the XYZ to a .data file 
-        atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
-
-        # Extract the simulation box
-        cell = atoms.get_cell()
-        minCellDim = min([cell[0][0], cell[1][1], cell[2][2]])
-        #print(f"Minimum cell dimension: {minCellDim}")
-
-        # Get back the list of elements
-        elements = getElementsFromData(dataFile)
-
-        scriptContent = "# -*- mode: lammps -*-\n"
-        scriptContent += 'units          real\n'
-        scriptContent += 'atom_style     full\n'
-        scriptContent += 'atom_modify    map hash\n'
-        scriptContent += 'newton         on\n'
-        scriptContent += 'boundary       p p p\n'
-
-        scriptContent += 'read_data      input.data\n'
-        #for i in range(len(indexes)):
-        #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
-        scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
-        scriptContent += f'pair_coeff     * * {config["ffName"]}{elements}\n'
-        if useAcks2:
-            scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
-        else:
-            scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
-        #scriptContent += 'neighbor       2.5 bin\n' 
-        # 2.5 is too large for small molecule like benzene. Trying to compute a reasonable cell skin based on the simulation box
-        scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
-        scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
+        if len(configTask['lmp_groups']) > 0:
+            lmp_groupsFile = jobFolder / "lmp_groups.json"
+            with open(lmp_groupsFile, "w") as f:
+                f.write(configTask["lmp_groups"])
+                f.close()
 
 
-        # Add basic IO setup
-        scriptContent += """####
+        dataFile = jobFolder / "input.data"
 
-thermo         50
-thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
-thermo_modify  flush yes lost warn
+        # Generate the base Lammps script
+        lammpsScriptFile = jobFolder / "input.lammps"
+        useAcks2 = False
+        with open(lammpsScriptFile, "w") as f:
+            # Convert the XYZ to a .data file 
+            atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
 
-dump           dump all custom 100 fulltrajectory.dump id type x y z q
-dump_modify    dump sort id
-dump           xyz all xyz 100 fulltrajectory.xyz
-dump_modify    xyz sort id element C H
-fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+            # Extract the simulation box
+            cell = atoms.get_cell()
+            minCellDim = min([cell[0][0], cell[1][1], cell[2][2]])
+            #print(f"Minimum cell dimension: {minCellDim}")
 
-####
+            # Get back the list of elements
+            elements = getElementsFromData(dataFile)
 
-timestep       0.5"""
-        scriptContent += "\n\n"
+            scriptContent = "# -*- mode: lammps -*-\n"
+            scriptContent += 'units          real\n'
+            scriptContent += 'atom_style     full\n'
+            scriptContent += 'atom_modify    map hash\n'
+            scriptContent += 'newton         on\n'
+            scriptContent += 'boundary       p p p\n'
+
+            scriptContent += 'read_data      input.data\n'
+            #for i in range(len(indexes)):
+            #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
+            scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
+            scriptContent += f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
+            if useAcks2:
+                scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            else:
+                scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            #scriptContent += 'neighbor       2.5 bin\n' 
+            # 2.5 is too large for small molecule like benzene. Trying to compute a reasonable cell skin based on the simulation box
+            scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
+            scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
 
 
-        f.write(scriptContent)
+            # Add basic IO setup
+            scriptContent += """####
 
-    # Generate the data file
-    dataFile = jobFolder / "input.data"
-    xyzToLammpsDataPBC(xyzFile, dataFile)
-    socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
-    app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
+    thermo         50
+    thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
+    thermo_modify  flush yes lost warn
+
+    dump           dump all custom 100 fulltrajectory.dump id type x y z q
+    dump_modify    dump sort id
+    dump           xyz all xyz 100 fulltrajectory.xyz
+    dump_modify    xyz sort id element C H
+    fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+
+    ####
+
+    timestep       0.5"""
+            scriptContent += "\n\n"
+
+
+            f.write(scriptContent)
+
+        # Generate the data file
+        dataFile = jobFolder / "input.data"
+        xyzToLammpsDataPBC(xyzFile, dataFile)
+        socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
+        app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
+    finally:
+        if "threadName" in configTask:
+                threadTable[configTask["threadName"]]["thread"] = None
+
 
     return jobFolder
 
 
 #def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
-def launch_simulation(config:dict):
-    app.logger.info("Received a request to launch the simulation. Generating the inputs...")
-    #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
-    #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
-    jobFolder = generate_inputs(config)
-    
+def launch_simulation(configTask:dict):
+    try:
+        app.logger.info("Received a request to launch the simulation. Generating the inputs...")
+        #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
+        #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
+        jobFolder = generate_inputs(configTask)
+        
 
-    app.logger.info("Input generated. Preparing the tasks...")
-    taskManager = JobRunner("radahn", jobFolder)
+        app.logger.info("Input generated. Preparing the tasks...")
+        taskManager = JobRunner("radahn", jobFolder)
 
-    # Prepare the Vitamins input
+        # Prepare the Vitamins input
 
-    # Name convention used by generate_inputs
-    dataFile = "input.data"
-    lammpsScriptFile = "input.lammps"
-    motorsFile = "motors.json"
-    lmpGroupFile = "lmp_groups.json"
+        # Name convention used by generate_inputs
+        dataFile = "input.data"
+        lammpsScriptFile = "input.lammps"
+        motorsFile = "motors.json"
+        lmpGroupFile = "lmp_groups.json"
 
-    cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {config['max_timestep']} --ncores {config['number_cores']} --frequpdate {config['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {config['ffName']}"
-    if len(config['motors']) > 0:
-        cmdRadan += f" --motorconfig {motorsFile}"
-    if config['force_timestep']:
-        cmdRadan += " --forcemaxsteps"
-    if len(config['lmp_groups']) > 0:
-        cmdRadan += f" --lmpgroups {lmpGroupFile}"
-    taskManager.addTask("prepRadahn", cmdRadan)
+        cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {configTask['max_timestep']} --ncores {configTask['number_cores']} --frequpdate {configTask['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {configTask['ffName']}"
+        if len(configTask['motors']) > 0:
+            cmdRadan += f" --motorconfig {motorsFile}"
+        if configTask['force_timestep']:
+            cmdRadan += " --forcemaxsteps"
+        if len(configTask['lmp_groups']) > 0:
+            cmdRadan += f" --lmpgroups {lmpGroupFile}"
+        taskManager.addTask("prepRadahn", cmdRadan)
 
-    # Launche simulation 
-    cmdLaunch = "./launch.LammpsSteered.sh"
-    taskManager.addTask("launchRadahn", cmdLaunch)
+        # Launche simulation 
+        cmdLaunch = "./launch.LammpsSteered.sh"
+        taskManager.addTask("launchRadahn", cmdLaunch)
 
-    app.logger.info("Tasks prepared. Processing the tasks...")
-    # Processing the tasks
-    completed = False
-    while not completed:
-        completed = taskManager.processTasks()
-        time.sleep(1)
+        app.logger.info("Tasks prepared. Processing the tasks...")
+        # Processing the tasks
+        completed = False
+        while not completed:
+            completed = taskManager.processTasks()
+            time.sleep(1)
 
-    app.logger.info("Simulation completed.")
+        app.logger.info("Simulation completed.")
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+
+            # Tell the listener threads to stop
+            threadTable["listenKVS"]["event"].clear()
+            threadTable["listenAtoms"]["event"].clear()
 
 
 
 
-def listen_to_zmq_socket():
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:50000")
-    socket.setsockopt(zmq.SUBSCRIBE, b"")
-    app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
-    while True:
-        message = socket.recv()
-        #app.logger.info("Received a message from ZMQ on python side: %s", message)
-        socketio.emit('zmq_message', {'message': message.decode('utf-8')})
-        #time.sleep(1)  # wait for 1 second before receiving the next message
+def listen_to_zmq_socket(configTask:dict):
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.SUB)
+        socket.connect("tcp://localhost:50000")
+        socket.setsockopt(zmq.SUBSCRIBE, b"")
+        app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
 
-def listen_to_zmq_socketAtoms():
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:50001")
-    socket.setsockopt(zmq.SUBSCRIBE, b"")
-    app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
-    while True:
-        message = socket.recv()
-        #app.logger.info("Received a message from ZMQ on python side: %s", message)
-        socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
-        #time.sleep(1)  # wait for 1 second before receiving the next message
+        # This function may be called without a thread, so we need to check if there is a thread context
+        checkEvent = "threadName" in configTask
+        if checkEvent:
+            threadTable[configTask["threadName"]]["event"].set()
+        while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
+            message = socket.recv()
+            socketio.emit('zmq_message', {'message': message.decode('utf-8')})
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
 
-def open_job_folder(jobFolder):
-    # Windows method 
-    if platform.system() == 'Windows':
-        os.startfile(jobFolder)
-    elif platform.system() == 'Darwin':
-        subprocess.call(['open', jobFolder])
-    elif platform.system() == 'Linux':
-        app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
-        subprocess.call(['xdg-open', jobFolder])
-    else:
-        app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+def listen_to_zmq_socketAtoms(configTask:dict):
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.SUB)
+        socket.connect("tcp://localhost:50001")
+        socket.setsockopt(zmq.SUBSCRIBE, b"")
+        checkEvent = "threadName" in configTask
+        app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
+        if checkEvent:
+            threadTable[configTask["threadName"]]["event"].set()
+        while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
+            message = socket.recv()
+            socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
+
+def open_job_folder(configTask:dict):
+
+    try:
+        jobFolder = configTask["jobFolder"]
+        if platform.system() == 'Windows':
+            os.startfile(jobFolder)
+        elif platform.system() == 'Darwin':
+            subprocess.call(['open', jobFolder])
+        elif platform.system() == 'Linux':
+            app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
+            subprocess.call(['xdg-open', jobFolder])
+        else:
+            app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+        
 
 
 @socketio.on('open_job_folder')
 def handle_open_job_folder(data):
     app.logger.info("Received a request to open the job folder.")
-    global threadOpenJobFolder
-    with thread_lockOpenJobFolder:
-        if threadOpenJobFolder is None:
-            threadOpenJobFolder = socketio.start_background_task(open_job_folder, data['jobFolder'])
+
+    global threadTable
+
+    with threadTable["openJobFolder"]["lock"]:
+
+        if threadTable["openJobFolder"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "openJobFolder"
+            threadTable["openJobFolder"]["thread"] = socketio.start_background_task(open_job_folder, configTask)
             app.logger.info("Background thread opening job folder started.")
         else:
             app.logger.info("Background task opening job folder already started.")
@@ -423,31 +471,38 @@ def handle_open_job_folder(data):
 @socketio.on('start_listening')
 def handle_start_listening():
     app.logger.info("Received a request to start listening to the simulation.")
-    global thread
-    with thread_lock:
-        if thread is None:
-            thread = socketio.start_background_task(listen_to_zmq_socket)
+
+    global threadTable
+
+    with threadTable["listenKVS"]["lock"]:
+        if threadTable["listenKVS"]["thread"] is None:
+            configTask = {"threadName": "listenKVS" }
+            threadTable["listenKVS"]["thread"] = socketio.start_background_task(listen_to_zmq_socket, configTask)
             app.logger.info("Background thread listening for KVS started.")
         else:
             app.logger.info("Background task listening to KVS already started.")
 
-    global threadAtoms
-    with thread_lockAtoms:
-        if threadAtoms is None:
-            threadAtoms = socketio.start_background_task(listen_to_zmq_socketAtoms)
+    with threadTable["listenAtoms"]["lock"]:
+        if threadTable["listenAtoms"]["thread"] is None:
+            configTask = {"threadName": "listenAtoms" }
+            threadTable["listenAtoms"]["thread"] = socketio.start_background_task(listen_to_zmq_socketAtoms, configTask)
             app.logger.info("Background thread listening for atoms started.")
         else:
             app.logger.info("Background task listening to atoms already started.")
-    #emit('test_response', {'data': 'Test response sent'})
+
 
 @socketio.on('generate_inputs')
 def handle_generate_inputs(data):
     app.logger.info("Received a request to generate inputs.")
-    global threadGenerateInputs
-    with thread_lockGenerateInputs:
-        if threadGenerateInputs is None:
-            #threadGenerateInputs = socketio.start_background_task(generate_inputs, data['xyz'], data['ff'], data['ffName'], data['motors'])
-            threadGenerateInputs = socketio.start_background_task(generate_inputs, data)
+
+    global threadTable
+
+    with threadTable["generateInputs"]["lock"]:
+        #if threadGenerateInputs is None:
+        if threadTable["generateInputs"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "generateInputs"
+            threadTable["generateInputs"]["thread"] = socketio.start_background_task(generate_inputs, configTask)
             app.logger.info("Background thread generating inputs started.")
         else:
             app.logger.info("Background task generating inputs already started.")
@@ -455,11 +510,13 @@ def handle_generate_inputs(data):
 @socketio.on('launch_simulation')
 def handle_launch_simulation(data):
     app.logger.info("Received a request to launch the simulation.")
-    global threadRadahn
-    with thread_lockRadahn:
-        if threadRadahn is None:    
-            #threadRadahn = socketio.start_background_task(launch_simulation, data['xyz'], data['ff'], data['ffName'], data['motors'])
-            threadRadahn = socketio.start_background_task(launch_simulation, data)
+    global threadTable
+
+    with threadTable["runSimulation"]["lock"]:   
+        if threadTable["runSimulation"]["thread"] is None:
+            configTask = deepcopy(data)
+            configTask["threadName"] = "runSimulation"
+            threadTable["runSimulation"]["thread"] = socketio.start_background_task(launch_simulation, configTask)
             app.logger.info("Background thread launching simulation started.")
         else:
             app.logger.info("Background task launching simulation already started.")
@@ -467,16 +524,7 @@ def handle_launch_simulation(data):
     handle_start_listening()
 
 
-#def run_zmq_thread():
-#    thread = threading.Thread(target=listen_to_zmq_socket)
-#    thread.daemon = True
-#    thread.start()
-
 
 
 if __name__ == '__main__':
-    #app = Flask(__name__)
-    #app.config['SECRET_KEY'] = 'secret!'
-    #socketio = SocketIO(app)
-    #run_zmq_thread()
     socketio.run(app, host='localhost', port=5000)
