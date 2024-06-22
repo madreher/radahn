@@ -387,6 +387,10 @@ def launch_simulation(configTask:dict):
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
 
+            # Tell the listener threads to stop
+            threadTable["listenKVS"]["event"].clear()
+            threadTable["listenAtoms"]["event"].clear()
+
 
 
 
