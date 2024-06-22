@@ -237,102 +237,107 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     return atoms
 
 #def generate_inputs(xyz:str, ffContent:str, ffFileName:str, motors:str) -> str:
-def generate_inputs(config:dict) -> str:
+def generate_inputs(configTask:dict) -> str:
 
     # Create the job folder 
     jobID = uuid.uuid4()
     jobFolder = rootJobFolder / str(jobID)
     os.makedirs(jobFolder)
 
-    # Create the necessary inputs files 
-    xyzFile = jobFolder / "input.xyz"
-    with open(xyzFile, "w") as f:
-        f.write(config["xyz"])
-        f.close()
-
-    ffFile = jobFolder / config["ffName"]
-    with open(ffFile, "w") as f:
-        f.write(config["ffContent"])
-        f.close()
-
-    if len(config['motors']) > 0:
-        motorsFile = jobFolder / "motors.json"
-        with open(motorsFile, "w") as f:
-            f.write(config["motors"])
+    try:
+        # Create the necessary inputs files 
+        xyzFile = jobFolder / "input.xyz"
+        with open(xyzFile, "w") as f:
+            f.write(configTask["xyz"])
             f.close()
 
-    if len(config['lmp_groups']) > 0:
-        lmp_groupsFile = jobFolder / "lmp_groups.json"
-        with open(lmp_groupsFile, "w") as f:
-            f.write(config["lmp_groups"])
+        ffFile = jobFolder / configTask["ffName"]
+        with open(ffFile, "w") as f:
+            f.write(configTask["ffContent"])
             f.close()
 
+        if len(configTask['motors']) > 0:
+            motorsFile = jobFolder / "motors.json"
+            with open(motorsFile, "w") as f:
+                f.write(configTask["motors"])
+                f.close()
 
-    dataFile = jobFolder / "input.data"
-
-    # Generate the base Lammps script
-    lammpsScriptFile = jobFolder / "input.lammps"
-    useAcks2 = False
-    with open(lammpsScriptFile, "w") as f:
-        # Convert the XYZ to a .data file 
-        atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
-
-        # Extract the simulation box
-        cell = atoms.get_cell()
-        minCellDim = min([cell[0][0], cell[1][1], cell[2][2]])
-        #print(f"Minimum cell dimension: {minCellDim}")
-
-        # Get back the list of elements
-        elements = getElementsFromData(dataFile)
-
-        scriptContent = "# -*- mode: lammps -*-\n"
-        scriptContent += 'units          real\n'
-        scriptContent += 'atom_style     full\n'
-        scriptContent += 'atom_modify    map hash\n'
-        scriptContent += 'newton         on\n'
-        scriptContent += 'boundary       p p p\n'
-
-        scriptContent += 'read_data      input.data\n'
-        #for i in range(len(indexes)):
-        #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
-        scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
-        scriptContent += f'pair_coeff     * * {config["ffName"]}{elements}\n'
-        if useAcks2:
-            scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
-        else:
-            scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
-        #scriptContent += 'neighbor       2.5 bin\n' 
-        # 2.5 is too large for small molecule like benzene. Trying to compute a reasonable cell skin based on the simulation box
-        scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
-        scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
+        if len(configTask['lmp_groups']) > 0:
+            lmp_groupsFile = jobFolder / "lmp_groups.json"
+            with open(lmp_groupsFile, "w") as f:
+                f.write(configTask["lmp_groups"])
+                f.close()
 
 
-        # Add basic IO setup
-        scriptContent += """####
+        dataFile = jobFolder / "input.data"
 
-thermo         50
-thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
-thermo_modify  flush yes lost warn
+        # Generate the base Lammps script
+        lammpsScriptFile = jobFolder / "input.lammps"
+        useAcks2 = False
+        with open(lammpsScriptFile, "w") as f:
+            # Convert the XYZ to a .data file 
+            atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
 
-dump           dump all custom 100 fulltrajectory.dump id type x y z q
-dump_modify    dump sort id
-dump           xyz all xyz 100 fulltrajectory.xyz
-dump_modify    xyz sort id element C H
-fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+            # Extract the simulation box
+            cell = atoms.get_cell()
+            minCellDim = min([cell[0][0], cell[1][1], cell[2][2]])
+            #print(f"Minimum cell dimension: {minCellDim}")
 
-####
+            # Get back the list of elements
+            elements = getElementsFromData(dataFile)
 
-timestep       0.5"""
-        scriptContent += "\n\n"
+            scriptContent = "# -*- mode: lammps -*-\n"
+            scriptContent += 'units          real\n'
+            scriptContent += 'atom_style     full\n'
+            scriptContent += 'atom_modify    map hash\n'
+            scriptContent += 'newton         on\n'
+            scriptContent += 'boundary       p p p\n'
+
+            scriptContent += 'read_data      input.data\n'
+            #for i in range(len(indexes)):
+            #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
+            scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
+            scriptContent += f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
+            if useAcks2:
+                scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            else:
+                scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            #scriptContent += 'neighbor       2.5 bin\n' 
+            # 2.5 is too large for small molecule like benzene. Trying to compute a reasonable cell skin based on the simulation box
+            scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
+            scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
 
 
-        f.write(scriptContent)
+            # Add basic IO setup
+            scriptContent += """####
 
-    # Generate the data file
-    dataFile = jobFolder / "input.data"
-    xyzToLammpsDataPBC(xyzFile, dataFile)
-    socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
-    app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
+    thermo         50
+    thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
+    thermo_modify  flush yes lost warn
+
+    dump           dump all custom 100 fulltrajectory.dump id type x y z q
+    dump_modify    dump sort id
+    dump           xyz all xyz 100 fulltrajectory.xyz
+    dump_modify    xyz sort id element C H
+    fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+
+    ####
+
+    timestep       0.5"""
+            scriptContent += "\n\n"
+
+
+            f.write(scriptContent)
+
+        # Generate the data file
+        dataFile = jobFolder / "input.data"
+        xyzToLammpsDataPBC(xyzFile, dataFile)
+        socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
+        app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
+    finally:
+        if "threadName" in configTask:
+                threadTable[configTask["threadName"]]["thread"] = None
+
 
     return jobFolder
 
@@ -382,24 +387,32 @@ def launch_simulation(config:dict):
 
 
 def listen_to_zmq_socket(configTask:dict):
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:50000")
-    socket.setsockopt(zmq.SUBSCRIBE, b"")
-    app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
-    while True:
-        message = socket.recv()
-        socketio.emit('zmq_message', {'message': message.decode('utf-8')})
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.SUB)
+        socket.connect("tcp://localhost:50000")
+        socket.setsockopt(zmq.SUBSCRIBE, b"")
+        app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
+        while True:
+            message = socket.recv()
+            socketio.emit('zmq_message', {'message': message.decode('utf-8')})
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
 
 def listen_to_zmq_socketAtoms(configTask:dict):
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:50001")
-    socket.setsockopt(zmq.SUBSCRIBE, b"")
-    app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
-    while True:
-        message = socket.recv()
-        socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.SUB)
+        socket.connect("tcp://localhost:50001")
+        socket.setsockopt(zmq.SUBSCRIBE, b"")
+        app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
+        while True:
+            message = socket.recv()
+            socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
+    finally:
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
 
 def open_job_folder(configTask:dict):
 
