@@ -37,7 +37,8 @@
             nomouse: true
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
-        var originalState = null;
+        var originalState = null; // Copy of getInternalState(), contains all the properties of atoms
+
 
         // Selection drawing tracking
         var isDrawing = false;
@@ -465,18 +466,22 @@ H 53.72 50 50";
             // Update the positions of the atoms in the viewer
             let positions = msg['positions'];
 
-            
-            // Reshape the positions from 1D to 2D
-            let reshapedPositions = [];
-            while(positions.length > 0) reshapedPositions.push(positions.splice(0, 3));
-
-
-            viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
-            viewerMolecule.animate({loop: "forward", reps:1});
+            // Create a new Frame and add it to the viewer
+            let newFrame = structuredClone(originalState.atoms); // Copy all the atom attributes, just need to update with new positions
+            let atomCount = positions.length / 3;
+            for(let i = 0; i < atomCount; i++) {
+                newFrame[i].x = positions[i * 3];
+                newFrame[i].y = positions[i * 3 + 1];
+                newFrame[i].z = positions[i * 3 + 2];
+            }
+            viewerMolecule.getModel().addFrame(newFrame);
+            //viewerMolecule.animate({loop: "forward", reps:1});
+            viewerMolecule.setFrame(viewerMolecule.getModel().getNumFrames()-1);
             
             $('#info-sim-it').empty();
-            $('#info-sim-it').append('Current Timestep: ' + msg['simIt'] + ', number of Franes: ' + viewerMolecule.getModel().getNumFrames());
+            $('#info-sim-it').append('Current Timestep: ' + msg['simIt'] + ', Current Frame: ' + (viewerMolecule.getModel().getNumFrames()-1) + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames());
             viewerMolecule.render();
+            
             
         });
 
@@ -661,6 +666,7 @@ H 53.72 50 50";
 
                     // Saving the first frame 
                     originalState = structuredClone(viewerMolecule.getModel().getInternalState());
+                    // Saving the atom spec which will be used when adding frames to the trajectory
 
                 }
                 reader.readAsText(file);
