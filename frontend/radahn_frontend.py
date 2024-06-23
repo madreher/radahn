@@ -64,6 +64,20 @@ radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
 def index():
     return render_template('index.html')
 
+def propagateLog(msgConfig):
+    level = msgConfig["level"]
+    if level == "info":
+        app.logger.info(msgConfig["msg"])
+    elif level == "warning":
+        app.logger.warning(msgConfig["msg"])
+    elif level == "error":
+        app.logger.error(msgConfig["msg"])
+    elif level == "log":
+        app.logger.info(msgConfig["msg"])
+    else:
+        app.logger.info(msgConfig["msg"])
+    socketio.emit('log_message', msgConfig)
+
 def convertCmd(cmd):
     """
     Converts the incoming cmd string into a format appropriate
@@ -345,13 +359,15 @@ def generate_inputs(configTask:dict) -> str:
 #def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
 def launch_simulation(configTask:dict):
     try:
-        app.logger.info("Received a request to launch the simulation. Generating the inputs...")
+        #app.logger.info("Received a request to launch the simulation. Generating the inputs...")
+        propagateLog({"msg": "Starting the simulation. Generating inputs...", "level": "info"})
         #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
         #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
         jobFolder = generate_inputs(configTask)
         
 
-        app.logger.info("Input generated. Preparing the tasks...")
+        #app.logger.info("Input generated. Preparing the tasks...")
+        propagateLog({"msg": "Input generated. Starting the tasks.", "level": "info"})
         taskManager = JobRunner("radahn", jobFolder)
 
         # Prepare the Vitamins input
@@ -383,6 +399,7 @@ def launch_simulation(configTask:dict):
             time.sleep(1)
 
         app.logger.info("Simulation completed.")
+        propagateLog({"msg": "End of tasks execution. Simulation completed.", "level": "info"})
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None

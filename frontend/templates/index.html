@@ -484,6 +484,10 @@ H 53.72 50 50";
             document.getElementById('job_folder').value = data.message;
         });
 
+        socket.on('log_message', function(data) {
+            console[data['level']](data['msg']);
+        })
+
         // Handlers for the different forms in the page.
         // These accept data from the user and send it to the server in a
         // variety of ways
@@ -596,6 +600,13 @@ H 53.72 50 50";
             socket.emit('open_job_folder', {'jobFolder': jobFolder});
             return false;
         });
+
+        function resetTemporalData() {
+            // Reset the plots 
+
+
+            // Reset the molecule viewer trajectory
+        }
 
         function handleFileSelect(evt) {
             console.log("XYZ File selected: " + evt.target.files[0].name);
