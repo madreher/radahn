@@ -37,7 +37,7 @@
             nomouse: true
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
-        var loadedPositions = null;
+        var originalState = null;
 
         // Selection drawing tracking
         var isDrawing = false;
@@ -472,7 +472,6 @@ H 53.72 50 50";
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
-            viewerMolecule.getModel().addFrame()
             viewerMolecule.animate({loop: "forward", reps:1});
             
             $('#info-sim-it').empty();
@@ -626,6 +625,13 @@ H 53.72 50 50";
 
 
             // Reset the molecule viewer trajectory
+            viewerMolecule.getModel().setInternalState(originalState);
+            viewerMolecule.zoomTo();
+            viewerMolecule.animate({loop: "forward", reps:1});
+            viewerMolecule.render();
+
+            $('#info-sim-it').empty();
+            $('#info-sim-it').append('Current Timestep: 0, number of Franes: ' + viewerMolecule.getModel().getNumFrames());
         }
 
         function handleFileSelect(evt) {
@@ -652,6 +658,10 @@ H 53.72 50 50";
 
                     $('#info-sim-it').empty();
                     $('#info-sim-it').append('Current Timestep: 0, number of Franes: ' + viewerMolecule.getModel().getNumFrames());
+
+                    // Saving the first frame 
+                    originalState = structuredClone(viewerMolecule.getModel().getInternalState());
+
                 }
                 reader.readAsText(file);
             }
