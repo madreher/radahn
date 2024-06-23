@@ -37,6 +37,7 @@
             nomouse: true
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
+        var loadedPositions = null;
 
         // Selection drawing tracking
         var isDrawing = false;
@@ -471,10 +472,11 @@ H 53.72 50 50";
 
 
             viewerMolecule.getModel().setCoordinates(reshapedPositions, "array");
+            viewerMolecule.getModel().addFrame()
             viewerMolecule.animate({loop: "forward", reps:1});
             
             $('#info-sim-it').empty();
-            $('#info-sim-it').append('Current Timestep: ' + msg['simIt']);
+            $('#info-sim-it').append('Current Timestep: ' + msg['simIt'] + ', number of Franes: ' + viewerMolecule.getModel().getNumFrames());
             viewerMolecule.render();
             
         });
@@ -570,6 +572,10 @@ H 53.72 50 50";
                 updateFrequency = 100;
             }
 
+            // At this point, the settings have been checked and ready to be sent to the server
+            // We can clear the current state of the temporal data
+            resetTemporalData();
+
             configDict['number_cores'] = numberCores;
             configDict['max_timestep'] = maxTimestep;
             configDict['force_timestep'] = forceTimestep;
@@ -603,6 +609,20 @@ H 53.72 50 50";
 
         function resetTemporalData() {
             // Reset the plots 
+            kvsData = {};
+            listKVSFields = [];
+            firstPlotKey = null;
+            secondPlotKey = null;
+            chart1.data.label = 'Undefined';
+            chart1.data.datasets[0].data = [];
+            chart1.update();
+            let selectionPlot1 = document.getElementById('select-plot1');
+            selectionPlot1.options.length = 0;
+            chart2.data.label = 'Undefined';
+            chart2.data.datasets[0].data = [];
+            chart2.update();
+            let selectionPlot2 = document.getElementById('select-plot2');
+            selectionPlot2.options.length = 0;
 
 
             // Reset the molecule viewer trajectory
@@ -629,6 +649,9 @@ H 53.72 50 50";
 
                     xyzContent = contents;
                     console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
+
+                    $('#info-sim-it').empty();
+                    $('#info-sim-it').append('Current Timestep: 0, number of Franes: ' + viewerMolecule.getModel().getNumFrames());
                 }
                 reader.readAsText(file);
             }

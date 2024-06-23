@@ -412,11 +412,14 @@ def launch_simulation(configTask:dict):
 
 
 def listen_to_zmq_socket(configTask:dict):
+    propagateLog({"msg": "Start Listening for KVS messages.", "level": "info"})
     try:
         context = zmq.Context()
         socket = context.socket(zmq.SUB)
         socket.connect("tcp://localhost:50000")
         socket.setsockopt(zmq.SUBSCRIBE, b"")
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
         app.logger.info("Listening for ZMQ messages on tcp://localhost:50000")
 
         # This function may be called without a thread, so we need to check if there is a thread context
@@ -424,27 +427,37 @@ def listen_to_zmq_socket(configTask:dict):
         if checkEvent:
             threadTable[configTask["threadName"]]["event"].set()
         while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
-            message = socket.recv()
-            socketio.emit('zmq_message', {'message': message.decode('utf-8')})
+            socks = dict(poller.poll(500)) # ms
+            if socket in socks and socks[socket] == zmq.POLLIN:
+                message = socket.recv()
+                socketio.emit('zmq_message', {'message': message.decode('utf-8')})
     finally:
+        propagateLog({"msg": "End Listening for KVS messages.", "level": "info"})
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
             threadTable[configTask["threadName"]]["event"].clear()
 
 def listen_to_zmq_socketAtoms(configTask:dict):
+    propagateLog({"msg": "Start Listening for Atom messages.", "level": "info"})
     try:
         context = zmq.Context()
         socket = context.socket(zmq.SUB)
         socket.connect("tcp://localhost:50001")
         socket.setsockopt(zmq.SUBSCRIBE, b"")
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
         checkEvent = "threadName" in configTask
         app.logger.info("Listening for ZMQ messages on tcp://localhost:50001")
         if checkEvent:
             threadTable[configTask["threadName"]]["event"].set()
         while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
-            message = socket.recv()
-            socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
+            # we use an poller to be able to check the event periodically, allowing external action to stop this infinite loop
+            socks = dict(poller.poll(500)) # ms
+            if socket in socks and socks[socket] == zmq.POLLIN:
+                message = socket.recv()
+                socketio.emit('zmq_message_atoms', {'message': message.decode('utf-8')})
     finally:
+        propagateLog({"msg": "End Listening for Atom messages.", "level": "info"})
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
             threadTable[configTask["threadName"]]["event"].clear()
