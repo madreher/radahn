@@ -38,6 +38,7 @@
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
         var originalState = null; // Copy of getInternalState(), contains all the properties of atoms
+        var intervalUpdateID = null;
 
 
         // Selection drawing tracking
@@ -861,6 +862,24 @@ H 53.72 50 50";
             }
         }
 
+        function updateFrameCounter(){
+            document.getElementById('info-sim-it').innerHTML = 'Current Timestep: ' + viewerMolecule.getFrame() + ', number of Franes: ' + viewerMolecule.getModel().getNumFrames();
+            if(!viewerMolecule.isAnimated())
+            {
+                clearInterval(intervalUpdateID);
+                intervalUpdateID = null;
+            }
+        }
+
+        window.onPlayTrajectory = function() {
+            console.log("Starting trajectory playback");
+            viewerMolecule.animate({loop: "forward", reps:1});
+            viewerMolecule.render();
+
+            // Start an interval to update the frame counter
+            intervalUpdateID = setInterval(updateFrameCounter, 100);
+        }
+
         window.updatePlots = function() {
             console.log("Updating plot configuration");
             // Get the current fields selected
@@ -1202,6 +1221,7 @@ H 53.72 50 50";
                 </select>
                 <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                 <p id="info-sim-it">Current Timestep: 0</p>
+                <p><button id="play-button" onclick="onPlayTrajectory()">Play</button></p>
                 <label id="current-selection-label">Current Selection: </label>
                 <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
                 <label>Selection name:</label>
