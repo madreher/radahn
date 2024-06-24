@@ -638,9 +638,10 @@ H 53.72 50 50";
             viewerMolecule.zoomTo();
             viewerMolecule.animate({loop: "forward", reps:1});
             viewerMolecule.render();
+            timestepFrames = [0];
 
             $('#info-sim-it').empty();
-            $('#info-sim-it').append('Current Timestep: 0, number of Franes: ' + viewerMolecule.getModel().getNumFrames());
+            $('#info-sim-it').append('Current Timestep: 0, number of Frames: ' + viewerMolecule.getModel().getNumFrames());
         }
 
         function handleFileSelect(evt) {
@@ -666,7 +667,7 @@ H 53.72 50 50";
                     console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
 
                     $('#info-sim-it').empty();
-                    $('#info-sim-it').append('Current Timestep: 0, number of Franes: ' + viewerMolecule.getModel().getNumFrames());
+                    $('#info-sim-it').append('Current Timestep: 0, number of Frames: ' + viewerMolecule.getModel().getNumFrames());
 
                     // Saving the first frame 
                     originalState = structuredClone(viewerMolecule.getModel().getInternalState());
