@@ -38,6 +38,7 @@
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
         var originalState = null; // Copy of getInternalState(), contains all the properties of atoms
+        var timestepFrames = [0];
         var intervalUpdateID = null;
 
 
@@ -478,6 +479,8 @@ H 53.72 50 50";
             viewerMolecule.getModel().addFrame(newFrame);
             //viewerMolecule.animate({loop: "forward", reps:1});
             viewerMolecule.setFrame(viewerMolecule.getModel().getNumFrames()-1);
+
+            timestepFrames.push(msg['simIt']);
             
             $('#info-sim-it').empty();
             $('#info-sim-it').append('Current Timestep: ' + msg['simIt'] + ', Current Frame: ' + (viewerMolecule.getModel().getNumFrames()-1) + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames());
@@ -863,7 +866,10 @@ H 53.72 50 50";
         }
 
         function updateFrameCounter(){
-            document.getElementById('info-sim-it').innerHTML = 'Current Timestep: ' + viewerMolecule.getFrame() + ', number of Franes: ' + viewerMolecule.getModel().getNumFrames();
+            //document.getElementById('info-sim-it').innerHTML = 'Current Timestep: ' + viewerMolecule.getFrame() + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames();
+            
+            document.getElementById('info-sim-it').innerHTML = 'Current Timestep: ' + timestepFrames[viewerMolecule.getFrame()] + ', Current Frame: ' + (viewerMolecule.getFrame()) + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames();
+            
             if(!viewerMolecule.isAnimated())
             {
                 clearInterval(intervalUpdateID);
