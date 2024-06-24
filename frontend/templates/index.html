@@ -887,6 +887,85 @@ H 53.72 50 50";
             intervalUpdateID = setInterval(updateFrameCounter, 100);
         }
 
+        window.onStopTrajectory = function() {
+            console.log("Stopping trajectory playback");
+            viewerMolecule.stopAnimate();
+            viewerMolecule.render();
+
+            updateFrameCounter();
+        }
+
+        window.onGoToLastFrame = function() {
+            console.log("Going to last frame");
+            if(viewerMolecule.isAnimated())
+            {
+                viewerMolecule.stopAnimate();
+            }
+            viewerMolecule.setFrame(viewerMolecule.getModel().getNumFrames() - 1);
+            viewerMolecule.render();
+
+            updateFrameCounter();
+        }
+
+        window.onGoToNextFrame = function() {
+            console.log("Going to next frame");
+            if(viewerMolecule.isAnimated())
+            {
+                viewerMolecule.stopAnimate();
+            }
+            if(viewerMolecule.getFrame() < viewerMolecule.getModel().getNumFrames() - 1)
+            {
+                viewerMolecule.setFrame(viewerMolecule.getFrame() + 1);
+                viewerMolecule.render();
+            }
+            updateFrameCounter();
+        }
+
+        window.onGoToPreviousFrame = function() {
+            console.log("Going to previous frame");
+            if(viewerMolecule.isAnimated())
+            {
+                viewerMolecule.stopAnimate();
+            }
+            if(viewerMolecule.getFrame() > 0)
+            {
+                viewerMolecule.setFrame(viewerMolecule.getFrame() - 1);
+                viewerMolecule.render();
+            }
+            updateFrameCounter();
+        }
+
+        window.onGoToFirstFrame = function() {
+            console.log("Going to first frame");
+            if(viewerMolecule.isAnimated())
+            {
+                viewerMolecule.stopAnimate();
+            }
+            viewerMolecule.setFrame(0);
+            viewerMolecule.render();
+
+            updateFrameCounter();
+        }
+
+        window.onGoToUserFrame = function() {
+            console.log("Going to user frame");
+            if(viewerMolecule.isAnimated())
+            {
+                viewerMolecule.stopAnimate();
+            }
+            let frame = parseInt(document.getElementById('user-frame').value);
+            if(frame >= 0 && frame < viewerMolecule.getModel().getNumFrames())
+            {
+                viewerMolecule.setFrame(frame);
+                viewerMolecule.render();
+            }
+            else
+            {
+                console.warn("Invalid trajetory frame number requested: " + frame);
+            }
+            updateFrameCounter();
+        }
+
         window.updatePlots = function() {
             console.log("Updating plot configuration");
             // Get the current fields selected
@@ -1228,7 +1307,16 @@ H 53.72 50 50";
                 </select>
                 <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                 <p id="info-sim-it">Current Timestep: 0</p>
-                <p><button id="play-button" onclick="onPlayTrajectory()">Play</button></p>
+                <p>
+                    <button id="play-button" onclick="onPlayTrajectory()">Play</button>
+                    <button id="stop-button" onclick="onStopTrajectory()">Stop</button>
+                    <button id="next-button" onclick="onGoToNextFrame()">Next</button>
+                    <button id="prev-button" onclick="onGoToPreviousFrame()">Prev</button>
+                    <button id="first-button" onclick="onGoToFirstFrame()">First</button>
+                    <button id="last-button" onclick="onGoToLastFrame()">Last</button>
+                    <button id="reset-button" onclick="onGoToUserFrame()">Go to</button>
+                    <input type="number" id="user-frame" name="user-frame"></input>
+                </p>
                 <label id="current-selection-label">Current Selection: </label>
                 <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
                 <label>Selection name:</label>
