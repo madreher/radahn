@@ -11,6 +11,7 @@
     <script src="/static/js/external/litegraph.min.js"></script>
     <script src="/static/js/console_redirect.js"></script>
     <script src="/static/js/radahn_graph.js"></script>
+    <script src="/static/js/project_utils.js"></script>
     <link href="/static/css/external/litegraph.css" rel="stylesheet">
 </head>
 <body style='width:100%;height:100vh;'>
@@ -510,7 +511,20 @@ H 53.72 50 50";
 
             console.log("Requesting to generate Lammps input files in a job folder.");
 
-            if(xyzContent.length == 0){
+            // Check which model to use for the simulation
+            let xyzSetup = document.getElementById("start_from").value;
+            let xyzData = "";
+
+            if(xyzSetup == "original"){
+                xyzData = xyzContent;    
+                console.log("Generating inputs from the original molecule.")
+            }
+            else if(xyzSetup == "current-frame"){
+                xyzData = radahnProjectUtils.viewerToXYZ(viewerMolecule, viewerMolecule.getFrame());
+                console.log("Generating inputs from the frame: " + viewerMolecule.getFrame());
+            }
+
+            if(xyzData.length == 0){
                 console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
                 return false;
             }
@@ -534,7 +548,7 @@ H 53.72 50 50";
             configDict['force_timestep'] = forceTimestep;
             configDict['update_frequency'] = updateFrequency;
             configDict['motors'] = radahnJSONContent;
-            configDict['xyz'] = xyzContent;
+            configDict['xyz'] = xyzData;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
             configDict['lmp_groups'] = lammpsJSONContent;
@@ -1236,6 +1250,13 @@ H 53.72 50 50";
                 <input type="submit" value="Start listening">
             </form>
         </div-->
+        <div>
+            <label>Start from:</label>
+            <select id="start_from" name="start_from">
+                <option value="original">Original File</option>
+                <option value="current-frame">Current Frame</option>
+            </select>
+        </div>
         <div>
             <form id="generate_inputs" method="POST" action="#">
                 <input type="submit" value="Generate inputs"></input>
