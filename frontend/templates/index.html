@@ -11,6 +11,7 @@
     <script src="/static/js/external/litegraph.min.js"></script>
     <script src="/static/js/console_redirect.js"></script>
     <script src="/static/js/radahn_graph.js"></script>
+    <script src="/static/js/project_utils.js"></script>
     <link href="/static/css/external/litegraph.css" rel="stylesheet">
 </head>
 <body style='width:100%;height:100vh;'>
@@ -510,7 +511,20 @@ H 53.72 50 50";
 
             console.log("Requesting to generate Lammps input files in a job folder.");
 
-            if(xyzContent.length == 0){
+            // Check which model to use for the simulation
+            let xyzSetup = document.getElementById("start_from").value;
+            let xyzData = "";
+
+            if(xyzSetup == "original"){
+                xyzData = xyzContent;    
+                console.log("Generating inputs from the original molecule.")
+            }
+            else if(xyzSetup == "current-frame"){
+                xyzData = radahnProjectUtils.viewerToXYZ(viewerMolecule, viewerMolecule.getFrame());
+                console.log("Generating inputs from the frame: " + viewerMolecule.getFrame());
+            }
+
+            if(xyzData.length == 0){
                 console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
                 return false;
             }
@@ -534,7 +548,7 @@ H 53.72 50 50";
             configDict['force_timestep'] = forceTimestep;
             configDict['update_frequency'] = updateFrequency;
             configDict['motors'] = radahnJSONContent;
-            configDict['xyz'] = xyzContent;
+            configDict['xyz'] = xyzData;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
             configDict['lmp_groups'] = lammpsJSONContent;
@@ -546,7 +560,22 @@ H 53.72 50 50";
         $('form#launch_simulation').submit(function(event) {
             console.log('Requesting to launch simulation.');
 
-            if(xyzContent.length == 0){
+            // Check which model to use for the simulation
+            let xyzSetup = document.getElementById("start_from").value;
+            let xyzData = "";
+            let viewerFrameReset = -1; // original frame from the loaded xyz
+
+            if(xyzSetup == "original"){
+                xyzData = xyzContent;    
+                console.log("Generating inputs from the original molecule.")
+            }
+            else if(xyzSetup == "current-frame"){
+                xyzData = radahnProjectUtils.viewerToXYZ(viewerMolecule, viewerMolecule.getFrame());
+                console.log("Generating inputs from the frame: " + viewerMolecule.getFrame());
+                viewerFrameReset = viewerMolecule.getFrame();
+            }
+
+            if(xyzData.length == 0){
                 console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
                 return false;
             }
@@ -582,14 +611,16 @@ H 53.72 50 50";
 
             // At this point, the settings have been checked and ready to be sent to the server
             // We can clear the current state of the temporal data
-            resetTemporalData();
+            
+
+            resetTemporalData(viewerFrameReset);
 
             configDict['number_cores'] = numberCores;
             configDict['max_timestep'] = maxTimestep;
             configDict['force_timestep'] = forceTimestep;
             configDict['update_frequency'] = updateFrequency;
             configDict['motors'] = radahnJSONContent;
-            configDict['xyz'] = xyzContent;
+            configDict['xyz'] = xyzData;
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
             configDict['lmp_groups'] = lammpsJSONContent;
@@ -615,7 +646,7 @@ H 53.72 50 50";
             return false;
         });
 
-        function resetTemporalData() {
+        function resetTemporalData(frameIndex = -1) {
             // Reset the plots 
             kvsData = {};
             listKVSFields = [];
@@ -634,7 +665,40 @@ H 53.72 50 50";
 
 
             // Reset the molecule viewer trajectory
-            viewerMolecule.getModel().setInternalState(originalState);
+            if(frameIndex < 0)
+            {
+                console.log("Resetting the viewer with the original state.");
+                viewerMolecule.getModel().setInternalState(originalState);
+            }
+            else
+            {
+                // We are going to move the frame frameIndex to the index 0 and remove the rest. 
+
+                // Save the positions of the frame to save 
+                let lookupFrame = frameIndex;
+                if(lookupFrame >= viewerMolecule.getModel().getNumFrames())
+                {
+                    console.log("Frame index is out of bounds when reseting the viewer. Using the last frame instead.");
+                    lookupFrame = viewerMolecule.getModel().getNumFrames() - 1;
+                }
+                else 
+                {
+                    console.log("Resetting the viewer with the frame: " + lookupFrame);
+                }
+
+                let temporalPositions = [];
+                let dataFrame = viewerMolecule.getModel().frames[lookupFrame];
+                for(let i = 0; i < dataFrame.length; i++){
+                    temporalPositions.push([dataFrame[i].x, dataFrame[i].y, dataFrame[i].z]);
+                }
+
+                // Now that we have saved the data we needed, we can restore the initial state
+                viewerMolecule.getModel().setInternalState(originalState);
+
+                // Update the positions of the initial state.
+                viewerMolecule.getModel().setCoordinates(temporalPositions, "array");
+            }
+            
             viewerMolecule.zoomTo();
             viewerMolecule.animate({loop: "forward", reps:1});
             viewerMolecule.render();
@@ -1236,6 +1300,13 @@ H 53.72 50 50";
                 <input type="submit" value="Start listening">
             </form>
         </div-->
+        <div>
+            <label>Start from:</label>
+            <select id="start_from" name="start_from">
+                <option value="original">Original File</option>
+                <option value="current-frame">Current Frame</option>
+            </select>
+        </div>
         <div>
             <form id="generate_inputs" method="POST" action="#">
                 <input type="submit" value="Generate inputs"></input>
