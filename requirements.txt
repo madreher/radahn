@@ -2,3 +2,6 @@ flask
 flask_socketio
 gunicorn
 flask-script
+pyzmq
+numpy
+ase
