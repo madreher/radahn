@@ -1,0 +1,6 @@
+# Root folder for Radahn, usually $HOME/.radahn
+RADAHN_ROOT_JOB_FOLDER=/path/to/radahn/user/folder
+
+# DO NOT EDIT BELOW THIS LINE
+RADAHN_INSTALL_FOLDER=/app/radahn/radahn/build/install/
+RADAHN_EXEC_ENVIRONMENT=DOCKER

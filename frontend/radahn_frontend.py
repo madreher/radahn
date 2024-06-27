@@ -59,7 +59,7 @@ threadTable["openJobFolder"] = {"thread": None, "lock": Lock(), "event": Event()
 rootJobFolder = Path(os.getenv("HOME") + "/.radahn/jobs")
 radahnFolder = Path(os.getenv("HOME") + "/dev/radahn/build/install")
 radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
-execEnvironment = "UBUNTU"  # Dev note: Will probably be needed when return path of the job folder 
+execEnvironment = "NATIVE"  # Dev note: Will probably be needed when return path of the job folder 
                             # Will probably need some difference when the app is running on native Linux, in Docker Linux, on WSL
 
 
@@ -73,6 +73,7 @@ if "RADAHN_FRONTENT_ENV_PATH" in os.environ:
         radahnFolder = Path(os.getenv("RADAHN_INSTALL_FOLDER"))
         radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
         execEnvironment = os.getenv("RADAHN_EXEC_ENVIRONMENT")
+        app.logger.info(f"Loaded environment variables from {os.environ['RADAHN_FRONTENT_ENV_PATH']}")
     except Exception as e:
         app.logger.warn(f"Unable to load environment variables from {os.environ['RADAHN_FRONTENT_ENV_PATH']}: {e}")
 
@@ -574,4 +575,4 @@ def handle_launch_simulation(data):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='localhost', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
