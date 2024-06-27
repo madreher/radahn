@@ -10,5 +10,7 @@ target_link_libraries(engine
 install(
     TARGETS 
         engine
+    PERMISSIONS
+        OWNER_EXECUTE OWNER_WRITE OWNER_READ WORLD_EXECUTE WORLD_WRITE WORLD_READ
     DESTINATION
         ${RADAHN_MODULE_DIR})

@@ -14,5 +14,7 @@ target_link_libraries(lammpsDriver
 install(
     TARGETS 
         lammpsDriver
+    PERMISSIONS
+        OWNER_EXECUTE OWNER_WRITE OWNER_READ WORLD_EXECUTE WORLD_WRITE WORLD_READ
     DESTINATION
         ${RADAHN_MODULE_DIR})

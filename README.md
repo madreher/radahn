@@ -49,7 +49,7 @@ docker container run --rm -it -v $HOME/.radahn:$HOME/.radahn --workdir /app --us
 
 # In the container, start the server
 cd /app/radahn/radahn/build/install/frontend
-flask app radahn_frontend run --host=0.0.0.0
+export RADAHN_FRONTEND_ENV_PATH=/home/matthieu/.radahn/env_docker;flask --app radahn_frontend run --host=0.0.0.0
 
 # In a browser, open the page http://localhost:8080/
 ```

@@ -64,7 +64,7 @@ execEnvironment = "NATIVE"  # Dev note: Will probably be needed when return path
 
 
 # Override default paths if requested 
-if "RADAHN_FRONTENT_ENV_PATH" in os.environ:
+if "RADAHN_FRONTEND_ENV_PATH" in os.environ:
     try:
         from dotenv import load_dotenv
         load_dotenv(os.environ["RADAHN_FRONTENT_ENV_PATH"])

@@ -1,5 +1,5 @@
 
-var radahnGraphUtil = {}
+var radahnGraphUtil = {};
 
 radahnGraphUtil.setupRadahnGraph = function(lGraph)
 {
