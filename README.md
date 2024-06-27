@@ -39,18 +39,22 @@ cd /path to source
 git pull 
 cd docker/ubuntu
 # Lammps full build
-docker build -t radahn-ubuntu:current .
+docker build --no-cache -t radahn-ubuntu:current .
 # Lammps min build
 docker build --no-cache -f ./Dockerfile_minlmp -t radahn-minlmp-ubuntu:current .
 
 
 # Run in user space with job folder mounted
-docker container run --rm -it -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) radahn-ubuntu:current
+# Lammps build build
+docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-ubuntu:current
+#Lammps min build
+docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-minlmp-ubuntu:current
+
 
 # In the container, start the server
 cd /app/radahn/radahn/build/install/frontend
 source /app/radahn/radahn/build/install/docker/ubuntu/activate.sh
-export RADAHN_FRONTEND_ENV_PATH=/home/matthieu/.radahn/env_docker;flask --app radahn_frontend run --host=0.0.0.0
+flask --app radahn_frontend run --host=0.0.0.0
 
 # In a browser, open the page http://localhost:8080/
 ```

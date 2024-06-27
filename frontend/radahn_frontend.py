@@ -232,12 +232,8 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     """
     atoms = read(xyzPath)
 
-    #if atoms.get_cell().max() == 0:
-    #    if os.path.isfile('cell.txt'):
-    #        cell = np.loadtxt('cell.txt')
-    #    else:
-    #        cell = [500, 500, 500]
-    #    atoms.set_cell([cell[0], cell[1], cell[2]])
+    # TODO: decide what to do with the cell. Problematic cases are if the positions are negative and 
+    # how to ensure that the box is large enough to avoid self bitting with the period conditions
     atoms.set_cell([500, 500, 500])
     if atoms.get_positions().min() < 0: # ASE always assume the lower corner to be (0,0,0)
         atoms.center()
@@ -277,8 +273,6 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
         if offset > len(lines)-1:
             raise RuntimeError("Could not find zhi in LAMMPS data file")
         
-        #for i in range(2,7):
-        #    f.write(lines[i])
 
         # Insert the masses in the data file so it doesn't have to be added separatly in the script file
         f.write('\n')
@@ -289,8 +283,6 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
         f.write('\n')
         f.write('Atoms # full\n')
         f.write('\n')
-        #for i in range(11, len(lines)):
-        #    f.write(lines[i])
 
         # Find the offset of the Atoms section
         for i in range(offset, len(lines)):
