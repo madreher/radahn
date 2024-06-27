@@ -42,19 +42,26 @@ cd docker/ubuntu
 docker build --no-cache -t radahn-ubuntu:current .
 # Lammps min build
 docker build --no-cache -f ./Dockerfile_minlmp -t radahn-minlmp-ubuntu:current .
+```
 
-
+Once the docker images, Radahn is ready to be used! 
+First start by launching the server:
+```
 # Run in user space with job folder mounted
 # Lammps build build
 docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-ubuntu:current
 #Lammps min build
 docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-minlmp-ubuntu:current
 
+# In the container, start the server with
 
-# In the container, start the server
+# Single line
+./launch_frontend.sh
+
+# OR manual
 cd /app/radahn/radahn/build/install/frontend
 source /app/radahn/radahn/build/install/docker/ubuntu/activate.sh
 flask --app radahn_frontend run --host=0.0.0.0
-
-# In a browser, open the page http://localhost:8080/
 ```
+
+Once the server is launched, open a browser, and go to the page http://localhost:8080/

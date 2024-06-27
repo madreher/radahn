@@ -169,3 +169,13 @@ RUN cd /root/radahn/radahn && pip3 install -r requirements.txt
 RUN cd /root/radahn/godrick && \
     pip3 install -r requirements.txt && \
     pip3 install -e .
+
+EXPOSE 5000
+
+# Create the launch script
+RUN cd /app && \
+    touch launch_frontend.sh && \
+    echo "cd /app/radahn/radahn/build/install/frontend" >> launch_frontend.sh && \
+    echo "source /app/radahn/radahn/build/install/docker/ubuntu/activate.sh" >> launch_frontend.sh && \
+    echo "flask --app radahn_frontend run --host=0.0.0.0" >> launch_frontend.sh && \
+    chmod +x launch_frontend.sh
