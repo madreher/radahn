@@ -233,13 +233,14 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     atoms = read(xyzPath)
     print("Molecule cell: " +  str(atoms.get_cell()))
 
-    if atoms.get_cell().max() == 0:
-        if os.path.isfile('cell.txt'):
-            cell = np.loadtxt('cell.txt')
-        else:
-            cell = [500, 500, 500]
-        atoms.set_cell([cell[0], cell[1], cell[2]])
-    if atoms.get_positions().min() < 0:
+    #if atoms.get_cell().max() == 0:
+    #    if os.path.isfile('cell.txt'):
+    #        cell = np.loadtxt('cell.txt')
+    #    else:
+    #        cell = [500, 500, 500]
+    #    atoms.set_cell([cell[0], cell[1], cell[2]])
+    atoms.set_cell([500, 500, 500])
+    if atoms.get_positions().min() < 0: # ASE always assume the lower corner to be (0,0,0)
         atoms.center()
     tempDataPath = str(dataPath) + '.temp'
     write(filename=tempDataPath, images=atoms, format='lammps-data', atom_style='full')
