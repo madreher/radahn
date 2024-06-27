@@ -19,10 +19,11 @@ sudo usermod -aG docker $USER
 # IMPORTANT: RESTART!!
 
 cd docker/ubuntu
+# Lammps full build
 docker build -t radahn-ubuntu:current .
+# Lammps min build
+docker build --no-cache -f ./Dockerfile_minlmp -t radahn-minlmp-ubuntu:current .
 
-# Run the image
-docker run -p 5000:5000 -t -i radahn-ubuntu:current
 
 # Run in user space with job folder mounted
 docker container run --rm -it -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) radahn-ubuntu:current

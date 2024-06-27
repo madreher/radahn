@@ -55,10 +55,27 @@ threadTable["runSimulation"] = {"thread": None, "lock": Lock(), "event": Event()
 threadTable["openJobFolder"] = {"thread": None, "lock": Lock(), "event": Event()}
 
 
-# Default paths
+# Default variables
 rootJobFolder = Path(os.getenv("HOME") + "/.radahn/jobs")
 radahnFolder = Path(os.getenv("HOME") + "/dev/radahn/build/install")
 radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
+execEnvironment = "UBUNTU"  # Dev note: Will probably be needed when return path of the job folder 
+                            # Will probably need some difference when the app is running on native Linux, in Docker Linux, on WSL
+
+
+# Override default paths if requested 
+if "RADAHN_FRONTENT_ENV_PATH" in os.environ:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(os.environ["RADAHN_FRONTENT_ENV_PATH"])
+
+        rootJobFolder = Path(os.getenv("RADAHN_ROOT_JOB_FOLDER"))
+        radahnFolder = Path(os.getenv("RADAHN_INSTALL_FOLDER"))
+        radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
+        execEnvironment = os.getenv("RADAHN_EXEC_ENVIRONMENT")
+    except Exception as e:
+        app.logger.warn(f"Unable to load environment variables from {os.environ['RADAHN_FRONTENT_ENV_PATH']}: {e}")
+
 
 @app.route('/')
 def index():

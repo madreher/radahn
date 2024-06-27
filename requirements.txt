@@ -5,3 +5,4 @@ flask-script
 pyzmq
 numpy
 ase
+python-dotenv
