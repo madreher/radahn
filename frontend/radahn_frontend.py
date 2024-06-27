@@ -512,18 +512,22 @@ def listen_to_zmq_socketAtoms(configTask:dict):
             threadTable[configTask["threadName"]]["event"].clear()
 
 def open_job_folder(configTask:dict):
-
     try:
-        jobFolder = configTask["jobFolder"]
-        if platform.system() == 'Windows':
-            os.startfile(jobFolder)
-        elif platform.system() == 'Darwin':
-            subprocess.call(['open', jobFolder])
-        elif platform.system() == 'Linux':
-            app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
-            subprocess.call(['xdg-open', jobFolder])
+        if execEnvironment == "NATIVE":
+            jobFolder = configTask["jobFolder"]
+            if platform.system() == 'Windows':
+                os.startfile(jobFolder)
+            elif platform.system() == 'Darwin':
+                subprocess.call(['open', jobFolder])
+            elif platform.system() == 'Linux':
+                app.logger.info("Linux platform detected. Opening the folder with xdg-open.")
+                subprocess.call(['xdg-open', jobFolder])
+            else:
+                app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+        elif execEnvironment == "DOCKER":
+            propagateLog({"msg": "Opening the job folder in Docker is not supported.", "level": "warning"})
         else:
-            app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
+            propagateLog({"msg": "Unsupported execution environment when requesting to open a folder: " + execEnvironment, "level": "warning"})
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
