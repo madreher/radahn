@@ -27,6 +27,7 @@ def main():
     fileLmpGroups = ""
     useTestMotorSetup = False
     forceMaxSteps = False
+    installFolder = Path(__file__).parent.parent.resolve()
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -147,7 +148,7 @@ def main():
     workflow = Workflow("LammpsSteered")
     
     # Lammps Task declaration
-    lammpsCmd = f"/home/matthieu/dev/radahn/build/install/bin/lammpsDriver --name lammps --config {workflow.getConfigurationFile()}"
+    lammpsCmd = f"{installFolder}/bin/lammpsDriver --name lammps --config {workflow.getConfigurationFile()}"
     lammpsCmd += f" --initlmp {fileLmpPath.name}"
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
@@ -166,7 +167,7 @@ def main():
     lammps.addOutputPort("atoms")
 
     # Engine Task declaration
-    engineCmd = f"/home/matthieu/dev/radahn/build/install/bin/engine --name engine --config {workflow.getConfigurationFile()}"
+    engineCmd = f"{installFolder}/bin/engine --name engine --config {workflow.getConfigurationFile()}"
     if useTestMotorSetup:
         engineCmd += " --testmotors"
     if args.motorconfig is not None:
