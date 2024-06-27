@@ -292,8 +292,16 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
         #for i in range(11, len(lines)):
         #    f.write(lines[i])
 
+        # Find the offset of the Atoms section
+        for i in range(offset, len(lines)):
+            if lines[i].startswith('Atoms'):
+                offset = i+2
+                break
+        if offset > len(lines)-1:
+            raise RuntimeError("Could not find Atoms in LAMMPS data file")
+
         # Now that the masses are added, we can add the rest of the lines.
-        for i in range(offset+7, len(lines)):
+        for i in range(offset, len(lines)):
             f.write(lines[i])
     
     return atoms
