@@ -67,15 +67,15 @@ execEnvironment = "NATIVE"  # Dev note: Will probably be needed when return path
 if "RADAHN_FRONTEND_ENV_PATH" in os.environ:
     try:
         from dotenv import load_dotenv
-        load_dotenv(os.environ["RADAHN_FRONTENT_ENV_PATH"])
+        load_dotenv(os.environ["RADAHN_FRONTEND_ENV_PATH"])
 
         rootJobFolder = Path(os.getenv("RADAHN_ROOT_JOB_FOLDER"))
         radahnFolder = Path(os.getenv("RADAHN_INSTALL_FOLDER"))
         radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
         execEnvironment = os.getenv("RADAHN_EXEC_ENVIRONMENT")
-        app.logger.info(f"Loaded environment variables from {os.environ['RADAHN_FRONTENT_ENV_PATH']}")
+        app.logger.info(f"Loaded environment variables from {os.environ['RADAHN_FRONTEND_ENV_PATH']}")
     except Exception as e:
-        app.logger.warn(f"Unable to load environment variables from {os.environ['RADAHN_FRONTENT_ENV_PATH']}: {e}")
+        app.logger.warn(f"Unable to load environment variables from {os.environ['RADAHN_FRONTEND_ENV_PATH']}: {e}")
 
 
 @app.route('/')
