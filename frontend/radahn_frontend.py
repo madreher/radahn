@@ -525,9 +525,9 @@ def open_job_folder(configTask:dict):
             else:
                 app.logger.info(f"Unsupported platform when requesting to open a folder: {platform.system()}")
         elif execEnvironment == "DOCKER":
-            propagateLog({"msg": "Opening the job folder in Docker is not supported.", "level": "warning"})
+            propagateLog({"msg": "Opening the job folder in Docker is not supported.", "level": "warn"})
         else:
-            propagateLog({"msg": "Unsupported execution environment when requesting to open a folder: " + execEnvironment, "level": "warning"})
+            propagateLog({"msg": "Unsupported execution environment when requesting to open a folder: " + execEnvironment, "level": "warn"})
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
