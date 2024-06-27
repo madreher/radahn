@@ -30,7 +30,7 @@ git clone https://github.com/madreher/radahn.git .
 cp docker/ubuntu/env_docker $HOME/.radahn
 
 # Edit the first line of the file env_docker where you copied it to match your system. Ex:
-RADAHN_ROOT_JOB_FOLDER=/home/matthieu/.radahn
+RADAHN_ROOT_JOB_FOLDER=/home/matthieu/.radahn/jobs
 ```
 
 Instructions to create or update the docker images

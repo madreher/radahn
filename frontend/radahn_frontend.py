@@ -231,6 +231,7 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
 
     """
     atoms = read(xyzPath)
+    print("Molecule cell: " +  str(atoms.get_cell()))
 
     if atoms.get_cell().max() == 0:
         if os.path.isfile('cell.txt'):
@@ -240,7 +241,8 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
         atoms.set_cell([cell[0], cell[1], cell[2]])
     if atoms.get_positions().min() < 0:
         atoms.center()
-    write(filename=dataPath, images=atoms, format='lammps-data', atom_style='full')
+    tempDataPath = str(dataPath) + '.temp'
+    write(filename=tempDataPath, images=atoms, format='lammps-data', atom_style='full')
 
     chemical_symbols = atoms.get_chemical_symbols()
     masses = atoms.get_masses()
@@ -248,7 +250,7 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
     masses_u = [masses[index] for index in indexes]
     chemical_symbols_u = [chemical_symbols[index] for index in indexes]
 
-    with open(dataPath, 'r') as f:
+    with open(tempDataPath, 'r') as f:
         lines = f.readlines()
 
     with open(dataPath, 'w') as f:
@@ -300,15 +302,15 @@ def generate_inputs(configTask:dict) -> str:
                 f.write(configTask["lmp_groups"])
                 f.close()
 
-
+        # Convert the XYZ to a .data file 
         dataFile = jobFolder / "input.data"
+        atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
+        
 
         # Generate the base Lammps script
         lammpsScriptFile = jobFolder / "input.lammps"
         useAcks2 = False
         with open(lammpsScriptFile, "w") as f:
-            # Convert the XYZ to a .data file 
-            atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
 
             # Extract the simulation box
             cell = atoms.get_cell()
@@ -362,8 +364,8 @@ def generate_inputs(configTask:dict) -> str:
             f.write(scriptContent)
 
         # Generate the data file
-        dataFile = jobFolder / "input.data"
-        xyzToLammpsDataPBC(xyzFile, dataFile)
+        #dataFile = jobFolder / "input.data"
+        #xyzToLammpsDataPBC(xyzFile, dataFile)
         socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
         app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
     finally:
