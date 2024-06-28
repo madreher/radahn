@@ -1235,7 +1235,7 @@ H 53.72 50 50";
             top: 0;
             left: 0;
             z-index: 0; /* Ensure it's above visualization-overlay */
-            width: 100%;
+            width: 90%;
             height: 400px;
         }
 
@@ -1244,7 +1244,7 @@ H 53.72 50 50";
             top: 0;
             left: 0;
             z-index: 1; /* Ensure it's below visualization */
-            width: 100%;
+            width: 90%;
             height: 400px;
             /*background-color: rgba(196, 39, 135, 1); */
             background-color: rgba(0, 0, 0, 0);
@@ -1256,8 +1256,24 @@ H 53.72 50 50";
             left: 0;
         }
 
-        #current-selection {
+        #current-selection-container {
             width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            display: table;
+        }
+
+        #current-selection-label {
+            display: table-cell;
+            width: 1px;
+            white-space: nowrap;
+        }
+        #current-selection {
+            width: 90%;
+        }
+
+        #current-selection-span {
+            display: table-cell;
         }
 
         #node-canvas {
@@ -1406,8 +1422,10 @@ H 53.72 50 50";
                     <button id="reset-button" onclick="onGoToUserFrame()">Go to</button>
                     <input type="number" id="user-frame" name="user-frame"></input>
                 </p>
-                <label id="current-selection-label">Current Selection: </label>
-                <input type="text" id="current-selection" name="current-selection" width="100%" readonly></input>
+                <div id="current-selection-container">
+                    <label id="current-selection-label">Current Selection: </label>
+                    <span id="current-selection-span"><input type="text" id="current-selection" name="current-selection"></input></span>
+                </div>
                 <label>Selection name:</label>
                 <input type="text" id="save-selection" name="save-selection"></input>
                 <input type="color" id="selection-color" name="selection-color"></input>
