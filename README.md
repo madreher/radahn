@@ -10,6 +10,10 @@ TODO
 
 Instruction to perform once
 ```
+# Get the sources 
+cd /path/to/source
+git clone https://github.com/madreher/radahn.git .
+
 # Install docker
 sudo docker/ubuntu/install_docker_ubuntu.sh
 
@@ -21,10 +25,6 @@ sudo usermod -aG docker $USER
 # Setup Radahn folders and variables
 mkdir $HOME/.radahn
 mkdir $HOME/.radahn/jobs
-
-# Get the sources 
-cd /path/to/source
-git clone https://github.com/madreher/radahn.git .
 
 # Copy the environment file to the radahn folder
 cp docker/ubuntu/env_docker $HOME/.radahn
@@ -48,7 +48,7 @@ Once the docker images, Radahn is ready to be used!
 First start by launching the server:
 ```
 # Run in user space with job folder mounted
-# Lammps build build
+# Lammps full build
 docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-ubuntu:current
 #Lammps min build
 docker container run --rm -it -p 8080:5000 -v $HOME/.radahn:$HOME/.radahn --workdir /app --user $(id -u):$(id -g) -e RADAHN_FRONTEND_ENV_PATH=$HOME/.radahn/env_docker radahn-minlmp-ubuntu:current
@@ -64,4 +64,6 @@ source /app/radahn/radahn/build/install/docker/ubuntu/activate.sh
 flask --app radahn_frontend run --host=0.0.0.0
 ```
 
-Once the server is launched, open a browser, and go to the page http://localhost:8080/
+Once the server is launch, open a browser, and go to the page http://localhost:8080/
+
+These instructions have been tested on native Ubuntu 22.04, Windows 11 via WSL2 (Ubuntu 22.04.3)
