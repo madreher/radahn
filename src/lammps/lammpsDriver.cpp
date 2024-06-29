@@ -87,7 +87,7 @@ std::vector<std::string> splitString(std::string const & line, char sep)
                 return std::string_view(&*rng.begin(), std::size_t(std::ranges::distance(rng)));
                 })
         | std::ranges::views::filter( [](auto && s) { return !s.empty(); });
-        // to is C++23, have to do the conversion manually
+        // to is C++23, have to do the conversion manually with C++20
         //| std::ranges::to<std::vector<std::string>>();
         return std::vector<std::string>(r.begin(), r.end());
 }
@@ -109,7 +109,7 @@ SimUnits getUnitStyle(const std::string& scriptPath)
                     spdlog::error("Found the units command but unable to parse it properly.");
                     throw std::runtime_error("Found the units command but unable to parse it properly.");
                 }
-                return radahn::core::from_string(words[1]);
+                return radahn::core::from_lmp_string(words[1]);
             }
         }
     }
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
 
     executeScript(lps, lmpInitialState);
     auto simUnitStyle = getUnitStyle(lmpInitialState);
-    auto simUnitValue = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(simUnitStyle);
+    auto simUnitValue = static_cast<std::underlying_type<radahn::core::SimUnits>::type>(simUnitStyle);
 
     // Declare the global groups if provided
     bool hasPermanentAnchor = false;

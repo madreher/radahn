@@ -537,8 +537,9 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
+            let motorUnitSet = document.getElementById("unit_set").value;
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -588,8 +589,9 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
+            let motorUnitSet = document.getElementById("unit_set").value;
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").value === "true";
@@ -1326,6 +1328,13 @@ H 53.72 50 50";
         <div>
             <label>Update frequency:</label>
             <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
+        </div>
+        <div>
+            <label>Motors Unit Set:</label>
+            <select id="unit_set">
+                <option name="LAMMPS_METAL" value="LAMMPS_METAL">Metal</option>
+                <option name="LAMMPS_REAL" value="LAMMPS_REAL">Real</option>
+            </select>
         </div>
         <h2>Simulation Operation</h2>
         <!--div>

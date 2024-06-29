@@ -43,7 +43,17 @@ constexpr SimUnits from_string(const std::string_view& str)// throw()
     if (str == "GROMACS")
         return SimUnits::GROMACS;
 
-    throw std::invalid_argument("Unknown string given to from_string(const std::string&).");
+    throw std::invalid_argument("Unknown string given to from_string(const std::string&): " + std::string(str));
+}
+
+constexpr SimUnits from_lmp_string(const std::string_view& str)// throw()
+{
+    if (str == "metal")
+        return SimUnits::LAMMPS_METAL;
+    if (str == "real")
+        return SimUnits::LAMMPS_REAL;
+
+    throw std::invalid_argument("Unknown string given to from_lmp_string(const std::string&): " + std::string(str));
 }
 
 // In this case, we are limiting ourselves to only positions, velocities, and forces, and only with 3 unit sets with few calls. 
