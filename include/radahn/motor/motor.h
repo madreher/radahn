@@ -62,6 +62,8 @@ public:
 
     virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) = 0;
 
+    virtual void convertSettingsTo(radahn::core::SimUnits destUnits) = 0;
+
 protected:
     std::string m_name;
     MotorStatus m_status = MotorStatus::MOTOR_WAIT;

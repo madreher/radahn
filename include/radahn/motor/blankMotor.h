@@ -25,6 +25,8 @@ public:
     virtual bool appendCommandToConduitNode(conduit::Node& node) override;
     virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) override;
 
+    virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
+
 protected:
     radahn::core::simIt_t m_nbStepsRequested = 0;
     radahn::core::simIt_t m_startStep = 0;

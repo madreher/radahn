@@ -55,7 +55,7 @@ public:
     DistanceQuantity(){}
     DistanceQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
 
-    double convertTo(SimUnits destUnit) const;
+    void convertTo(SimUnits destUnit);
 
     double m_value;
     SimUnits m_unit;
@@ -67,7 +67,7 @@ public:
     VelocityQuantity(){}
     VelocityQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
 
-    double convertTo(SimUnits destUnit) const;
+    void convertTo(SimUnits destUnit);
 
     double m_value;
     SimUnits m_unit;
@@ -79,7 +79,7 @@ public:
     ForceQuantity(){}
     ForceQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
 
-    double convertTo(SimUnits destUnit) const;
+    void convertTo(SimUnits destUnit);
 
     double m_value;
     SimUnits m_unit;
@@ -91,7 +91,7 @@ public:
     TorqueQuantity(){}
     TorqueQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
 
-    double convertTo(SimUnits destUnit) const;
+    void convertTo(SimUnits destUnit);
 
     double m_value;
     SimUnits m_unit;
@@ -103,7 +103,7 @@ public:
     TimeQuantity(){}
     TimeQuantity(double value, SimUnits unit) : m_value(value), m_unit(unit){}
 
-    double convertTo(SimUnits destUnit) const;
+    void convertTo(SimUnits destUnit);
 
     double m_value;
     SimUnits m_unit;

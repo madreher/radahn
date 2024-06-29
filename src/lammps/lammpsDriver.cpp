@@ -1,6 +1,7 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
+#include <ranges>
 
 #include <godrick/mpi/godrickMPI.h>
 #include <conduit/conduit.hpp>
@@ -64,7 +65,6 @@ std::vector<uint32_t> getAnchorsIds(const std::string& jsonConfigPath)
 bool executeScript(LAMMPS* lps, const std::string& scriptPath)
 {
     std::ifstream fdesc(scriptPath);
-    std::string line;
 
     // Only execute the script if we could open it
     if (fdesc.is_open())
@@ -77,6 +77,44 @@ bool executeScript(LAMMPS* lps, const std::string& scriptPath)
 
     fdesc.close();
     return true;
+}
+
+std::vector<std::string> splitString(std::string const & line, char sep)
+{
+    auto r = line
+        | std::ranges::views::split(sep)
+        | std::ranges::views::transform([](auto &&rng) {
+                return std::string_view(&*rng.begin(), std::size_t(std::ranges::distance(rng)));
+                })
+        | std::ranges::views::filter( [](auto && s) { return !s.empty(); });
+        // to is C++23, have to do the conversion manually
+        //| std::ranges::to<std::vector<std::string>>();
+        return std::vector<std::string>(r.begin(), r.end());
+}
+
+SimUnits getUnitStyle(const std::string& scriptPath)
+{
+    std::ifstream fdesc(scriptPath);
+    std::string line;
+    if (fdesc.is_open())
+    {
+        while(std::getline(fdesc, line))
+        {
+            // Look if the command line has unit in it 
+            if(line.starts_with("units"))
+            {
+                auto words = splitString(line, ' ');
+                if(words.size() != 2)
+                {
+                    spdlog::error("Found the units command but unable to parse it properly.");
+                    throw std::runtime_error("Found the units command but unable to parse it properly.");
+                }
+                return radahn::core::from_string(words[1]);
+            }
+        }
+    }
+
+    throw std::runtime_error("Unable to find the units command.");
 }
 
 bool executeCommand(LAMMPS* lps, const std::string& cmd)
@@ -204,6 +242,8 @@ int main(int argc, char** argv)
     //int rank = handler.getTaskRank();
 
     executeScript(lps, lmpInitialState);
+    auto simUnitStyle = getUnitStyle(lmpInitialState);
+    auto simUnitValue = static_cast<std::underlying_type<radahn::lmp::SimCommandType>::type>(simUnitStyle);
 
     // Declare the global groups if provided
     bool hasPermanentAnchor = false;
@@ -326,6 +366,7 @@ int main(int argc, char** argv)
         simData["atomPositions"] = pos;
         simData["atomForces"] = forces;
         simData["atomVelocities"] = vel;
+        simData["units"] = simUnitValue;
 
         conduit::Node& thermosData = rootMsg.add_child("thermos");
         for(auto & t : thermos)

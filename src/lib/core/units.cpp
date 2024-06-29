@@ -1,28 +1,33 @@
 #include <radahn/core/units.h>
 #include <spdlog/spdlog.h>
 
-double radahn::core::DistanceQuantity::convertTo(SimUnits destUnit) const
+void radahn::core::DistanceQuantity::convertTo(SimUnits destUnit)
 {
-    return g_distanceConversion[m_unit][destUnit](m_value);
+    m_value = g_distanceConversion[m_unit][destUnit](m_value);
+    m_unit = destUnit;
 }
 
-double radahn::core::VelocityQuantity::convertTo(SimUnits destUnit) const
+void radahn::core::VelocityQuantity::convertTo(SimUnits destUnit)
 {
-    return g_velocityConversion[m_unit][destUnit](m_value);
+    m_value = g_velocityConversion[m_unit][destUnit](m_value);
+    m_unit = destUnit;
 }
 
-double radahn::core::ForceQuantity::convertTo(SimUnits destUnit) const
+void radahn::core::ForceQuantity::convertTo(SimUnits destUnit)
 {
-    return g_forceConversion[m_unit][destUnit](m_value);
+    m_value = g_forceConversion[m_unit][destUnit](m_value);
+    m_unit = destUnit;
 }
 
-double radahn::core::TorqueQuantity::convertTo(SimUnits destUnit) const
+void radahn::core::TorqueQuantity::convertTo(SimUnits destUnit)
 {
-    return g_torqueConversion[m_unit][destUnit](m_value);
+    m_value = g_torqueConversion[m_unit][destUnit](m_value);
+    m_unit = destUnit;
 }
     
 
-double radahn::core::TimeQuantity::convertTo(SimUnits destUnit) const
+void radahn::core::TimeQuantity::convertTo(SimUnits destUnit)
 {
-    return g_timeConversion[m_unit][destUnit](m_value);
+    m_value = g_timeConversion[m_unit][destUnit](m_value);
+    m_unit = destUnit;
 }

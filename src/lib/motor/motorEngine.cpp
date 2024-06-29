@@ -152,6 +152,14 @@ void radahn::motor::MotorEngine::clearMotors()
     m_pendingMotors.clear();
 }
 
+void radahn::motor::MotorEngine::convertMotorsTo(radahn::core::SimUnits destUnits)
+{
+    for(auto & [name, motor] : m_motorsMap)
+    {
+        motor->convertSettingsTo(destUnits);
+    }
+}
+
 bool radahn::motor::MotorEngine::loadFromJSON(const std::string& filename)
 {
     json document = json::parse(std::ifstream(filename));

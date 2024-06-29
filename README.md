@@ -12,9 +12,9 @@ Radahn is interactive molecular dynamic application allowing users to steer thei
 
 # Related project:
 
-- ([LAMMPS](https://docs.lammps.org/Manual.html))
-- ([Godrick](https://github.com/madreher/Godrick))
-- ([Conduit](https://llnl-conduit.readthedocs.io/en/latest/index.html))
+- [LAMMPS](https://docs.lammps.org/Manual.html)
+- [Godrick](https://github.com/madreher/Godrick)
+- [Conduit](https://llnl-conduit.readthedocs.io/en/latest/index.html)
 
 # Build Docker image on Ubuntu and WSL2
 
