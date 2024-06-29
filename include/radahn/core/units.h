@@ -3,6 +3,9 @@
 #include <string>
 #include <cstdint>
 #include <stdexcept>
+#include <unordered_map>
+#include <functional>
+#include <spdlog/spdlog.h>
 
 namespace radahn {
 
@@ -106,6 +109,140 @@ public:
     SimUnits m_unit;
 };
 
+static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<double(double)>>> g_distanceConversion = 
+{
+    // LAMMPS_REAL: A
+    // LAMMPS_METAL: A 
+    // GROMACS: nm
+    {SimUnits::LAMMPS_REAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { return value * 0.1; }}
+        }},
+
+    {SimUnits::LAMMPS_METAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { return value * 0.1; }}
+        }},
+
+    {SimUnits::GROMACS, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value * 10.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value * 10.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { return value; }}
+        }}
+};
+
+static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<double(double)>>> g_velocityConversion =
+{
+    // LAMMPS_REAL: A/ps (10^-12s)
+    // LAMMPS_METAL: A/fs (10^-15s)
+    // GROMACS: nm/ps
+    {SimUnits::LAMMPS_REAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value * 1000.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs velocity is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::LAMMPS_METAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value / 1000.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs velocity is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::GROMACS, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs velocity is not implemented yet."); return 0.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs velocity is not implemented yet."); return 0.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs velocity is not implemented yet."); return 0.0; }}
+        }}
+};
+
+static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<double(double)>>> g_forceConversion = 
+{
+    // LAMMPS_REAL: (kcal/mol)/A
+    // LAMMPS_METAL: eV/A
+    // GROMACS: (kcal/mol)/nm
+    {SimUnits::LAMMPS_REAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value * 0.0433641; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs force is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::LAMMPS_METAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value / 0.0433641; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs force is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::GROMACS, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs force is not implemented yet."); return 0.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs force is not implemented yet."); return 0.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs force is not implemented yet."); return 0.0; }}
+        }}    
+};
+
+static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<double(double)>>> g_torqueConversion = 
+{
+    // LAMMPS_REAL: (kcal/mol)
+    // LAMMPS_METAL: eV
+    // GROMACS: (kcal/mol)
+    {SimUnits::LAMMPS_REAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value * 0.0433641; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::LAMMPS_METAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value / 0.0433641; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::GROMACS, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }}    
+};
+
+static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<double(double)>>> g_timeConversion = 
+{
+    // LAMMPS_REAL: ps
+    // LAMMPS_METAL: fs
+    // GROMACS: ps
+    {SimUnits::LAMMPS_REAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value / 1000.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::LAMMPS_METAL, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { return value; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { return value * 1000.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }},
+
+    {SimUnits::GROMACS, 
+        {
+            {SimUnits::LAMMPS_METAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }},
+            {SimUnits::LAMMPS_REAL, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }},
+            {SimUnits::GROMACS, [](double value) -> double { (void)value; spdlog::error("Conversion to Gromacs torque is not implemented yet."); return 0.0; }}
+        }}   
+};
 
 } // core
 
