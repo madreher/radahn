@@ -339,6 +339,11 @@ def generate_inputs(configTask:dict) -> str:
         # Generate the base Lammps script
         lammpsScriptFile = jobFolder / "input.lammps"
         useAcks2 = False
+
+        ffExtension = (configTask["ffName"].split("."))[-1]
+        validExtensions = ["reax", "rebo", "airebo", "airebo-m"]
+        if ffExtension not in validExtensions:
+            propagateLog({"msg": "Unrecognized potential file format. Accepted extensions are " + validExtensions, "level": "error"})
         with open(lammpsScriptFile, "w") as f:
 
             # Extract the simulation box
@@ -350,7 +355,10 @@ def generate_inputs(configTask:dict) -> str:
             elements = getElementsFromData(dataFile)
 
             scriptContent = "# -*- mode: lammps -*-\n"
-            scriptContent += 'units          real\n'
+            if ffExtension == "reax":
+                scriptContent += 'units          real\n'
+            else:
+                scriptContent += 'units          metal\n'
             scriptContent += 'atom_style     full\n'
             scriptContent += 'atom_modify    map hash\n'
             scriptContent += 'newton         on\n'
@@ -359,34 +367,61 @@ def generate_inputs(configTask:dict) -> str:
             scriptContent += 'read_data      input.data\n'
             #for i in range(len(indexes)):
             #    scriptContent += f'mass           {i + 1} {masses_u[i]}\n' 
-            scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
-            scriptContent += f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
-            if useAcks2:
-                scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
-            else:
-                scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            
+            if ffExtension == "reax":
+                scriptContent += 'pair_style     reaxff NULL mincap 1000\n'
+                scriptContent += f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
+                if useAcks2:
+                    scriptContent += 'fix            ReaxFFSpec all acks2/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+                else:
+                    scriptContent += 'fix            ReaxFFSpec all qeq/reaxff 1 0.0 10.0 1e-8 reaxff\n'
+            elif ffExtension == "rebo":
+                scriptContent+='pair_style     rebo\n'
+                scriptContent+=f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
+            elif ffExtension == 'airebo':
+                scriptContent+='pair_style     airebo 3 1 1\n'
+                #scriptContent+='pair_style     airebo 3 1 0\n'
+                scriptContent+=f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
+            elif ffExtension == 'airebo-m':
+                scriptContent+='pair_style     airebo/morse 3 1 1\n'
+                scriptContent+=f'pair_coeff     * * {configTask["ffName"]}{elements}\n'
             #scriptContent += 'neighbor       2.5 bin\n' 
             # 2.5 is too large for small molecule like benzene. Trying to compute a reasonable cell skin based on the simulation box
             scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
             scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
 
+            if configTask["minimize"]:
+
+                scriptContent +="### Minimization\n"
+                scriptContent +='min_style      cg\n'
+                scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                if ffExtension == 'reax':
+                    scriptContent +='min_style      hftn\n'
+                    scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                scriptContent +='min_style      sd\n'
+                scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+
 
             # Add basic IO setup
             scriptContent += """####
 
-    thermo         50
-    thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
-    thermo_modify  flush yes lost warn
+thermo         50
+thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
+thermo_modify  flush yes lost warn
 
-    dump           dump all custom 100 fulltrajectory.dump id type x y z q
-    dump_modify    dump sort id
-    dump           xyz all xyz 100 fulltrajectory.xyz
-    dump_modify    xyz sort id element C H
-    fix            fixbond all reaxff/bonds 100 bonds_reax.txt
+dump           dump all custom 100 fulltrajectory.dump id type x y z q
+dump_modify    dump sort id
+dump           xyz all xyz 100 fulltrajectory.xyz
+dump_modify    xyz sort id element C H"""
+            if ffExtension == "reax":
+                scriptContent +="fix            fixbond all reaxff/bonds 100 bonds_reax.txt"
+            scriptContent +="""
 
-    ####
-
-    timestep       0.5"""
+####
+reset_timestep 0
+timestep       0.5"""
             scriptContent += "\n\n"
 
 
@@ -397,9 +432,14 @@ def generate_inputs(configTask:dict) -> str:
         #xyzToLammpsDataPBC(xyzFile, dataFile)
         socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
         app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
+    except:
+        if "threadName" in configTask:
+                threadTable[configTask["threadName"]]["thread"] = None
+        return ""
     finally:
         if "threadName" in configTask:
                 threadTable[configTask["threadName"]]["thread"] = None
+    
 
 
     return jobFolder
