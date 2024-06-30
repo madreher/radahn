@@ -537,11 +537,13 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
+            let motorUnitSet = document.getElementById("unit_set").value;
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
-            let forceTimestep = document.getElementById("force_max_steps").value === "true";
+            let minimize = document.getElementById("minimize").checked;
+            let forceTimestep = document.getElementById("force_max_steps").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
             let configDict = {  }
 
@@ -554,6 +556,7 @@ H 53.72 50 50";
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
             configDict['lmp_groups'] = lammpsJSONContent;
+            configDict['minimize'] = minimize
 
             socket.emit('generate_inputs', configDict);
             return false;
@@ -588,11 +591,13 @@ H 53.72 50 50";
             }
 
             // Get the settings from the editor
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors);
+            let motorUnitSet = document.getElementById("unit_set").value;
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
-            let forceTimestep = document.getElementById("force_max_steps").value === "true";
+            let forceTimestep = document.getElementById("force_max_steps").checked;
+            let minimize = document.getElementById("minimize").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
             let configDict = {  };
 
@@ -626,6 +631,7 @@ H 53.72 50 50";
             configDict['ffContent'] = ffContent;
             configDict['ffName'] = ffFileName;
             configDict['lmp_groups'] = lammpsJSONContent;
+            configDict['minimize'] = minimize
 
             socket.emit('launch_simulation', configDict);
             return false;
@@ -1304,7 +1310,7 @@ H 53.72 50 50";
         </div>
         <div>
             <label for="ff-file">Select Potential file:</label>
-            <input type="file" id="ff-file" accept=".ff">
+            <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
         </div>
         <h2>Radahn Setup</h2>
         <div>
@@ -1321,11 +1327,22 @@ H 53.72 50 50";
         </div>
         <div>
             <label>Force maximum number of steps:</label>
-            <input type="checkbox" id="force_max_steps" name="force_max_steps" value="false"></input>
+            <input type="checkbox" id="force_max_steps" name="force_max_steps" value="true"></input>
+        </div>
+        <div>
+            <label>Add minimization:</label>
+            <input type="checkbox" id="minimize" name="minimize" value="true" checked></input>
         </div>
         <div>
             <label>Update frequency:</label>
             <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
+        </div>
+        <div>
+            <label>Motors Unit Set:</label>
+            <select id="unit_set">
+                <option name="LAMMPS_METAL" value="LAMMPS_METAL">Metal</option>
+                <option name="LAMMPS_REAL" value="LAMMPS_REAL">Real</option>
+            </select>
         </div>
         <h2>Simulation Operation</h2>
         <!--div>

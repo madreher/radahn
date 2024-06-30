@@ -2,13 +2,23 @@
 
 Radahn is interactive molecular dynamic application allowing users to steer their MD simulations and getting live feedback. The framework is build around LAMMPS and Gromacs as possible simulation backend. 
 
-# Deps
+# Feature set
 
-TODO
+- Real time visualization and data extraction from a molecular dynamic simulation
+- Set of motors to add user interactions in a molecular simulation
+- Lammps as simulation backend currently, Gromacs will be added later one.
+- Frontend in a web browser to load molecular model, configure a set of motors to apply, and visualize the simulation in real time
+- Works on Linux, Windows via WSL
 
-# Build Docker image
+# Related project:
 
-Instruction to perform once
+- [LAMMPS](https://docs.lammps.org/Manual.html)
+- [Godrick](https://github.com/madreher/Godrick)
+- [Conduit](https://llnl-conduit.readthedocs.io/en/latest/index.html)
+
+# Build Docker image on Ubuntu and WSL2
+
+This first set of instruction should be executed only the fist time this software gets installed. On Windows, these instructions should be executed within WSL.
 ```
 # Get the sources 
 cd /path/to/source
@@ -20,7 +30,7 @@ sudo docker/ubuntu/install_docker_ubuntu.sh
 # Add the current user to the docker group
 sudo usermod -aG docker $USER
 
-# IMPORTANT: RESTART!!
+# **IMPORTANT: RESTART!!**
 
 # Setup Radahn folders and variables
 mkdir $HOME/.radahn
@@ -33,7 +43,9 @@ cp docker/ubuntu/env_docker $HOME/.radahn
 RADAHN_ROOT_JOB_FOLDER=/home/matthieu/.radahn/jobs
 ```
 
-Instructions to create or update the docker images
+The following instructions should be executed every time the user wants to update its version of Radahn. For Windows, these instructions should be executed within WSL.
+
+**IMPORTANT**: Radahn is currently in very early stages and doesn't provide a proper versioning yet. Versions will starts once a minimal set of features becomes available. However, users can choose to add version number or commit tag to their image name in the meantime if desired. Once versioning officially start, these instructions will be updated to properly reflect the image version.
 ```
 cd /path to source
 git pull 

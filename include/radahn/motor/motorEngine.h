@@ -39,6 +39,8 @@ public:
 
     bool loadFromJSON(const std::string& filename);
 
+    void convertMotorsTo(radahn::core::SimUnits destUnits);
+
 protected:
     //std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;
     std::unordered_map<std::string, std::shared_ptr<radahn::motor::Motor>> m_motorsMap;

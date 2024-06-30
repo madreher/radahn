@@ -73,3 +73,8 @@ bool radahn::motor::BlankMotor::loadFromJSON(const nlohmann::json& node, uint32_
 
     return true;
 }
+
+void radahn::motor::BlankMotor::convertSettingsTo(SimUnits destUnits)
+{
+    (void)destUnits;
+}

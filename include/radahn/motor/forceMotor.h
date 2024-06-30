@@ -117,6 +117,21 @@ public:
         return true;
     }
 
+    virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override
+    {
+        m_fx.convertTo(destUnits);
+        m_fy.convertTo(destUnits);
+        m_fz.convertTo(destUnits);
+
+        m_dx.convertTo(destUnits);
+        m_dy.convertTo(destUnits);
+        m_dz.convertTo(destUnits);
+
+        m_initialCx.convertTo(destUnits);
+        m_initialCy.convertTo(destUnits);
+        m_initialCz.convertTo(destUnits);
+    }
+
 protected:
     // Settings variables
     radahn::core::AtomSet m_currentState;

@@ -407,7 +407,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     LiteGraph.registerNodeType("motor/TorqueMotor", TorqueMotor);
 }
 
-radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable)
+radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
 {
     let nodes = lGraph._nodes;
 
@@ -459,14 +459,14 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable)
 
 
     let radahnJSON = {}
-    radahnJSON["header"] = { "version": 0, "units": "LAMMPS_REAL", "generator": "Radahn_frontendV1"};
+    radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1"};
     radahnJSON["motors"] = nodesArray;
 
     //console.log(JSON.stringify(radahnJSON));
     return JSON.stringify(radahnJSON);
 }
 
-radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable)
+radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable, unit)
 {
     anchorNodes = [];
     // Go though each element of the anchor table
@@ -491,7 +491,7 @@ radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable)
     }
 
     let radahnJSON = {}
-    radahnJSON["header"] = { "version": 0, "units": "LAMMPS_REAL", "generator": "Radahn_frontendV1"};
+    radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1"};
     radahnJSON["anchors"] = anchorNodes;
 
     return JSON.stringify(radahnJSON);

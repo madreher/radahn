@@ -74,6 +74,7 @@ RUN cd /app/radahn/lammps && \
                 -DCMAKE_INSTALL_PREFIX=/app/radahn/opt \
                 -DCMAKE_INSTALL_RPATH=/app/radahn/opt/lammps-17Apr2024/lib \
                 -DPKG_MOLECULE=TRUE \
+                -DPKG_MANYBODY=TRUE \
                 -DPKG_RIGID=TRUE \
                 -DPKG_KSPACE=TRUE \
                 -DPKG_EXTRA-FIX=TRUE \

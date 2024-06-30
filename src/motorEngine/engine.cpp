@@ -149,6 +149,7 @@ int main(int argc, char** argv)
     }
 
     std::vector<conduit::Node> receivedData;
+    bool unitSet = false;
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
     {
         // Debug
@@ -161,6 +162,15 @@ int main(int argc, char** argv)
         std::vector<atomIndexes_t> fullIndices;
         std::vector<atomPositions_t> fullPositions;
         auto receivedIt = mergeInputData(receivedData, fullIndices, fullPositions);
+
+        // Switch the motors settings to the simulation settings
+        if(!unitSet)
+        {
+
+            auto unitSim = radahn::core::SimUnits(receivedData[0]["simdata"]["units"].as_uint8());
+            engine.convertMotorsTo(unitSim);
+            unitSet = true;
+        }
 
 
         spdlog::info("Received simulation data Step {}", receivedIt);
