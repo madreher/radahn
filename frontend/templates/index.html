@@ -39,7 +39,7 @@
             nomouse: true
         } 
         var viewerMolecule = $3Dmol.createViewer(elementMolecule, configMolecule);
-        var originalState = null; // Copy of getInternalState(), contains all the properties of atoms
+        var originalPositions = null; // Copy of the positions loaded from file.
         var timestepFrames = [0];
         var intervalUpdateID = null;
 
@@ -677,6 +677,8 @@ H 53.72 50 50";
             {
                 console.log("Resetting the viewer with the original state.");
                 viewerMolecule.getModel().setInternalState(originalState);
+                // Copy may not be necessary, I'm not sure if the setCoordinates makes a copy internally or use a pointer.
+                viewerMolecule.getModel().setCoordinates(structuredClone(originalPositions), "array")
             }
             else
             {
@@ -694,11 +696,7 @@ H 53.72 50 50";
                     console.log("Resetting the viewer with the frame: " + lookupFrame);
                 }
 
-                let temporalPositions = [];
-                let dataFrame = viewerMolecule.getModel().frames[lookupFrame];
-                for(let i = 0; i < dataFrame.length; i++){
-                    temporalPositions.push([dataFrame[i].x, dataFrame[i].y, dataFrame[i].z]);
-                }
+                let temporalPositions = radahnProjectUtils.viewerToArray(viewerMolecule, lookupFrame);
 
                 // Now that we have saved the data we needed, we can restore the initial state
                 viewerMolecule.getModel().setInternalState(originalState);
@@ -742,7 +740,10 @@ H 53.72 50 50";
                     $('#info-sim-it').append('Current Timestep: 0, number of Frames: ' + viewerMolecule.getModel().getNumFrames());
 
                     // Saving the first frame 
+                    // Saving both the positions and original state separatly because the state does contain all the atom informations
+                    // which is used in some places 
                     originalState = structuredClone(viewerMolecule.getModel().getInternalState());
+                    originalPositions = radahnProjectUtils.viewerToArray(viewerMolecule, 0);
                     // Saving the atom spec which will be used when adding frames to the trajectory
 
                 }
