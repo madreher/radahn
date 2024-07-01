@@ -468,7 +468,7 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
 
 radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable, unit)
 {
-    anchorNodes = [];
+    let anchorNodes = [];
     // Go though each element of the anchor table
 
     for(const [key, value] of Object.entries(anchorTable))
