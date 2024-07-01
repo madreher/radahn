@@ -13,7 +13,8 @@ import platform
 import time
 import sys
 import platform
-from copy import copy, deepcopy
+from copy import deepcopy
+import json
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -393,6 +394,23 @@ def generate_inputs(configTask:dict) -> str:
             if configTask["minimize"]:
 
                 scriptContent +="### Minimization\n"
+
+                # Check if we have anchors
+                anchorAtomIds = []
+                if len(configTask["lmp_groups"]) > 0:
+                    jsonAnchor = json.loads(configTask["lmp_groups"])
+                    if "anchors" in jsonAnchor.keys():
+                        
+                        for anchorGrp in jsonAnchor["anchors"]:
+                            anchorAtomIds.extend(anchorGrp["selection"])
+
+                # If we have anchors, the atom forces must be set to 0 prior to minimization
+                if len(anchorAtomIds) > 0:
+                    scriptContent += "group minanchorgrp id"
+                    for id in anchorAtomIds:
+                        scriptContent += " " + str(id)
+                    scriptContent += "\n"
+                    scriptContent += "fix minanchorfix minanchorgrp setforce 0.0 0.0 0.0\n"
                 scriptContent +='min_style      cg\n'
                 scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
 
@@ -402,6 +420,9 @@ def generate_inputs(configTask:dict) -> str:
 
                 scriptContent +='min_style      sd\n'
                 scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+                if len(anchorAtomIds) > 0:
+                    scriptContent += "unfix minanchorfix\n"
+                    scriptContent += "group minanchorgrp delete\n"
 
 
             # Add basic IO setup
