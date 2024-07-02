@@ -2,6 +2,7 @@
 
 #include <radahn/motor/motor.h>
 #include <radahn/core/types.h>
+#include <radahn/core/CSVWriter.h>
 
 #include <conduit/conduit.hpp>
 
@@ -17,7 +18,11 @@ class MotorEngine
 {
 
 public:
-    MotorEngine(){}
+    MotorEngine() : m_globalCSV("global", ';')
+    {
+        // Must match the thermo input in lammpsDriver.cpp, function extractAtomInformation
+        m_globalCSV.declareFieldNames({"simIt", "temp", "tot", "pot", "kin", "dt", "sim_t"});
+    }
 
     void loadTestMotorSetup();
 
@@ -41,6 +46,10 @@ public:
 
     void convertMotorsTo(radahn::core::SimUnits destUnits);
 
+    void addGlobalKVS(conduit::Node& globals);
+    void commitKVSFrame();
+    void saveKVSToCSV();
+
 protected:
     //std::vector<std::shared_ptr<radahn::motor::Motor>> m_motors;
     std::unordered_map<std::string, std::shared_ptr<radahn::motor::Motor>> m_motorsMap;
@@ -52,9 +61,10 @@ protected:
     std::vector<radahn::core::atomPositions_t> m_currentPositions;
 
     conduit::Node m_currentKVS;  // Data which can be used for plotting
+    radahn::core::CSVWriter m_globalCSV;
     radahn::core::SimUnits m_currentUnits = radahn::core::SimUnits::LAMMPS_REAL;
 
-
+    
 };
 
 } // motor

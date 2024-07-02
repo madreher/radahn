@@ -150,6 +150,8 @@ int main(int argc, char** argv)
 
     std::vector<conduit::Node> receivedData;
     bool unitSet = false;
+
+
     while(handler.get("atoms", receivedData) == godrick::MessageResponse::MESSAGES)
     {
         // Debug
@@ -208,8 +210,11 @@ int main(int argc, char** argv)
 
         // This is kinda dangerous because the push operation may modify the Node
         // In this case it's fine because it's the instruction before the next iteration
-        conduit::Node temporalData = engine.getCurrentKVS();
-        temporalData["global"] = receivedData[0]["thermos"];
+        engine.addGlobalKVS(receivedData[0]["thermos"]);    // All the nodes have the same thermo info, no need to check all the inputs
+        engine.commitKVSFrame();
+        conduit::Node& temporalData = engine.getCurrentKVS();
+        
+        //temporalData["global"] = receivedData[0]["thermos"];
         handler.push("kvs", temporalData);
 
 
@@ -221,7 +226,7 @@ int main(int argc, char** argv)
 
         receivedData.clear();
 
-        engine.getCurrentKVS().print();
+        //engine.getCurrentKVS().print();
 
         // Iterations is finished, processing the motor state and prepare the motor lists for the next iteration
         engine.updateMotorLists();
@@ -230,6 +235,7 @@ int main(int argc, char** argv)
     //spdlog::info("Cleaning the motor engine...");
     //engine.clearMotors();
     //spdlog::info("Motor engine cleaned.");
+    engine.saveKVSToCSV();
 
     spdlog::info("Engine exited loop. Closing...");
     handler.close();

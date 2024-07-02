@@ -47,7 +47,7 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
     std::vector<atomIndexes_t>& indices, 
     std::vector<atomPositions_t>& positions)
 {
-    // First, we need to first the received positions
+    // First, we need to sort the received positions
     // HYPOTHESIS: We receive ALL the atom information, not just a sub-selection!!!
     size_t nbAtoms = indices.size();
     m_currentIndexes.resize(3*nbAtoms);
@@ -264,4 +264,19 @@ bool radahn::motor::MotorEngine::loadFromJSON(const std::string& filename)
             it++;
     }
     return true;
+}
+
+void radahn::motor::MotorEngine::addGlobalKVS(conduit::Node& globals)
+{
+    m_currentKVS["global"] = globals;
+}
+
+void radahn::motor::MotorEngine::commitKVSFrame()
+{
+    m_globalCSV.appendFrame(m_currentIt, m_currentKVS["global"]);
+}
+
+void radahn::motor::MotorEngine::saveKVSToCSV()
+{
+    m_globalCSV.writeFile(".");
 }
