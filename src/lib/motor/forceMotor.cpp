@@ -92,6 +92,10 @@ bool radahn::motor::ForceMotor::loadFromJSON(const nlohmann::json& node, uint32_
     m_dx = radahn::core::DistanceQuantity(node.value("dx", 0.0), units);
     m_dy = radahn::core::DistanceQuantity(node.value("dy", 0.0), units);
     m_dz = radahn::core::DistanceQuantity(node.value("dz", 0.0), units);
+
+    m_initialCx = radahn::core::DistanceQuantity(0.0, units);
+    m_initialCy = radahn::core::DistanceQuantity(0.0, units);
+    m_initialCz = radahn::core::DistanceQuantity(0.0, units);
     return true;
 }
 
