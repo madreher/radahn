@@ -25,6 +25,9 @@ public:
     CSVWriter() : m_name("defaultWriter"){}
     CSVWriter(const std::string& name, char sep) : m_name(name), m_sep(sep){}
 
+    void setName(const std::string& name) { m_name = name; }
+    void setSeparator(char sep) { m_sep = sep; } 
+
     void declareFieldNames(const std::vector<std::string> fields)
     {
         m_fields = fields;

@@ -40,7 +40,8 @@ bool radahn::motor::Motor::loadFromJSON(const nlohmann::json& node, uint32_t ver
         return false;
     }
     m_name = node["name"].get<std::string>();
-    m_motorWriter = radahn::core::CSVWriter(m_name, ';');
+    m_motorWriter.setName(m_name);
+    m_motorWriter.setSeparator(';');
 
     return true;
 }
