@@ -22,6 +22,8 @@ bool radahn::motor::BlankMotor::updateState(simIt_t it,
         kvs["steps_done"] = it - m_startStep;
         kvs["progress"] = (static_cast<double>(it - m_startStep) / static_cast<double>(m_nbStepsRequested))*100.0;
 
+        m_motorWriter.appendFrame(it, kvs);
+
         if(it >= m_lastStep)
         {
             spdlog::info("Motor {} completed successfully.", m_name);
@@ -38,6 +40,9 @@ bool radahn::motor::BlankMotor::updateState(simIt_t it,
         m_lastStep = it + m_nbStepsRequested;
         m_stepCountersSet = true;
     }
+
+    m_motorWriter.appendFrame(it, kvs);
+
     return true;
 }
 
@@ -49,15 +54,10 @@ bool radahn::motor::BlankMotor::appendCommandToConduitNode(conduit::Node& node)
 
 bool radahn::motor::BlankMotor::loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units)
 {
-    (void)version;
-    (void)units;
-    
-    if(!node.contains("name"))
+    if(!Motor::loadFromJSON(node, version, units))
     {
-        spdlog::error("TName not found while trying to load a BlankMotor from json.");
         return false;
     }
-    m_name = node["name"].get<std::string>();
 
     if(!node.contains("nbStepsRequested"))
     {
@@ -77,4 +77,9 @@ bool radahn::motor::BlankMotor::loadFromJSON(const nlohmann::json& node, uint32_
 void radahn::motor::BlankMotor::convertSettingsTo(SimUnits destUnits)
 {
     (void)destUnits;
+}
+
+void radahn::motor::BlankMotor::declareCSVWriterFieldNames()
+{
+    m_motorWriter.declareFieldNames({"steps_left", "steps_done", "progress"});
 }
