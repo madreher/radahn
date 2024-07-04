@@ -3,7 +3,14 @@
 
 void radahn::core::DistanceQuantity::convertTo(SimUnits destUnit)
 {
-    m_value = g_distanceConversion[m_unit][destUnit](m_value);
+    //try 
+    //{
+        m_value = g_distanceConversion[m_unit][destUnit](m_value);
+    //}
+    //catch(const std::bad_function_call& e)
+    //{
+    //    spdlog::error("Someting when wrong when converting a distance object: {}.", e.what());
+    //}
     m_unit = destUnit;
 }
 

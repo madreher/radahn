@@ -274,9 +274,17 @@ void radahn::motor::MotorEngine::addGlobalKVS(conduit::Node& globals)
 void radahn::motor::MotorEngine::commitKVSFrame()
 {
     m_globalCSV.appendFrame(m_currentIt, m_currentKVS["global"]);
+
+    // No need to commit for the motors in this case, the active motors do commit their frames once they're done updating.
 }
 
 void radahn::motor::MotorEngine::saveKVSToCSV()
 {
-    m_globalCSV.writeFile(".");
+    std::string folder = ".";
+    m_globalCSV.writeFile(folder);
+
+    for(auto & [k, v] : m_motorsMap)
+    {
+        v->writeCSVFile(folder);
+    }
 }

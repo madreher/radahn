@@ -44,3 +44,8 @@ bool radahn::motor::Motor::loadFromJSON(const nlohmann::json& node, uint32_t ver
 
     return true;
 }
+
+void radahn::motor::Motor::writeCSVFile(const std::string& folder) const
+{
+    m_motorWriter.writeFile(folder);
+}

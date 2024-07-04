@@ -118,6 +118,7 @@ endif()
 set(RADAHN_MODULE_DIR       ${CMAKE_INSTALL_PREFIX}/bin)
 
 add_subdirectory(src)
+add_subdirectory(tests)
 
 install(DIRECTORY 
             ${CMAKE_SOURCE_DIR}/workflow 

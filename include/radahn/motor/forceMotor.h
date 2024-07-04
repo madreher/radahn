@@ -13,7 +13,10 @@ namespace motor {
 class ForceMotor : public Motor
 {
 public:
-    ForceMotor() : Motor(){}
+    ForceMotor() : Motor()
+    {
+        declareCSVWriterFieldNames();
+    }
     ForceMotor(const std::string& name, const std::set<radahn::core::atomIndexes_t>& selection, 
         radahn::core::ForceQuantity fx = radahn::core::ForceQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
         radahn::core::ForceQuantity fy = radahn::core::ForceQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
@@ -27,7 +30,10 @@ public:
         m_currentState(selection), 
         m_fx(fx), m_fy(fy), m_fz(fz),
         m_checkX(checkX), m_checkY(checkY), m_checkZ(checkZ),
-        m_dx(dx), m_dy(dy), m_dz(dz){}
+        m_dx(dx), m_dy(dy), m_dz(dz)
+    {
+        declareCSVWriterFieldNames();
+    }
     virtual ~ForceMotor(){}
 
     virtual bool updateState(radahn::core::simIt_t it, 
@@ -42,6 +48,8 @@ public:
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
 
 protected:
+    virtual void declareCSVWriterFieldNames() override;
+
     // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::ForceQuantity m_fx;

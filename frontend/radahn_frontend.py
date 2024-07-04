@@ -435,7 +435,8 @@ thermo_modify  flush yes lost warn
 dump           dump all custom 100 fulltrajectory.dump id type x y z q
 dump_modify    dump sort id
 dump           xyz all xyz 100 fulltrajectory.xyz
-dump_modify    xyz sort id element C H"""
+dump_modify    xyz sort id element C H
+"""
             if ffExtension == "reax":
                 scriptContent +="fix            fixbond all reaxff/bonds 100 bonds_reax.txt"
             scriptContent +="""

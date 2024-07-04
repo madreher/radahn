@@ -15,7 +15,10 @@ namespace motor {
 class MoveMotor : public Motor
 {
 public:
-    MoveMotor() : Motor(){}
+    MoveMotor() : Motor()
+    {
+        declareCSVWriterFieldNames();
+    }
     MoveMotor(const std::string& name, const std::set<radahn::core::atomIndexes_t>& selection, 
         radahn::core::VelocityQuantity vx = radahn::core::VelocityQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
         radahn::core::VelocityQuantity vy = radahn::core::VelocityQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
@@ -29,7 +32,10 @@ public:
         m_currentState(selection), 
         m_vx(vx), m_vy(vy), m_vz(vz),
         m_checkX(checkX), m_checkY(checkY), m_checkZ(checkZ),
-        m_dx(dx), m_dy(dy), m_dz(dz){}
+        m_dx(dx), m_dy(dy), m_dz(dz)
+    {
+        declareCSVWriterFieldNames();
+    }
     virtual ~MoveMotor(){}
 
     virtual bool updateState(radahn::core::simIt_t it, 
@@ -44,6 +50,8 @@ public:
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
 
 protected:
+    virtual void declareCSVWriterFieldNames() override;
+
     // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::VelocityQuantity m_vx;

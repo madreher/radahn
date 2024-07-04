@@ -23,8 +23,15 @@ enum class MotorStatus : uint8_t
 class Motor 
 {
 public:
-    Motor() : m_name("defaultMotorName"), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter("defaultMotorName", ';'){}
-    Motor(const std::string& name) : m_name(name), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter(name, ';'){}
+    Motor() : m_name("defaultMotorName"), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter("defaultMotorName", ';')
+    {
+
+    }
+    Motor(const std::string& name) : m_name(name), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter(name, ';')
+    {
+
+    }
+
     virtual ~Motor(){}
 
     MotorStatus getMotorStatus() const { return m_status; }
@@ -44,7 +51,11 @@ public:
 
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) = 0;
 
+    void writeCSVFile(const std::string& folder) const;
+
 protected:
+    virtual void declareCSVWriterFieldNames() = 0;
+
     std::string m_name;
     MotorStatus m_status = MotorStatus::MOTOR_WAIT;
     std::vector<std::shared_ptr<Motor>> m_dependencies;

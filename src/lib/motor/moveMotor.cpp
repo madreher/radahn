@@ -14,18 +14,23 @@ conduit::Node& kvs)
     {
         spdlog::info("Registering the initial state for the motor {}.", m_name);
         auto initialCenter =  m_currentState.computePositionCenter();
-        m_initialCx = radahn::core::DistanceQuantity(initialCenter[0], radahn::core::SimUnits::LAMMPS_REAL);
-        m_initialCy = radahn::core::DistanceQuantity(initialCenter[1], radahn::core::SimUnits::LAMMPS_REAL);
-        m_initialCz = radahn::core::DistanceQuantity(initialCenter[2], radahn::core::SimUnits::LAMMPS_REAL);
+        //m_initialCx = radahn::core::DistanceQuantity(initialCenter[0], radahn::core::SimUnits::LAMMPS_REAL);
+        //m_initialCy = radahn::core::DistanceQuantity(initialCenter[1], radahn::core::SimUnits::LAMMPS_REAL);
+        //m_initialCz = radahn::core::DistanceQuantity(initialCenter[2], radahn::core::SimUnits::LAMMPS_REAL);
+        m_initialCx.m_value = initialCenter[0];
+        m_initialCy.m_value = initialCenter[1];
+        m_initialCz.m_value = initialCenter[2];
         m_initialState = radahn::core::AtomSet(m_currentState);
         kvs["progress"] = 0.0;
-        kvs["distance_x"] = 0.0;
-        kvs["distance_y"] = 0.0;
-        kvs["distance_z"] = 0.0;
-        kvs["center_x"] = m_initialCx.m_value;
-        kvs["center_y"] = m_initialCy.m_value;
-        kvs["center_z"] = m_initialCz.m_value;
+        kvs["distanceX"] = 0.0;
+        kvs["distanceY"] = 0.0;
+        kvs["distanceZ"] = 0.0;
+        kvs["centerX"] = m_initialCx.m_value;
+        kvs["centerY"] = m_initialCy.m_value;
+        kvs["centerZ"] = m_initialCz.m_value;
         m_initialStateRegistered = true;
+
+        m_motorWriter.appendFrame(it, kvs);
         return true;
     }
 
@@ -38,12 +43,12 @@ conduit::Node& kvs)
     distances[2] = currentCenter[2]-m_initialCz.m_value;
     spdlog::info("Current distance: {} {} {}", distances[0], distances[1], distances[2] );
 
-    kvs["distance_x"] = distances[0];
-    kvs["distance_y"] = distances[1];
-    kvs["distance_z"] = distances[2];
-    kvs["center_x"] = m_initialCx.m_value;
-    kvs["center_y"] = m_initialCy.m_value;
-    kvs["center_z"] = m_initialCz.m_value;
+    kvs["distanceX"] = distances[0];
+    kvs["distanceY"] = distances[1];
+    kvs["distanceZ"] = distances[2];
+    kvs["centerX"] = currentCenter[0];
+    kvs["centerY"] = currentCenter[1];
+    kvs["centerZ"] = currentCenter[2];
 
     // Progress calculation
     double progress = 0.0;
@@ -76,7 +81,14 @@ conduit::Node& kvs)
         m_status = MotorStatus::MOTOR_SUCCESS;
     }
 
+    m_motorWriter.appendFrame(it, kvs);
+
     return true;
+}
+
+void radahn::motor::MoveMotor::declareCSVWriterFieldNames()
+{
+    m_motorWriter.declareFieldNames({"distanceX", "distanceY", "distanceZ", "centerX", "centerY", "centerZ", "progress"});
 }
     
 bool radahn::motor::MoveMotor::appendCommandToConduitNode(conduit::Node& node)
@@ -110,6 +122,10 @@ bool radahn::motor::MoveMotor::loadFromJSON(const nlohmann::json& node, uint32_t
     m_dx = radahn::core::DistanceQuantity(node.value("dx", 0.0), units);
     m_dy = radahn::core::DistanceQuantity(node.value("dy", 0.0), units);
     m_dz = radahn::core::DistanceQuantity(node.value("dz", 0.0), units);
+
+    m_initialCx = radahn::core::DistanceQuantity(0.0, units);
+    m_initialCy = radahn::core::DistanceQuantity(0.0, units);
+    m_initialCz = radahn::core::DistanceQuantity(0.0, units);
     return true;
 }
 

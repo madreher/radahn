@@ -10,7 +10,6 @@
 #include <radahn/motor/motor.h>
 #include <radahn/core/atomSet.h>
 #include <radahn/core/units.h>
-//#include <radahn/core/math.h>
 #include <radahn/lmp/lammpsCommandsUtils.h>
 
 namespace radahn {
@@ -20,7 +19,10 @@ namespace motor {
 class RotateMotor : public Motor 
 {
 public:
-    RotateMotor() : Motor(){}
+    RotateMotor() : Motor()
+    {
+        declareCSVWriterFieldNames();
+    }
     RotateMotor(const std::string& name, const std::set<radahn::core::atomIndexes_t>& selection, 
         radahn::core::DistanceQuantity px = radahn::core::DistanceQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
         radahn::core::DistanceQuantity py = radahn::core::DistanceQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
@@ -33,7 +35,11 @@ public:
         m_currentState(selection), 
         m_px(px), m_py(py), m_pz(pz),
         m_ax(ax), m_ay(ay), m_az(az),
-        m_period(period), m_requestedAngle(requestedAngle){}
+        m_period(period), m_requestedAngle(requestedAngle)
+    {
+        declareCSVWriterFieldNames();
+    }
+    
     virtual ~RotateMotor(){}
 
     virtual bool updateState(radahn::core::simIt_t it, 
@@ -48,6 +54,7 @@ public:
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
 
 protected:
+    virtual void declareCSVWriterFieldNames() override;
     // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::DistanceQuantity m_px;      // 3D point of the axe

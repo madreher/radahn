@@ -84,14 +84,14 @@ bool radahn::motor::RotateMotor::updateState(radahn::core::simIt_t it,
     m_totalRotationDeg = static_cast<double>(m_nbRotationCompleted) * 360.0 + rotationFromFirstDeg;
 
     kvs["progress"] = (m_totalRotationDeg / m_requestedAngle) * 100.0;
-    kvs["current_total_angle_deg"] = m_totalRotationDeg;
-    kvs["current_angle_deg"] = rotationFromFirstDeg;
-    kvs["track_x"] = trackedPointCurrent.x;
-    kvs["track_y"] = trackedPointCurrent.y;
-    kvs["track_z"] = trackedPointCurrent.z;
-    kvs["centroid_x"] = m_centroid.x;
-    kvs["centroid_y"] = m_centroid.y;
-    kvs["centroid_z"] = m_centroid.z;
+    kvs["currentTotalAngleDeg"] = m_totalRotationDeg;
+    kvs["currentAngleDeg"] = rotationFromFirstDeg;
+    kvs["trackX"] = trackedPointCurrent.x;
+    kvs["trackY"] = trackedPointCurrent.y;
+    kvs["trackZ"] = trackedPointCurrent.z;
+    kvs["centroidX"] = m_centroid.x;
+    kvs["centroidY"] = m_centroid.y;
+    kvs["centroidZ"] = m_centroid.z;
 
     m_previousRotationAngleRad = rotationFromFirstRad;
     m_previousRotationAngleDeg = rotationFromFirstDeg;
@@ -102,7 +102,14 @@ bool radahn::motor::RotateMotor::updateState(radahn::core::simIt_t it,
         m_status = MotorStatus::MOTOR_SUCCESS;
     }
 
+    m_motorWriter.appendFrame(it, kvs);
+
     return true;
+}
+
+void radahn::motor::RotateMotor::declareCSVWriterFieldNames()
+{
+    m_motorWriter.declareFieldNames({"currentTotalAngleDeg", "currentAngleDeg", "trackX", "trackY", "trackZ", "centroidX", "centroidY", "centroidZ", "progress"});
 }
     
 bool radahn::motor::RotateMotor::appendCommandToConduitNode(conduit::Node& node)

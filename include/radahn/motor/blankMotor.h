@@ -14,8 +14,14 @@ namespace motor {
 class BlankMotor : public Motor 
 {
 public:
-    BlankMotor() : Motor(){}
-    BlankMotor(const std::string& name, radahn::core::simIt_t nbStepsRequested) : Motor(name), m_nbStepsRequested(nbStepsRequested), m_startStep(0), m_lastStep(0), m_stepCountersSet(false){}
+    BlankMotor() : Motor()
+    {
+        declareCSVWriterFieldNames();
+    }
+    BlankMotor(const std::string& name, radahn::core::simIt_t nbStepsRequested) : Motor(name), m_nbStepsRequested(nbStepsRequested), m_startStep(0), m_lastStep(0), m_stepCountersSet(false)
+    {
+        declareCSVWriterFieldNames();
+    }
 
     virtual bool updateState(radahn::core::simIt_t it, 
         const std::vector<radahn::core::atomIndexes_t>& indices, 
@@ -28,6 +34,8 @@ public:
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
 
 protected:
+    virtual void declareCSVWriterFieldNames() override;
+
     radahn::core::simIt_t m_nbStepsRequested = 0;
     radahn::core::simIt_t m_startStep = 0;
     radahn::core::simIt_t m_lastStep = 0;

@@ -20,7 +20,10 @@ namespace motor {
 class TorqueMotor : public Motor
 {
 public:
-    TorqueMotor() : Motor(){}
+    TorqueMotor() : Motor()
+    {
+        declareCSVWriterFieldNames();
+    }
     TorqueMotor(const std::string& name, const std::set<radahn::core::atomIndexes_t>& selection, 
         radahn::core::TorqueQuantity tx = radahn::core::TorqueQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
         radahn::core::TorqueQuantity ty = radahn::core::TorqueQuantity(0.0, radahn::core::SimUnits::LAMMPS_REAL), 
@@ -30,7 +33,11 @@ public:
         Motor(name),
         m_currentState(selection), 
         m_tx(tx), m_ty(ty), m_tz(tz),
-        m_requestedAngle(requestedAngle){}
+        m_requestedAngle(requestedAngle)
+    {
+        declareCSVWriterFieldNames();
+    }
+    
     virtual ~TorqueMotor(){}
 
     virtual bool updateState(radahn::core::simIt_t it, 
@@ -45,6 +52,8 @@ public:
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) override;
 
 protected:
+    virtual void declareCSVWriterFieldNames() override;
+
     // Settings variables
     radahn::core::AtomSet m_currentState;
     radahn::core::TorqueQuantity m_tx;

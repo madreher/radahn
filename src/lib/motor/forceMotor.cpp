@@ -20,6 +20,13 @@ bool radahn::motor::ForceMotor::updateState(radahn::core::simIt_t it,
         m_initialCz = radahn::core::DistanceQuantity(initialCenter[2], radahn::core::SimUnits::LAMMPS_REAL);
         m_initialState = radahn::core::AtomSet(m_currentState);
         m_initialStateRegistered = true;
+
+        kvs["distanceX"] = static_cast<radahn::core::atomPositions_t>(0.0);
+        kvs["distanceY"] = static_cast<radahn::core::atomPositions_t>(0.0);
+        kvs["distanceZ"] = static_cast<radahn::core::atomPositions_t>(0.0);
+
+
+        m_motorWriter.appendFrame(it, kvs);
         return true;
     }
 
@@ -45,7 +52,14 @@ bool radahn::motor::ForceMotor::updateState(radahn::core::simIt_t it,
         m_status = MotorStatus::MOTOR_SUCCESS;
     }
 
+    m_motorWriter.appendFrame(it, kvs);
+
     return true;
+}
+
+void radahn::motor::ForceMotor::declareCSVWriterFieldNames()
+{
+    m_motorWriter.declareFieldNames({"distanceX", "distanceY", "distanceZ", "progress"});
 }
     
 bool radahn::motor::ForceMotor::appendCommandToConduitNode(conduit::Node& node)
