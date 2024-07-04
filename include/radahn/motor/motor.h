@@ -6,6 +6,7 @@
 
 #include <radahn/core/types.h>
 #include <radahn/core/units.h>
+#include <radahn/core/CSVWriter.h>
 
 namespace radahn {
 
@@ -22,8 +23,8 @@ enum class MotorStatus : uint8_t
 class Motor 
 {
 public:
-    Motor() = default;
-    Motor(const std::string& name) : m_name(name), m_status(MotorStatus::MOTOR_WAIT){}
+    Motor() : m_name("defaultMotorName"), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter("defaultMotorName", ';'){}
+    Motor(const std::string& name) : m_name(name), m_status(MotorStatus::MOTOR_WAIT), m_motorWriter(name, ';'){}
     virtual ~Motor(){}
 
     MotorStatus getMotorStatus() const { return m_status; }
@@ -34,33 +35,12 @@ public:
         const std::vector<radahn::core::atomPositions_t>& positions,
         conduit::Node& kvs) = 0;
     virtual bool appendCommandToConduitNode(conduit::Node& node) = 0;
-    void addDependency(std::shared_ptr<Motor> dependency) { m_dependencies.push_back(dependency); }
+    void addDependency(std::shared_ptr<Motor> dependency);
 
-    bool canStart() const 
-    { 
-        if( m_status != MotorStatus::MOTOR_WAIT )
-            return false;
+    bool canStart() const ;
+    bool startMotor();
 
-        for(const auto& dependency : m_dependencies)
-        {
-            if(dependency->getMotorStatus() != MotorStatus::MOTOR_SUCCESS)
-                return false;
-        } 
-
-        return true;
-    }
-    bool startMotor()
-    {        
-        if(m_status == MotorStatus::MOTOR_WAIT)
-        {
-            m_status = MotorStatus::MOTOR_RUNNING;
-            return true;
-        }
-        else
-            return false;
-    }
-
-    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units) = 0;
+    virtual bool loadFromJSON(const nlohmann::json& node, uint32_t version, radahn::core::SimUnits units);
 
     virtual void convertSettingsTo(radahn::core::SimUnits destUnits) = 0;
 
@@ -68,6 +48,8 @@ protected:
     std::string m_name;
     MotorStatus m_status = MotorStatus::MOTOR_WAIT;
     std::vector<std::shared_ptr<Motor>> m_dependencies;
+    radahn::core::CSVWriter m_motorWriter;
+
 };
 
 } // core
