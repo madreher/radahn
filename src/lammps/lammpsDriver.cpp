@@ -300,6 +300,8 @@ int main(int argc, char** argv)
             spdlog::info("Lammps received a token.");
         }
 
+
+        // Gathering the commands we will need to execute
         auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
         if(hasPermanentAnchor)
             cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
@@ -319,6 +321,8 @@ int main(int argc, char** argv)
                 }                
             }
         }
+
+        // All the commands are registed to the util object, now we can generate the correspinding Lammps commands
 
 
         // Create the commands for the motors
