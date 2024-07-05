@@ -62,7 +62,7 @@ std::vector<uint32_t> getAnchorsIds(const std::string& jsonConfigPath)
     return ids;
 }
 
-bool executeScript(LAMMPS* lps, const std::string& scriptPath)
+bool executeScript(LAMMPS* lps, const std::string& scriptPath, std::stringstream& commandsHistory)
 {
     std::ifstream fdesc(scriptPath);
 
@@ -71,6 +71,7 @@ bool executeScript(LAMMPS* lps, const std::string& scriptPath)
     {
         // Execute the script
         lps->input->file(scriptPath.c_str());
+        commandsHistory<<fdesc.rdbuf()<<"\n";
     }
     else
         return false;
@@ -117,9 +118,10 @@ SimUnits getUnitStyle(const std::string& scriptPath)
     throw std::runtime_error("Unable to find the units command.");
 }
 
-bool executeCommand(LAMMPS* lps, const std::string& cmd)
+bool executeCommand(LAMMPS* lps, const std::string& cmd, std::stringstream& commandsHistory)
 {
     lps->input->one(cmd);
+    commandsHistory<<cmd<<"\n";
     return true;
 }
 
@@ -241,7 +243,11 @@ int main(int argc, char** argv)
     LAMMPS* lps = new LAMMPS(0, NULL, handler.getTaskCommunicator());
     //int rank = handler.getTaskRank();
 
-    executeScript(lps, lmpInitialState);
+    // Creating the log file for the commands
+    std::ofstream logFile("full.log.lammps");
+
+    std::stringstream iterationContent;
+    executeScript(lps, lmpInitialState, iterationContent);
     auto simUnitStyle = getUnitStyle(lmpInitialState);
     auto simUnitValue = static_cast<std::underlying_type<radahn::core::SimUnits>::type>(simUnitStyle);
 
@@ -261,15 +267,22 @@ int main(int argc, char** argv)
             {
                 commandGroup << " " << id;
             }
-            executeCommand(lps, commandGroup.str());
+            executeCommand(lps, commandGroup.str(), iterationContent);
             hasPermanentAnchor = true;
         }
     }
 
+    logFile<<iterationContent.str();
+    logFile.flush();
+
     std::vector<conduit::Node> receivedData;
     while(currentStep < maxNVESteps)
     {
-        executeCommand(lps, "#### LOOP Start from Timestep " + std::to_string(currentStep) + " #####################################");
+        // Clean the output we got from the previous iteration
+        // Dev not: ss.clear() clear the error state, not the content of the ss
+        iterationContent.str(std::string());
+
+        executeCommand(lps, "#### LOOP Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
         auto resultReceive = handler.get("in", receivedData);
         if( resultReceive == godrick::MessageResponse::TERMINATE )
         {
@@ -287,6 +300,8 @@ int main(int argc, char** argv)
             spdlog::info("Lammps received a token.");
         }
 
+
+        // Gathering the commands we will need to execute
         auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
         if(hasPermanentAnchor)
             cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
@@ -307,33 +322,35 @@ int main(int argc, char** argv)
             }
         }
 
+        // All the commands are registed to the util object, now we can generate the correspinding Lammps commands
+
 
         // Create the commands for the motors
         std::vector<std::string> doCommands;
         cmdUtil.writeDoCommands(doCommands);
         for(auto & cmd : doCommands)
-            executeCommand(lps, cmd);
+            executeCommand(lps, cmd, iterationContent);
 
         // Create the time integration command
-        executeCommand(lps, "#### Start INTEGRATION ");
+        executeCommand(lps, "#### Start INTEGRATION ", iterationContent);
         std::stringstream cmdFixNVE;
         cmdFixNVE<<"fix NVE "<<cmdUtil.getIntegrationGroup()<<" nve";
-        executeCommand(lps, cmdFixNVE.str());
+        executeCommand(lps, cmdFixNVE.str(), iterationContent);
 
         // Advance the simulation
-        executeCommand(lps, "run " + std::to_string(intervalSteps));
+        executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
 
         // Undo the time integration
         std::stringstream cmdUnfixNVE;
         cmdUnfixNVE<<"unfix NVE";
-        executeCommand(lps, cmdUnfixNVE.str());
-        executeCommand(lps, "#### End INTEGRATION ");
+        executeCommand(lps, cmdUnfixNVE.str(), iterationContent);
+        executeCommand(lps, "#### End INTEGRATION ", iterationContent);
 
         // Undo the motors commands
         std::vector<std::string> undoCommands;
         cmdUtil.writeUndoCommands(undoCommands);
         for(auto & cmd : undoCommands)
-            executeCommand(lps, cmd);
+            executeCommand(lps, cmd, iterationContent);
 
 
         double simItD = lammps_get_thermo(lps, "step");
@@ -378,7 +395,11 @@ int main(int argc, char** argv)
         }
         handler.push("atoms", rootMsg, true);
 
-        executeCommand(lps, "#### LOOP End at Timestep " + std::to_string(currentStep) + " #########################################");
+        executeCommand(lps, "#### LOOP End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+
+        // Flushing the commands we have executed to file
+        logFile<<iterationContent.str();
+        logFile.flush();
     }
     spdlog::info("Lammps done. Closing godrick...");
 
