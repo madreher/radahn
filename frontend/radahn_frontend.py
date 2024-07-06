@@ -58,6 +58,7 @@ threadTable["openJobFolder"] = {"thread": None, "lock": Lock(), "event": Event()
 
 # Default variables
 rootJobFolder = Path(os.getenv("HOME") + "/.radahn/jobs")
+projectJobFolder = Path(os.getenv("HOME") + "/.radahn/projects")
 radahnFolder = Path(os.getenv("HOME") + "/dev/radahn/build/install")
 radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
 execEnvironment = "NATIVE"  # Dev note: Will probably be needed when return path of the job folder 
@@ -71,6 +72,7 @@ if "RADAHN_FRONTEND_ENV_PATH" in os.environ:
         load_dotenv(os.environ["RADAHN_FRONTEND_ENV_PATH"])
 
         rootJobFolder = Path(os.getenv("RADAHN_ROOT_JOB_FOLDER"))
+        projectJobFolder = Path(os.getenv("RADAHN_ROOT_PROJECT_FOLDER"))
         radahnFolder = Path(os.getenv("RADAHN_INSTALL_FOLDER"))
         radahnScript = radahnFolder / "workflow" / "lammpsSteered.py"
         execEnvironment = os.getenv("RADAHN_EXEC_ENVIRONMENT")
@@ -668,7 +670,14 @@ def handle_launch_simulation(data):
 
     handle_start_listening()
 
-
+@socketio.on('save_project')
+def handle_save_project(data):
+    propagateLog({"msg": "Saving project on the server side.", "level": "info"})
+    filePath = projectJobFolder / "myProject.json"
+    with open(filePath, "w") as f:
+        json.dump(data, f)
+        f.close()
+    propagateLog({"msg": f"Project saved as {str(filePath)}", "level" : "info"})
 
 
 if __name__ == '__main__':

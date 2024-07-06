@@ -1,6 +1,13 @@
-# Root folder for Radahn, usually $HOME/.radahn
+# Variables to edit per user
+# IMPORTANT: Use ABSOLUTE PATH, no relative path or using env variables like $HOME
+
+# Folder for Radahn jobs, usually /home/<username>/.radahn/jobs
 RADAHN_ROOT_JOB_FOLDER=/path/to/radahn/user/folder
 
+# Folder for Radahn projects, usually /home/<username>/.radahn/projects
+RADAHN_ROOT_PROJECT_FOLDER=/path/to/radahn/user/folder
+
+###################################################################
 # DO NOT EDIT BELOW THIS LINE
 RADAHN_INSTALL_FOLDER=/app/radahn/radahn/build/install/
 RADAHN_EXEC_ENVIRONMENT=DOCKER

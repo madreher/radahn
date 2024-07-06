@@ -1238,7 +1238,13 @@ H 53.72 50 50";
             viewerMolecule.render();
         }
 
-        window.onSaveProjectSetup = function() {
+        // Method to generate the file and download it
+        // Alternative to onSaveProjectSetupServer()
+        // https://stackoverflow.com/questions/11071473/how-can-javascript-save-to-a-local-file
+        // https://jsfiddle.net/9av2mfjx/
+ 
+        var a = $('a');
+        window.onSaveProjectSetupDownload = function() {
             // We want to save: 
             // - original positions (xyz content)   (already in the project)
             // - potential file                     (already in the project)
@@ -1254,7 +1260,38 @@ H 53.72 50 50";
             let projectContent = project.createProjectDict();
 
             // Save the file 
-            console.log(projectContent);
+            //console.log(projectContent);
+            let fileContent = JSON.stringify(projectContent);
+            var bb = new Blob([fileContent], {type: 'text/plain'});
+            var a = document.createElement('a');
+            a.download = 'project.json';
+            a.href = window.URL.createObjectURL(bb);
+            a.style='display:none';
+            a.click();
+            //doc.remove();
+
+            console.log("Link generated to save the project.");
+        }
+
+        // Method forwarding the content to the server to save it
+        window.onSaveProjectSetupServer = function() {
+            // We want to save: 
+            // - original positions (xyz content)   (already in the project)
+            // - potential file                     (already in the project)
+            // - motor graph state                  (need to update)
+            // - unit style used for the motor      (need to update)
+            // - list of anchors                    (already in the project)
+            // - list of selections                 (already in the project)
+
+            // Update the project motor graph and unit
+            project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
+
+            // Get the project on its dictionary form so it can be sent
+            let projectContent = project.createProjectDict();
+
+            //let fileContent = JSON.stringify(projectContent);
+            socket.emit('save_project', projectContent);
+            console.log("Project content sent to the server.");
         }
     });
     </script>
@@ -1363,7 +1400,8 @@ H 53.72 50 50";
             <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
         </div>
         <div>
-            <button onclick="onSaveProjectSetup()" name="Save Project">Save</button>
+            <button onclick="onSaveProjectSetupServer()" name="Save Project">Save</button>
+            <a href="" style="display: none;"></a>
         </div>
         <h2>Radahn Setup</h2>
         <div>
