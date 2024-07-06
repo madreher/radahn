@@ -29,6 +29,8 @@
         //SocketIO
         var socket = io();
 
+        var project = new RadahnProject();
+
         // 3Dmol
         var elementMolecule = document.getElementById('visualization');
         var elementMoleculeOverlay = document.getElementById('visualization-overlay');
@@ -734,6 +736,7 @@ H 53.72 50 50";
                     viewerMolecule.render();
 
                     xyzContent = contents;
+                    project.setXYZContent(contents, file.name);
                     console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
 
                     $('#info-sim-it').empty();
@@ -907,6 +910,7 @@ H 53.72 50 50";
 
                     ffContent = contents;
                     ffFileName = file.name;
+                    project.setPotential(contents, ffFileName);
                 }
                 reader.readAsText(file);
             }
@@ -1069,11 +1073,22 @@ H 53.72 50 50";
         // Make the function global so that it's accessible to the "save" button
         window.saveSelectionInternal = function() {
             if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
-                savedSelections[document.getElementById('save-selection').value] = {
+                let selectionName = document.getElementById('save-selection').value;
+                let selectionDict = {
                     atomIndexes: selectedAtoms, 
                     name: document.getElementById('save-selection').value,
-                    color: document.getElementById('selection-color').value};
+                    color: document.getElementById('selection-color').value
+                };
+
+                //savedSelections[document.getElementById('save-selection').value] = {
+                //    atomIndexes: selectedAtoms, 
+                //    name: document.getElementById('save-selection').value,
+                //    color: document.getElementById('selection-color').value};
+                savedSelections[selectionName] = selectionDict;
+                project.addSelection(selectionName, selectionDict);
                 console.log("Added the selection " + document.getElementById('save-selection').value);
+
+                project.addSelection()
 
                 // Update the table
                 updateDynamicTable();
@@ -1101,11 +1116,19 @@ H 53.72 50 50";
                 if(selectedAtoms.length > 0)
                 {
                     // Using the current selection for the new anchor
-                    savedAnchors[anchorName] = {
+                    let anchorDict = {
                         name: anchorName,
                         color: document.getElementById('anchor-color').value,
                         atomIndexes: selectedAtoms
                     };
+
+                    //savedAnchors[anchorName] = {
+                    //    name: anchorName,
+                    //    color: document.getElementById('anchor-color').value,
+                    //    atomIndexes: selectedAtoms
+                    //};
+                    savedAnchors[anchorName] = anchorDict;
+                    project.addAnchor(anchorName, anchorDict);
                     console.log("Added the anchor " + anchorName);
 
                     // Update the table
@@ -1114,11 +1137,18 @@ H 53.72 50 50";
             }
             else if(selectionName in savedSelections)
             {
-                savedAnchors[anchorName] = {
-                    name: anchorName,
-                    color: document.getElementById('anchor-color').value,
-                    atomIndexes: savedSelections[selectionName].atomIndexes
-                };
+                let anchorDict = {
+                        name: anchorName,
+                        color: document.getElementById('anchor-color').value,
+                        atomIndexes: savedSelections[selectionName].atomIndexes
+                    };
+                //savedAnchors[anchorName] = {
+                //    name: anchorName,
+                //    color: document.getElementById('anchor-color').value,
+                //    atomIndexes: savedSelections[selectionName].atomIndexes
+                //};
+                savedAnchors[anchorName] = anchorDict;
+                project.addAnchor(anchorName, anchorDict);
                 console.log("Added the anchor " + anchorName);
 
                 // Update the table
@@ -1206,6 +1236,25 @@ H 53.72 50 50";
             
             
             viewerMolecule.render();
+        }
+
+        window.onSaveProjectSetup = function() {
+            // We want to save: 
+            // - original positions (xyz content)   (already in the project)
+            // - potential file                     (already in the project)
+            // - motor graph state                  (need to update)
+            // - unit style used for the motor      (need to update)
+            // - list of anchors                    (already in the project)
+            // - list of selections                 (already in the project)
+
+            // Update the project motor graph and unit
+            project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
+
+            // Get the project on its dictionary form so it can be sent
+            let projectContent = project.createProjectDict();
+
+            // Save the file 
+            console.log(projectContent);
         }
     });
     </script>
@@ -1312,6 +1361,9 @@ H 53.72 50 50";
         <div>
             <label for="ff-file">Select Potential file:</label>
             <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
+        </div>
+        <div>
+            <button onclick="onSaveProjectSetup()" name="Save Project">Save</button>
         </div>
         <h2>Radahn Setup</h2>
         <div>

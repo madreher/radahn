@@ -49,3 +49,73 @@ radahnProjectUtils.viewerToArray = function(viewer, frameIndex)
     return positions;
 
 }
+
+class RadahnProject {
+
+    xyzContent = "";
+    xyzFilename = "";
+    potentialContent = "";
+    potentialFilename = "";
+    motorGraph = {};
+    motorGraphUnits = "LAMMPS_REAL";
+    anchorList = {}
+    selectionList = {}
+
+    constructor()
+    {
+        
+    }
+
+    setXYZContent(xyzContent, xyzFilename)
+    {
+        this.xyzContent = xyzContent;
+        this.xyzFilename = xyzFilename;
+    }
+
+    setPotential(potentialContent, potentialFilename)
+    {
+        this.potentialContent = potentialContent;
+        this.potentialFilename = potentialFilename;
+    }
+
+    setMotorGraph(motorGraph, motorGraphUnits)
+    {
+        this.motorGraph = motorGraph;
+        this.motorGraphUnits = motorGraphUnits;
+    }
+
+    addAnchor(anchorName, anchor)
+    {
+        this.anchorList[anchorName] = anchor;
+    }
+
+    deleteAnchor(anchorName)
+    {
+        delete this.anchorList[anchorName];
+    }
+
+    addSelection(selectionName, selection)
+    {
+        this.selectionList[selectionName] = selection;
+    }
+
+    deleteSelection(selectionName)
+    {
+        delete this.selectionList[selectionName];
+    }
+
+    createProjectDict()
+    {
+        let project = {}
+        project["xyzContent"] = this.xyzContent;
+        project["xyzFilename"] = this.xyzFilename;
+        project["potentialContent"] = this.potentialContent;
+        project["potentialFilename"] = this.potentialFilename;
+        project["motorGraph"] = this.motorGraph;
+        project["motorGraphUnits"] = this.motorGraphUnits;
+        project["anchors"] = this.anchorList;
+        project["selections"] = this.selectionList;
+
+        return project;
+    }
+}
