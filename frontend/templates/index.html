@@ -60,11 +60,9 @@
         var selectedAtoms = [];
         currentLabelsType = "none";
         var currentLabels = [];
-        var savedSelections = {};
         updateDynamicTable();
 
         // Anchor table
-        var savedAnchors = {};
         updateAnchorTable();
 
         // Node Editor
@@ -543,8 +541,8 @@ H 53.72 50 50";
 
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(project.anchorList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let minimize = document.getElementById("minimize").checked;
@@ -597,8 +595,8 @@ H 53.72 50 50";
 
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
-            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, savedSelections, motorUnitSet);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(savedAnchors, motorUnitSet);
+            let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
+            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(project.anchorList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").checked;
@@ -643,7 +641,7 @@ H 53.72 50 50";
         });
 
         $('form#print_motors').submit(function(event) {
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, savedSelections);
+            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, project.selectionList);
             console.log(radahnJSONContent);
             return false;
         });
@@ -837,7 +835,7 @@ H 53.72 50 50";
             });
 
             // Populate the table with saved selections
-            Object.entries(savedSelections).forEach(([name, entry]) => {
+            Object.entries(project.selectionList).forEach(([name, entry]) => {    
                 const row = table.insertRow();
                 const cellName = row.insertCell();
                 cellName.textContent = name;
@@ -875,7 +873,7 @@ H 53.72 50 50";
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.addEventListener('click', () => {
-                    delete savedSelections[name];
+                    project.deleteSelection(name);
                     updateDynamicTable();
                     refreshMolecule();
                 })
@@ -892,7 +890,8 @@ H 53.72 50 50";
             defaultOption.value = 'current-selection';
             defaultOption.textContent = 'Current selection';
             anchorSourceSelect.appendChild(defaultOption);
-            Object.keys(savedSelections).forEach(name => {
+
+            Object.keys(project.selectionList).forEach(name => {
                 const option = document.createElement('option');
                 option.value = name;
                 option.textContent = name;
@@ -921,7 +920,7 @@ H 53.72 50 50";
             });
 
             // Populate the table with saved selections
-            Object.entries(savedAnchors).forEach(([name, entry]) => {
+            Object.entries(project.anchorList).forEach(([name, entry]) => {
                 const row = table.insertRow();
                 const cellName = row.insertCell();
                 cellName.textContent = name;
@@ -943,7 +942,7 @@ H 53.72 50 50";
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.addEventListener('click', () => {
-                    delete savedAnchors[name];
+                    project.deleteAnchor(name);
                     updateAnchorTable();
                     refreshMolecule();
                 })
@@ -1139,15 +1138,8 @@ H 53.72 50 50";
                     color: document.getElementById('selection-color').value
                 };
 
-                //savedSelections[document.getElementById('save-selection').value] = {
-                //    atomIndexes: selectedAtoms, 
-                //    name: document.getElementById('save-selection').value,
-                //    color: document.getElementById('selection-color').value};
-                savedSelections[selectionName] = selectionDict;
                 project.addSelection(selectionName, selectionDict);
                 console.log("Added the selection " + document.getElementById('save-selection').value);
-
-                project.addSelection()
 
                 // Update the table
                 updateDynamicTable();
@@ -1156,7 +1148,6 @@ H 53.72 50 50";
             {
                 console.log("No selection was selected or a name was not given")
             }
-            console.log("Saved selections:", savedSelections);
         }
 
         window.saveAnchor = function() {
@@ -1181,12 +1172,6 @@ H 53.72 50 50";
                         atomIndexes: selectedAtoms
                     };
 
-                    //savedAnchors[anchorName] = {
-                    //    name: anchorName,
-                    //    color: document.getElementById('anchor-color').value,
-                    //    atomIndexes: selectedAtoms
-                    //};
-                    savedAnchors[anchorName] = anchorDict;
                     project.addAnchor(anchorName, anchorDict);
                     console.log("Added the anchor " + anchorName);
 
@@ -1194,19 +1179,14 @@ H 53.72 50 50";
                     updateAnchorTable();
                 }
             }
-            else if(selectionName in savedSelections)
+            else if(selectionName in project.selectionList)
             {
                 let anchorDict = {
                         name: anchorName,
                         color: document.getElementById('anchor-color').value,
-                        atomIndexes: savedSelections[selectionName].atomIndexes
+                        atomIndexes: project.selectionList[selectionName].atomIndexes
                     };
-                //savedAnchors[anchorName] = {
-                //    name: anchorName,
-                //    color: document.getElementById('anchor-color').value,
-                //    atomIndexes: savedSelections[selectionName].atomIndexes
-                //};
-                savedAnchors[anchorName] = anchorDict;
+
                 project.addAnchor(anchorName, anchorDict);
                 console.log("Added the anchor " + anchorName);
 
@@ -1235,7 +1215,7 @@ H 53.72 50 50";
                 case "selection": {
                     // We first color by atom type for every atoms, then we re-color by selection
                     viewerMolecule.setStyle({}, {stick: {}})
-                    Object.entries(savedSelections).forEach(([name, entry]) => {
+                    Object.entries(project.selectionList).forEach(([name, entry]) => {
                         viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
                     });
                     break;
@@ -1243,7 +1223,7 @@ H 53.72 50 50";
                 case "anchor": {
                     // We first color by atom type for every atoms, then we re-color by selection
                     viewerMolecule.setStyle({}, {stick: {}})
-                    Object.entries(savedAnchors).forEach(([name, entry]) => {
+                    Object.entries(project.anchorList).forEach(([name, entry]) => {
                         viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
                     });
                     break;
