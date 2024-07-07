@@ -278,6 +278,9 @@ H 53.72 50 50";
         }
 
         // Handle file selection
+        const inputProject = document.getElementById('project-file');
+        inputProject.addEventListener('change', handleProjectFileSelect, false)
+
         const input = document.getElementById('xyz-file');
         input.addEventListener('change', handleFileSelect, false);
 
@@ -714,6 +717,62 @@ H 53.72 50 50";
 
             $('#info-sim-it').empty();
             $('#info-sim-it').append('Current Timestep: 0, number of Frames: ' + viewerMolecule.getModel().getNumFrames());
+        }
+
+        function handleProjectFileSelect(evt) 
+        {
+            console.log("Project File selected: " + evt.target.files[0].name);
+            const file = evt.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) 
+                {
+                    const content = event.target.result;
+                    const obj = JSON.parse(content);
+                    project.loadFromProjectDict(obj);
+
+                    // Update the different widgets
+                    // Viewer
+                    if(project.isXYZSet())
+                    {
+                        viewerMolecule.addModel(project.xyzContent, 'xyz');
+                        viewerMolecule.setStyle({}, {stick: {}})
+                        viewerMolecule.zoomTo();
+                        viewerMolecule.render();
+                        console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
+
+                        $('#info-sim-it').empty();
+                        $('#info-sim-it').append('Current Timestep: 0, number of Frames: ' + viewerMolecule.getModel().getNumFrames());
+
+                        // Saving the first frame 
+                        // Saving both the positions and original state separatly because the state does contain all the atom informations
+                        // which is used in some places 
+                        originalState = structuredClone(viewerMolecule.getModel().getInternalState());
+                        originalPositions = radahnProjectUtils.viewerToArray(viewerMolecule, 0);
+                        
+                        // Text fields
+                        document.getElementById('project-name').value = project.projectName;
+
+                        // Deprecated
+                        xyzContent = project.xyzContent;
+                        ffContent = project.potentialContent;
+                        ffFileName = project.potentialFilename;
+                    }
+                    else
+                    {
+                        console.error("XYZ content not found in the project. Loading aborded.");
+                        project.resetProject();
+                    }
+
+                }
+                reader.readAsText(file);
+            }
+            else 
+            {
+                console.warn("No Project file was selected");
+            }
         }
 
         function handleFileSelect(evt) {
@@ -1246,12 +1305,27 @@ H 53.72 50 50";
         var a = $('a');
         window.onSaveProjectSetupDownload = function() {
             // We want to save: 
+            // - project name                       (need to update)
             // - original positions (xyz content)   (already in the project)
             // - potential file                     (already in the project)
             // - motor graph state                  (need to update)
             // - unit style used for the motor      (need to update)
             // - list of anchors                    (already in the project)
             // - list of selections                 (already in the project)
+
+            let projectName = document.getElementById('project-name').value;
+            if(projectName.length == 0)
+            {
+                console.error("Project name cannot be empty.");
+                return;
+            }
+            project.setProjectName(projectName)
+
+            if(!project.isXYZSet())
+            {
+                console.error("XYZ not set yet, unable to save the project.");
+                return;
+            }
 
             // Update the project motor graph and unit
             project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
@@ -1264,11 +1338,12 @@ H 53.72 50 50";
             let fileContent = JSON.stringify(projectContent);
             var bb = new Blob([fileContent], {type: 'text/plain'});
             var a = document.createElement('a');
+            let filename = 
             a.download = 'project.json';
             a.href = window.URL.createObjectURL(bb);
             a.style='display:none';
             a.click();
-            //doc.remove();
+            a.remove();
 
             console.log("Link generated to save the project.");
         }
@@ -1276,12 +1351,27 @@ H 53.72 50 50";
         // Method forwarding the content to the server to save it
         window.onSaveProjectSetupServer = function() {
             // We want to save: 
+            // - project name                       (need to update)
             // - original positions (xyz content)   (already in the project)
             // - potential file                     (already in the project)
             // - motor graph state                  (need to update)
             // - unit style used for the motor      (need to update)
             // - list of anchors                    (already in the project)
             // - list of selections                 (already in the project)
+
+            let projectName = document.getElementById('project-name').value;
+            if(projectName.length == 0)
+            {
+                console.error("Project name cannot be empty.");
+                return;
+            }
+            project.setProjectName(projectName)
+
+            if(!project.isXYZSet())
+            {
+                console.error("XYZ not set yet, unable to save the project.");
+                return;
+            }
 
             // Update the project motor graph and unit
             project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
@@ -1389,6 +1479,21 @@ H 53.72 50 50";
     </style>
     <div class="left">
         <h1>Radahn Mega Frontend</h1>
+
+        <h2>Project</h2>
+        <div>
+            <div>
+                <label for="project-file">Open Project:</label>
+                <input type="file" id="project-file" accept=".json">
+            </div>
+            <div>
+                <label for="project-name">Project name:</label>
+                <input type="text" id="project-name">
+            </div>
+            <button onclick="onSaveProjectSetupServer()" name="Save Project">Save Project</button>
+            <button onclick="onSaveProjectSetupDownload()" name="Download Project">Download Project</button>
+            <a href="" style="display: none;"></a>
+        </div>
         
         <h2>Model Definition</h2>
         <div>
@@ -1399,10 +1504,7 @@ H 53.72 50 50";
             <label for="ff-file">Select Potential file:</label>
             <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
         </div>
-        <div>
-            <button onclick="onSaveProjectSetupServer()" name="Save Project">Save</button>
-            <a href="" style="display: none;"></a>
-        </div>
+        
         <h2>Radahn Setup</h2>
         <div>
             <label for="motor-file">Select motor configuration file:</label>

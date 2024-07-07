@@ -675,7 +675,7 @@ def handle_save_project(data):
     propagateLog({"msg": "Saving project on the server side.", "level": "info"})
     filePath = projectJobFolder / "myProject.json"
     with open(filePath, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
         f.close()
     propagateLog({"msg": f"Project saved as {str(filePath)}", "level" : "info"})
 

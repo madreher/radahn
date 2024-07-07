@@ -52,6 +52,8 @@ radahnProjectUtils.viewerToArray = function(viewer, frameIndex)
 
 class RadahnProject {
 
+    // We keep everything public for now for simplicity. This is basically just a data storage
+    projectName = "defaultName";
     xyzContent = "";
     xyzFilename = "";
     potentialContent = "";
@@ -66,10 +68,33 @@ class RadahnProject {
         
     }
 
+    resetProject()
+    {
+        this.projectName = "defaultName";
+        this.xyzContent = "";
+        this.xyzFilename = "";
+        this.potentialContent = "";
+        this.potentialFilename = "";
+        this.motorGraph = {};
+        this.motorGraphUnits = "LAMMPS_REAL";
+        this.anchorList = {}
+        this.selectionList = {}
+    }
+
+    setProjectName(projectName)
+    {
+        this.projectName = projectName;
+    }
+
     setXYZContent(xyzContent, xyzFilename)
     {
         this.xyzContent = xyzContent;
         this.xyzFilename = xyzFilename;
+    }
+
+    isXYZSet()
+    {
+        return this.xyzContent.length > 0;
     }
 
     setPotential(potentialContent, potentialFilename)
@@ -107,6 +132,7 @@ class RadahnProject {
     createProjectDict()
     {
         let project = {}
+        project["projectName"] = this.projectName;
         project["xyzContent"] = this.xyzContent;
         project["xyzFilename"] = this.xyzFilename;
         project["potentialContent"] = this.potentialContent;
@@ -117,5 +143,25 @@ class RadahnProject {
         project["selections"] = this.selectionList;
 
         return project;
+    }
+
+    loadFromProjectDict(dictContent)
+    {
+        // Clear the project
+        this.resetProject()
+
+        // Load field by field 
+        // TODO: Need to add a header with versioning
+        if("projectName" in dictContent)
+            this.projectName = dictContent["projectName"];
+        if("xyzContent" in dictContent)
+            this.xyzContent = dictContent["xyzContent"];
+        if("xyzFilename" in dictContent)
+            this.xyzFilename = dictContent["xyzFilename"];
+        if("potentialContent" in dictContent)
+            this.potentialContent = dictContent["potentialContent"];
+        if("potentialFilename" in dictContent)
+            this.potentialFilename = dictContent["potentialFilename"];
+
     }
 }
