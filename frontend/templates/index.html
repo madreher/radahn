@@ -753,6 +753,10 @@ H 53.72 50 50";
                         // Text fields
                         document.getElementById('project-name').value = project.projectName;
 
+                        // Selection and anchor table
+                        updateDynamicTable();
+                        updateAnchorTable();
+
                         // Deprecated
                         xyzContent = project.xyzContent;
                         ffContent = project.potentialContent;

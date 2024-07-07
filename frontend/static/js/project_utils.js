@@ -162,6 +162,10 @@ class RadahnProject {
             this.potentialContent = dictContent["potentialContent"];
         if("potentialFilename" in dictContent)
             this.potentialFilename = dictContent["potentialFilename"];
+        if("anchors" in dictContent)
+            this.anchorList = dictContent["anchors"];
+        if("selections" in dictContent)
+            this.selectionList = dictContent["selections"];
 
     }
 }
