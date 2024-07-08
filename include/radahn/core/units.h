@@ -178,6 +178,7 @@ static std::unordered_map<SimUnits, std::unordered_map<SimUnits, std::function<d
     // LAMMPS_REAL: (kcal/mol)/A
     // LAMMPS_METAL: eV/A
     // GROMACS: (kcal/mol)/nm
+    // Conversion formula: https://www.physicsforums.com/threads/convert-kcal-mol-angstrom-to-ev-angstrom-advice-needed.781990/#:~:text=and%20eV%2FAngstrom%3F-,The%20conversion%20factor%20between%20kcal%2F(mol%2DAngstrom)%20and%20eV,there%20are%200.0433641%20eV%2FAngstrom
     {SimUnits::LAMMPS_REAL, 
         {
             {SimUnits::LAMMPS_METAL, [](double value) -> double { return value * 0.0433641; }},

@@ -244,37 +244,6 @@
             viewerMolecule.container.dispatchEvent(new MouseEvent('DOMMouseScroll', event));
         })
 
-
-
-        var initWithBenzene = false;
-
-        var xyzContent = "";
-        var ffContent = "";
-        var ffFileName = "";
-        var motorConfigContent = "";
-
-        // Handle example initialization for test purposes
-        if (initWithBenzene) {
-            let content = "12 \n\
- Atoms. Timestep: 0 \n\
-C 53.88 52.15 50 \n\
-C 53.18 53.36 50 \n\
-C 51.78 53.36 50 \n\
-C 51.08 52.15 50 \n\
-C 51.78 50.94 50 \n\
-C 53.18 50.94 50 \n\
-H 54.96 52.15 50 \n\
-H 53.72 54.3 50 \n\
-H 51.24 54.3 50 \n\
-H 50 52.15 50 \n\
-H 51.24 50 50 \n\
-H 53.72 50 50";
-            viewerMolecule.addModel( content, "xyz");
-            viewerMolecule.setStyle({}, {stick: {}})
-            viewerMolecule.zoomTo();
-            viewerMolecule.render();
-        }
-
         // Handle file selection
         const inputProject = document.getElementById('project-file');
         inputProject.addEventListener('change', handleProjectFileSelect, false)
@@ -504,6 +473,17 @@ H 53.72 50 50";
             console[data['level']](data['msg']);
         })
 
+        document.getElementById('project-name').addEventListener('input', function(e){
+            if(this.checkValidity())
+            {
+                project.projectName = this.value;
+            }
+            else 
+            {
+                this.value = project.projectName;
+            }
+        })
+
         // Handlers for the different forms in the page.
         // These accept data from the user and send it to the server in a
         // variety of ways
@@ -521,7 +501,8 @@ H 53.72 50 50";
             let xyzData = "";
 
             if(xyzSetup == "original"){
-                xyzData = xyzContent;    
+                //xyzData = xyzContent;    
+                xyzData = project.xyzContent;
                 console.log("Generating inputs from the original molecule.")
             }
             else if(xyzSetup == "current-frame"){
@@ -534,7 +515,7 @@ H 53.72 50 50";
                 return false;
             }
 
-            if(ffContent.length == 0){
+            if(project.potentialContent.length == 0){
                 console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
                 return false;
             }
@@ -556,8 +537,8 @@ H 53.72 50 50";
             configDict['update_frequency'] = updateFrequency;
             configDict['motors'] = radahnJSONContent;
             configDict['xyz'] = xyzData;
-            configDict['ffContent'] = ffContent;
-            configDict['ffName'] = ffFileName;
+            configDict['ffContent'] = project.potentialContent;
+            configDict['ffName'] = project.potentialFilename;
             configDict['lmp_groups'] = lammpsJSONContent;
             configDict['minimize'] = minimize
 
@@ -574,7 +555,8 @@ H 53.72 50 50";
             let viewerFrameReset = -1; // original frame from the loaded xyz
 
             if(xyzSetup == "original"){
-                xyzData = xyzContent;    
+                //xyzData = xyzContent;    
+                xyzData = project.xyzContent;
                 console.log("Generating inputs from the original molecule.")
             }
             else if(xyzSetup == "current-frame"){
@@ -588,7 +570,7 @@ H 53.72 50 50";
                 return false;
             }
 
-            if(ffContent.length == 0){
+            if(project.potentialContent.length == 0){
                 console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
                 return false;
             }
@@ -631,8 +613,8 @@ H 53.72 50 50";
             configDict['update_frequency'] = updateFrequency;
             configDict['motors'] = radahnJSONContent;
             configDict['xyz'] = xyzData;
-            configDict['ffContent'] = ffContent;
-            configDict['ffName'] = ffFileName;
+            configDict['ffContent'] = project.potentialContent;
+            configDict['ffName'] = project.potentialFilename;
             configDict['lmp_groups'] = lammpsJSONContent;
             configDict['minimize'] = minimize
 
@@ -760,6 +742,7 @@ H 53.72 50 50";
                         // Node graph
                         if(project.hasMotorGraph())
                         {
+                            // Source: https://github.com/jagenjo/litegraph.js/issues/171
                             nodeEditor.configure(JSON.parse(project.motorGraph));
                             console.log("Loading motor graph.");
                         }
@@ -770,11 +753,6 @@ H 53.72 50 50";
 
                         // Motor units 
                         document.getElementById('unit_set').value = project.motorGraphUnits;
-
-                        // Deprecated
-                        xyzContent = project.xyzContent;
-                        ffContent = project.potentialContent;
-                        ffFileName = project.potentialFilename;
                     }
                     else
                     {
@@ -810,7 +788,7 @@ H 53.72 50 50";
                     viewerMolecule.zoomTo();
                     viewerMolecule.render();
 
-                    xyzContent = contents;
+                    //xyzContent = contents;
                     project.setXYZContent(contents, file.name);
                     console.info("Loaded a model from XYZ file with " + viewerMolecule.getModel().getInternalState().atoms.length + " atoms.");
 
@@ -984,9 +962,7 @@ H 53.72 50 50";
                     
                     console.info("Forcefield " + file.name + " loaded.");
 
-                    ffContent = contents;
-                    ffFileName = file.name;
-                    project.setPotential(contents, ffFileName);
+                    project.setPotential(contents, file.name);
                 }
                 reader.readAsText(file);
             }
@@ -1486,7 +1462,7 @@ H 53.72 50 50";
             </div>
             <div>
                 <label for="project-name">Project name:</label>
-                <input type="text" id="project-name">
+                <input type="text" id="project-name" pattern="[A-Za-z0-9]{1,}">
             </div>
             <button onclick="onSaveProjectSetupServer()" name="Save Project">Save Project</button>
             <button onclick="onSaveProjectSetupDownload()" name="Download Project">Download Project</button>
