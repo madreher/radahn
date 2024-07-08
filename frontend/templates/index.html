@@ -254,9 +254,6 @@
         const inputFF = document.getElementById('ff-file');
         inputFF.addEventListener('change', handleForcefieldFileSelect, false);
 
-        const inputMotor = document.getElementById('motor-file');
-        inputMotor.addEventListener('change', handleMotorFileSelect, false);
-
         // Get the canvas element
         const canvas = document.getElementById('plot-canvas');
         const canvaTemp = document.getElementById('plot-canvas-temp');
@@ -972,29 +969,6 @@
             }
         }
 
-        function handleMotorFileSelect(evt) {
-            console.log("Motor Config File selected: " + evt.target.files[0].name);
-            const file = evt.target.files[0];
-
-            if (file) {
-                const reader = new FileReader();
-
-                reader.onload = function(event) {
-                    const contents = event.target.result;
-                    
-                    //console.log("Forcefield content:", contents);
-
-                    motorConfigContent = contents;
-                    console.info("Motor config " + file.name + " loaded.");
-                }
-                reader.readAsText(file);
-            }
-            else 
-            {
-                console.warn("No file was selected in motor configuration field.");
-            }
-        }
-
         function updateFrameCounter(){
             //document.getElementById('info-sim-it').innerHTML = 'Current Timestep: ' + viewerMolecule.getFrame() + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames();
             
@@ -1302,7 +1276,7 @@
             }
 
             // Update the project motor graph and unit
-            project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
+            project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
 
             // Get the project on its dictionary form so it can be sent
             let projectContent = project.createProjectDict();
@@ -1480,10 +1454,6 @@
         </div>
         
         <h2>Radahn Setup</h2>
-        <div>
-            <label for="motor-file">Select motor configuration file:</label>
-            <input type="file" id="motor-file" accept=".json">
-        </div>
         <div>
             <label>Number of cores:</label>
             <input type="number" id="num_cores" name="num_cores" value="1"></input>

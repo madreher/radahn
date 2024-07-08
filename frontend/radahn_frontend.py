@@ -673,7 +673,15 @@ def handle_launch_simulation(data):
 @socketio.on('save_project')
 def handle_save_project(data):
     propagateLog({"msg": "Saving project on the server side.", "level": "info"})
-    filePath = projectJobFolder / "myProject.json"
+    if "projectName" not in data.keys():
+        propagateLog({"msg": "Unable to find the project name in the data package. Abording save."})
+        return
+    
+    if len(data["projectName"]) == 0:
+        propagateLog({"msg": "Empty project name received. Abording save."})
+        return 
+    
+    filePath = projectJobFolder / (data["projectName"] + ".json")
     with open(filePath, "w") as f:
         json.dump(data, f, indent=4)
         f.close()
