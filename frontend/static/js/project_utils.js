@@ -137,6 +137,11 @@ class RadahnProject {
     createProjectDict()
     {
         let project = {}
+        project["header"] = {
+            "format": "radahn",
+            "version": 0,
+            "generator": "radahn_frontend_localhost"
+        }
         project["projectName"] = this.projectName;
         project["xyzContent"] = this.xyzContent;
         project["xyzFilename"] = this.xyzFilename;
@@ -152,6 +157,27 @@ class RadahnProject {
 
     loadFromProjectDict(dictContent)
     {
+        // Check for the header information 
+        if (!("header" in dictContent))
+        {
+            console.error("Unable to find the header when loading a project file.");
+            return;
+        }
+
+        if(!("format" in dictContent["header"]))
+        {
+            console.error("Unable to find the format in the header of the project file.");
+            return;
+        }
+
+        if(dictContent["header"]["format"] != "radahn")
+        {
+            console.error("Incompatible format found in the project file.");
+            return;
+        }
+
+        // Do something here once the versions start to diverge
+
         // Clear the project
         this.resetProject()
 
