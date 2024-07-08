@@ -49,3 +49,158 @@ radahnProjectUtils.viewerToArray = function(viewer, frameIndex)
     return positions;
 
 }
+
+class RadahnProject {
+
+    // We keep everything public for now for simplicity. This is basically just a data storage
+    projectName = "defaultName";
+    xyzContent = "";
+    xyzFilename = "";
+    potentialContent = "";
+    potentialFilename = "";
+    motorGraph = "";
+    motorGraphUnits = "LAMMPS_REAL";
+    anchorList = {}
+    selectionList = {}
+
+    constructor()
+    {
+        
+    }
+
+    resetProject()
+    {
+        this.projectName = "defaultName";
+        this.xyzContent = "";
+        this.xyzFilename = "";
+        this.potentialContent = "";
+        this.potentialFilename = "";
+        this.motorGraph = {};
+        this.motorGraphUnits = "LAMMPS_REAL";
+        this.anchorList = {}
+        this.selectionList = {}
+    }
+
+    setProjectName(projectName)
+    {
+        this.projectName = projectName;
+    }
+
+    setXYZContent(xyzContent, xyzFilename)
+    {
+        this.xyzContent = xyzContent;
+        this.xyzFilename = xyzFilename;
+    }
+
+    isXYZSet()
+    {
+        return this.xyzContent.length > 0;
+    }
+
+    setPotential(potentialContent, potentialFilename)
+    {
+        this.potentialContent = potentialContent;
+        this.potentialFilename = potentialFilename;
+    }
+
+    setMotorGraph(motorGraph, motorGraphUnits)
+    {
+        this.motorGraph = motorGraph;
+        this.motorGraphUnits = motorGraphUnits;
+    }
+
+    hasMotorGraph()
+    {
+        return this.motorGraph.length > 0;
+    }
+
+    addAnchor(anchorName, anchor)
+    {
+        this.anchorList[anchorName] = anchor;
+    }
+
+    deleteAnchor(anchorName)
+    {
+        delete this.anchorList[anchorName];
+    }
+
+    addSelection(selectionName, selection)
+    {
+        this.selectionList[selectionName] = selection;
+    }
+
+    deleteSelection(selectionName)
+    {
+        delete this.selectionList[selectionName];
+    }
+
+    createProjectDict()
+    {
+        let project = {}
+        project["header"] = {
+            "format": "radahn",
+            "version": 0,
+            "generator": "radahn_frontend_localhost"
+        }
+        project["projectName"] = this.projectName;
+        project["xyzContent"] = this.xyzContent;
+        project["xyzFilename"] = this.xyzFilename;
+        project["potentialContent"] = this.potentialContent;
+        project["potentialFilename"] = this.potentialFilename;
+        project["motorGraph"] = this.motorGraph;
+        project["motorGraphUnits"] = this.motorGraphUnits;
+        project["anchors"] = this.anchorList;
+        project["selections"] = this.selectionList;
+
+        return project;
+    }
+
+    loadFromProjectDict(dictContent)
+    {
+        // Check for the header information 
+        if (!("header" in dictContent))
+        {
+            console.error("Unable to find the header when loading a project file.");
+            return;
+        }
+
+        if(!("format" in dictContent["header"]))
+        {
+            console.error("Unable to find the format in the header of the project file.");
+            return;
+        }
+
+        if(dictContent["header"]["format"] != "radahn")
+        {
+            console.error("Incompatible format found in the project file.");
+            return;
+        }
+
+        // Do something here once the versions start to diverge
+
+        // Clear the project
+        this.resetProject()
+
+        // Load field by field 
+        // TODO: Need to add a header with versioning
+        if("projectName" in dictContent)
+            this.projectName = dictContent["projectName"];
+        if("xyzContent" in dictContent)
+            this.xyzContent = dictContent["xyzContent"];
+        if("xyzFilename" in dictContent)
+            this.xyzFilename = dictContent["xyzFilename"];
+        if("potentialContent" in dictContent)
+            this.potentialContent = dictContent["potentialContent"];
+        if("potentialFilename" in dictContent)
+            this.potentialFilename = dictContent["potentialFilename"];
+        if("anchors" in dictContent)
+            this.anchorList = dictContent["anchors"];
+        if("selections" in dictContent)
+            this.selectionList = dictContent["selections"];
+        if("motorGraph" in dictContent)
+            this.motorGraph = dictContent["motorGraph"];
+        if("motorGraphUnits" in dictContent)
+            this.motorGraphUnits = dictContent["motorGraphUnits"];
+
+    }
+}

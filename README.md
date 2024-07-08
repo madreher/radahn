@@ -39,12 +39,14 @@ sudo usermod -aG docker $USER
 # Setup Radahn folders and variables
 mkdir $HOME/.radahn
 mkdir $HOME/.radahn/jobs
+mkdir $HOME/.radahn/projects
 
 # Copy the environment file to the radahn folder
 cp docker/ubuntu/env_docker $HOME/.radahn
 
-# Edit the first line of the file env_docker where you copied it to match your system. Ex:
+# Edit the first lines of the file env_docker where you copied it to match your system. Ex:
 RADAHN_ROOT_JOB_FOLDER=/home/matthieu/.radahn/jobs
+RADAHN_ROOT_PROJECT_FOLDER=/home/matthieu/.radahn/projects
 ```
 
 ### Create/Update Docker image
