@@ -58,7 +58,7 @@ class RadahnProject {
     xyzFilename = "";
     potentialContent = "";
     potentialFilename = "";
-    motorGraph = {};
+    motorGraph = "";
     motorGraphUnits = "LAMMPS_REAL";
     anchorList = {}
     selectionList = {}
@@ -107,6 +107,11 @@ class RadahnProject {
     {
         this.motorGraph = motorGraph;
         this.motorGraphUnits = motorGraphUnits;
+    }
+
+    hasMotorGraph()
+    {
+        return this.motorGraph.length > 0;
     }
 
     addAnchor(anchorName, anchor)
@@ -166,6 +171,10 @@ class RadahnProject {
             this.anchorList = dictContent["anchors"];
         if("selections" in dictContent)
             this.selectionList = dictContent["selections"];
+        if("motorGraph" in dictContent)
+            this.motorGraph = dictContent["motorGraph"];
+        if("motorGraphUnits" in dictContent)
+            this.motorGraphUnits = dictContent["motorGraphUnits"];
 
     }
 }

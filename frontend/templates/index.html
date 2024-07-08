@@ -757,6 +757,20 @@ H 53.72 50 50";
                         updateDynamicTable();
                         updateAnchorTable();
 
+                        // Node graph
+                        if(project.hasMotorGraph())
+                        {
+                            nodeEditor.configure(JSON.parse(project.motorGraph));
+                            console.log("Loading motor graph.");
+                        }
+                        else
+                        {
+                            console.log("No motors found in the project.");
+                        }
+
+                        // Motor units 
+                        document.getElementById('unit_set').value = project.motorGraphUnits;
+
                         // Deprecated
                         xyzContent = project.xyzContent;
                         ffContent = project.potentialContent;
@@ -1358,7 +1372,7 @@ H 53.72 50 50";
             }
 
             // Update the project motor graph and unit
-            project.setMotorGraph(nodeEditor.serialize(), document.getElementById("unit_set").value);
+            project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
 
             // Get the project on its dictionary form so it can be sent
             let projectContent = project.createProjectDict();
