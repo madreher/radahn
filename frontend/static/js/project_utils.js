@@ -62,6 +62,8 @@ class RadahnProject {
     motorGraphUnits = "LAMMPS_REAL";
     anchorList = {}
     selectionList = {}
+    nvtEnabled = false;
+    nvtConfig = {};
 
     constructor()
     {
@@ -77,8 +79,10 @@ class RadahnProject {
         this.potentialFilename = "";
         this.motorGraph = {};
         this.motorGraphUnits = "LAMMPS_REAL";
-        this.anchorList = {}
-        this.selectionList = {}
+        this.anchorList = {};
+        this.selectionList = {};
+        this.nvtEnabled = false;
+        this.nvtConfig = {};
     }
 
     setProjectName(projectName)
@@ -134,12 +138,30 @@ class RadahnProject {
         delete this.selectionList[selectionName];
     }
 
+    declareNVT(startTemp, endTemp, dampingFactor, seed)
+    {
+        this.nvtConfig = {
+            "startTemp": startTemp,
+            "endTemp": endTemp,
+            "damp": dampingFactor,
+            "seed": seed
+        };
+        this.nvtEnabled = true;
+    }
+
+    clearNVT()
+    {
+        this.nvtConfig = {};
+        this.nvtEnabled = false;
+    }
+
     createProjectDict()
     {
         let project = {}
         project["header"] = {
             "format": "radahn",
-            "version": 0,
+            "versionMajor": 0,
+            "versionMinor": 1,
             "generator": "radahn_frontend_localhost"
         }
         project["projectName"] = this.projectName;
@@ -151,6 +173,10 @@ class RadahnProject {
         project["motorGraphUnits"] = this.motorGraphUnits;
         project["anchors"] = this.anchorList;
         project["selections"] = this.selectionList;
+        if(this.nvtEnabled)
+        {
+            project["nvtConfig"] = this.nvtConfig;
+        }
 
         return project;
     }
@@ -201,6 +227,41 @@ class RadahnProject {
             this.motorGraph = dictContent["motorGraph"];
         if("motorGraphUnits" in dictContent)
             this.motorGraphUnits = dictContent["motorGraphUnits"];
+        if("nvtConfig" in dictContent)
+        {
+            this.nvtEnabled = true;
+            this.nvtConfig = dictContent["nvtConfig"]
+        }
 
+    }
+
+    generateLammpsConfigJSON = function(unit)
+    {
+        let anchorNodes = [];
+        // Go though each element of the anchor table
+
+        for(const [key, value] of Object.entries(this.anchorList))
+        {
+            let anchorNode = {
+                "name": key,
+                "selection": value.atomIndexes
+            };
+            console.log(anchorNode);
+            for(let j = 0; j < anchorNode["selection"].length; ++j)
+            {
+                anchorNode["selection"][j] = anchorNode["selection"][j] + 1;
+            }
+            anchorNodes.push(anchorNode);
+        }
+
+        let radahnJSON = {}
+        radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig"};
+        radahnJSON["anchors"] = anchorNodes;
+        if(this.nvtEnabled)
+        {
+            radahnJSON["nvtConfig"] = this.nvtConfig;
+        }
+
+        return JSON.stringify(radahnJSON);
     }
 }

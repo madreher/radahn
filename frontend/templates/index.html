@@ -489,6 +489,23 @@
             return false;
         });
 
+        window.refreshNVTSetup = function(){
+            let enableNVT = document.getElementById("enablenvt").checked;
+            if(enableNVT)
+            {
+                project.declareNVT(
+                    document.getElementById("startTemp").value,
+                    document.getElementById("endTemp").value,
+                    document.getElementById("damp").value,
+                    document.getElementById("seed").value
+                )
+            }
+            else
+            {
+                project.clearNVT();
+            }
+        }
+
         $('form#generate_inputs').submit(function(event) {
 
             console.log("Requesting to generate Lammps input files in a job folder.");
@@ -520,12 +537,14 @@
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(project.anchorList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let minimize = document.getElementById("minimize").checked;
             let forceTimestep = document.getElementById("force_max_steps").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
+            refreshNVTSetup();
+            let lammpsJSONContent = project.generateLammpsConfigJSON(motorUnitSet);
+
             let configDict = {  }
 
             configDict['number_cores'] = numberCores;
@@ -536,7 +555,7 @@
             configDict['xyz'] = xyzData;
             configDict['ffContent'] = project.potentialContent;
             configDict['ffName'] = project.potentialFilename;
-            configDict['lmp_groups'] = lammpsJSONContent;
+            configDict['lmp_config'] = lammpsJSONContent;
             configDict['minimize'] = minimize
 
             socket.emit('generate_inputs', configDict);
@@ -575,12 +594,13 @@
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
-            let lammpsJSONContent = radahnGraphUtil.generateLammpsGroupsJSON(project.anchorList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").checked;
             let minimize = document.getElementById("minimize").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
+            refreshNVTSetup();
+            let lammpsJSONContent = project.generateLammpsConfigJSON(motorUnitSet);
             let configDict = {  };
 
 
@@ -612,7 +632,7 @@
             configDict['xyz'] = xyzData;
             configDict['ffContent'] = project.potentialContent;
             configDict['ffName'] = project.potentialFilename;
-            configDict['lmp_groups'] = lammpsJSONContent;
+            configDict['lmp_config'] = lammpsJSONContent;
             configDict['minimize'] = minimize
 
             socket.emit('launch_simulation', configDict);
@@ -1260,6 +1280,7 @@
             // - unit style used for the motor      (need to update)
             // - list of anchors                    (already in the project)
             // - list of selections                 (already in the project)
+            // - NVT setup                          (need to update)
 
             let projectName = document.getElementById('project-name').value;
             if(projectName.length == 0)
@@ -1277,6 +1298,11 @@
 
             // Update the project motor graph and unit
             project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
+
+            // Update the NVT section
+            refreshNVTSetup();
+
+            // All the updates are done, now we can get the project to save it
 
             // Get the project on its dictionary form so it can be sent
             let projectContent = project.createProjectDict();
@@ -1306,6 +1332,7 @@
             // - unit style used for the motor      (need to update)
             // - list of anchors                    (already in the project)
             // - list of selections                 (already in the project)
+            // - NVT setup                          (need to update)
 
             let projectName = document.getElementById('project-name').value;
             if(projectName.length == 0)
@@ -1323,6 +1350,11 @@
 
             // Update the project motor graph and unit
             project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
+
+            // Update the NVT section
+            refreshNVTSetup();
+
+            // All the updates are done, now we can get the project to save it
 
             // Get the project on its dictionary form so it can be sent
             let projectContent = project.createProjectDict();
@@ -1475,12 +1507,27 @@
             <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
         </div>
         <div>
-            <label>Motors Unit Set:</label>
+            <label>Settings Unit Set:</label>
             <select id="unit_set">
                 <option name="LAMMPS_METAL" value="LAMMPS_METAL">Metal</option>
                 <option name="LAMMPS_REAL" value="LAMMPS_REAL">Real</option>
             </select>
         </div>
+        <form>
+            <label for="enablenvt">Enable NVT phase:</label>
+            <input type="checkbox" id="enablenvt" name="enablenvt" onchange="form.nvtfields.disabled= !checked" checked>
+            <fieldset name="nvtfields">
+                <legend>NVT</legend>
+                <label for="startTemp">Start temperature:</label>
+                <input type="number" id="startTemp" name="startTemp">
+                <label for="endTemp">End temperature:</label>
+                <input type="number" id="endTemp" name="endTemp">
+                <label for="damp">Damp:</label>
+                <input type="number" id="damp" name="damp">
+                <label for="seed">Seed:</label>
+                <input type="number" id="seed" name="seed">
+            </fieldset>
+        </form>
         <h2>Simulation Operation</h2>
         <!--div>
             <form id="start_listening" method="POST" action="#">
