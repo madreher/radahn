@@ -459,40 +459,9 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
 
 
     let radahnJSON = {}
-    radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1"};
+    radahnJSON["header"] = { "versionMajor": 0, "versionMinor":1, "units": unit, "generator": "Radahn_frontendV1"};
     radahnJSON["motors"] = nodesArray;
 
     //console.log(JSON.stringify(radahnJSON));
-    return JSON.stringify(radahnJSON);
-}
-
-radahnGraphUtil.generateLammpsGroupsJSON = function(anchorTable, unit)
-{
-    let anchorNodes = [];
-    // Go though each element of the anchor table
-
-    for(const [key, value] of Object.entries(anchorTable))
-    {
-        let anchorNode = {
-            "name": key,
-            "selection": value.atomIndexes
-        };
-        console.log(anchorNode);
-        for(let j = 0; j < anchorNode["selection"].length; ++j)
-        {
-            anchorNode["selection"][j] = anchorNode["selection"][j] + 1;
-        }
-        anchorNodes.push(anchorNode);
-    }
-
-    if(anchorNodes.length == 0)
-    {
-        return "";
-    }
-
-    let radahnJSON = {}
-    radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1"};
-    radahnJSON["anchors"] = anchorNodes;
-
     return JSON.stringify(radahnJSON);
 }

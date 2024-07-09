@@ -328,11 +328,14 @@ def generate_inputs(configTask:dict) -> str:
                 f.write(configTask["motors"])
                 f.close()
 
-        if len(configTask['lmp_groups']) > 0:
-            lmp_groupsFile = jobFolder / "lmp_groups.json"
-            with open(lmp_groupsFile, "w") as f:
-                f.write(configTask["lmp_groups"])
+        if len(configTask['lmp_config']) > 0:
+            lmp_configFile = jobFolder / "lmp_config.json"
+            with open(lmp_configFile, "w") as f:
+                f.write(configTask["lmp_config"])
                 f.close()
+            propagateLog({"msg": "Configuration file generated for lammps.", "level": "info"})
+        else:
+            propagateLog({"msg": "No configuration file generated for lammps.", "level": "info"})
 
         # Convert the XYZ to a .data file 
         dataFile = jobFolder / "input.data"
@@ -399,8 +402,8 @@ def generate_inputs(configTask:dict) -> str:
 
                 # Check if we have anchors
                 anchorAtomIds = []
-                if len(configTask["lmp_groups"]) > 0:
-                    jsonAnchor = json.loads(configTask["lmp_groups"])
+                if len(configTask["lmp_config"]) > 0:
+                    jsonAnchor = json.loads(configTask["lmp_config"])
                     if "anchors" in jsonAnchor.keys():
                         
                         for anchorGrp in jsonAnchor["anchors"]:
@@ -489,14 +492,14 @@ def launch_simulation(configTask:dict):
         dataFile = "input.data"
         lammpsScriptFile = "input.lammps"
         motorsFile = "motors.json"
-        lmpGroupFile = "lmp_groups.json"
+        lmpGroupFile = "lmp_config.json"
 
         cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {configTask['max_timestep']} --ncores {configTask['number_cores']} --frequpdate {configTask['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {configTask['ffName']}"
         if len(configTask['motors']) > 0:
             cmdRadan += f" --motorconfig {motorsFile}"
         if configTask['force_timestep']:
             cmdRadan += " --forcemaxsteps"
-        if len(configTask['lmp_groups']) > 0:
+        if len(configTask['lmp_config']) > 0:
             cmdRadan += f" --lmpgroups {lmpGroupFile}"
         taskManager.addTask("prepRadahn", cmdRadan)
 
