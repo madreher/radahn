@@ -492,7 +492,7 @@ def launch_simulation(configTask:dict):
         dataFile = "input.data"
         lammpsScriptFile = "input.lammps"
         motorsFile = "motors.json"
-        lmpGroupFile = "lmp_config.json"
+        lmpConfigFile = "lmp_config.json"
 
         cmdRadan = f"python3 {radahnScript} --workdir {jobFolder} --nvesteps {configTask['max_timestep']} --ncores {configTask['number_cores']} --frequpdate {configTask['update_frequency']} --lmpdata {dataFile} --lmpinput {lammpsScriptFile} --potential {configTask['ffName']}"
         if len(configTask['motors']) > 0:
@@ -500,7 +500,7 @@ def launch_simulation(configTask:dict):
         if configTask['force_timestep']:
             cmdRadan += " --forcemaxsteps"
         if len(configTask['lmp_config']) > 0:
-            cmdRadan += f" --lmpgroups {lmpGroupFile}"
+            cmdRadan += f" --lmpconfig {lmpConfigFile}"
         taskManager.addTask("prepRadahn", cmdRadan)
 
         # Launche simulation 

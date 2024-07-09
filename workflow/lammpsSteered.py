@@ -24,7 +24,7 @@ def main():
     fileLmpPath = benzeneFolder + "/input.lmp"
     filePotentialFile = benzeneFolder + "/ffield.reax.Fe_O_C_H"
     fileMotorConfig = ""
-    fileLmpGroups = ""
+    fileLmpConfig = ""
     useTestMotorSetup = False
     forceMaxSteps = False
     installFolder = Path(__file__).parent.parent.resolve()
@@ -67,9 +67,9 @@ def main():
                         help = "Motor configuration file.",
                         dest = "motorconfig",
                         required = False)
-    parser.add_argument("--lmpgroups",
-                        help="Path to configuration file defining global groups in the simulation",
-                        dest="lmpgroups",
+    parser.add_argument("--lmpconfig",
+                        help="Path to configuration file used by Lammps",
+                        dest="lmpconfig",
                         required=False)
     parser.add_argument("--testmotorsetup",
                         help = "Use a test motor configuration.",
@@ -114,10 +114,10 @@ def main():
         if not fileMotorConfig.is_file():
             raise FileNotFoundError(f"The motor configuration file {fileMotorConfig} requested by the user does not exist.")
         
-    if args.lmpgroups is not None:
-        fileLmpGroups = Path(args.lmpgroups)
-        if not fileLmpGroups.is_file():
-            raise FileNotFoundError(f"The group configuration file {fileLmpGroups} requested by the user does not exist.")
+    if args.lmpconfig is not None:
+        fileLmpConfig = Path(args.lmpconfig)
+        if not fileLmpConfig.is_file():
+            raise FileNotFoundError(f"The group configuration file {fileLmpConfig} requested by the user does not exist.")
 
     if args.testmotors:
         useTestMotorSetup = True
@@ -152,8 +152,8 @@ def main():
     lammpsCmd += f" --initlmp {fileLmpPath.name}"
     lammpsCmd += f" --maxnvesteps {args.nvesteps}"
     lammpsCmd += f" --intervalsteps {args.frequpdate}"
-    if args.lmpgroups is not None:
-        lammpsCmd += f" --lmpgroups {fileLmpGroups.name}"
+    if args.lmpconfig is not None:
+        lammpsCmd += f" --lmpconfig {fileLmpConfig.name}"
 
 
     if args.ncores + 1 > nCoresHost:
