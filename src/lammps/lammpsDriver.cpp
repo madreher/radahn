@@ -192,7 +192,7 @@ int main(int argc, char** argv)
     std::string taskName;
     std::string configFile;
     std::string lmpInitialState;
-    std::string lmpGroupsFile;
+    std::string lmpConfigFile;
     uint64_t maxNVESteps  = 1000;
     uint32_t intervalSteps = 100;
     uint64_t currentStep = 0;
@@ -213,9 +213,9 @@ int main(int argc, char** argv)
         | lyra::opt( intervalSteps, "interalsteps")
             ["--intervalsteps"]
             ("Number of steps to run between checking the inputs.")
-        | lyra::opt( lmpGroupsFile, "lmpgroups")
-            ["--lmpgroups"]
-            ("Path to the definition of the groups to use.")
+        | lyra::opt( lmpConfigFile, "lmpconfig")
+            ["--lmpconfig"]
+            ("Path to the configuration file for Lammps.")
         ;
 
     auto result = cli.parse( { argc, argv } );
@@ -254,11 +254,11 @@ int main(int argc, char** argv)
     // Declare the global groups if provided
     bool hasPermanentAnchor = false;
     const std::string permanentAnchorName = "permanentAnchor";
-    if(lmpGroupsFile != "")
+    if(lmpConfigFile != "")
     {
         //executeScript(lps, lmpGroups);
-        spdlog::info("Loading groups from {}.", lmpGroupsFile);
-        auto anchorIDS = getAnchorsIds(lmpGroupsFile);
+        spdlog::info("Loading config from {}.", lmpConfigFile);
+        auto anchorIDS = getAnchorsIds(lmpConfigFile);
         if(anchorIDS.size() > 0)
         {
             std::stringstream commandGroup;
