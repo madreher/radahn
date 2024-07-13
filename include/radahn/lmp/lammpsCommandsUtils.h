@@ -121,6 +121,7 @@ class LammpsCommandsUtils
 public:
     LammpsCommandsUtils(){}
     std::string getIntegrationGroup() const { return m_integrateGroupName; }
+    std::string getNonIntegrationGroup() const { return m_nonIntegrateGroupName; }
     void declarePermanentAnchorGroup(const std::string& groupName) { 
         m_permanentAnchorName = groupName; 
         m_hasPermanentAnchor = true;

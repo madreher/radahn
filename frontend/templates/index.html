@@ -494,10 +494,11 @@
             if(enableNVT)
             {
                 project.declareNVT(
-                    document.getElementById("startTemp").value,
-                    document.getElementById("endTemp").value,
-                    document.getElementById("damp").value,
-                    document.getElementById("seed").value
+                    parseFloat(document.getElementById("startTemp").value),
+                    parseFloat(document.getElementById("endTemp").value),
+                    parseFloat(document.getElementById("damp").value),
+                    parseInt(document.getElementById("seed").value),
+                    parseInt(document.getElementById("nvtsteps").value)
                 )
             }
             else
@@ -1518,6 +1519,8 @@
             <input type="checkbox" id="enablenvt" name="enablenvt" onchange="form.nvtfields.disabled= !checked" checked>
             <fieldset name="nvtfields">
                 <legend>NVT</legend>
+                <label for="nvtsteps">NVT steps:</label>
+                <input type="number" id="nvtsteps" name="nvtsteps">
                 <label for="startTemp">Start temperature:</label>
                 <input type="number" id="startTemp" name="startTemp">
                 <label for="endTemp">End temperature:</label>
