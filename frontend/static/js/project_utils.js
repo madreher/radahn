@@ -138,13 +138,14 @@ class RadahnProject {
         delete this.selectionList[selectionName];
     }
 
-    declareNVT(startTemp, endTemp, dampingFactor, seed)
+    declareNVT(startTemp, endTemp, dampingFactor, seed, nbSteps)
     {
         this.nvtConfig = {
             "startTemp": startTemp,
             "endTemp": endTemp,
             "damp": dampingFactor,
-            "seed": seed
+            "seed": seed,
+            "steps": nbSteps
         };
         this.nvtEnabled = true;
     }
@@ -255,7 +256,7 @@ class RadahnProject {
         }
 
         let radahnJSON = {}
-        radahnJSON["header"] = { "version": 0, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig"};
+        radahnJSON["header"] = { "versionMajor": 0, "versionMinor": 1, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig"};
         radahnJSON["anchors"] = anchorNodes;
         if(this.nvtEnabled)
         {

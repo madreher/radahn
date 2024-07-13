@@ -24,34 +24,14 @@ using json = nlohmann::json;
 using namespace LAMMPS_NS;
 using namespace radahn::core;
 
-std::vector<uint32_t> getAnchorsIds(const std::string& jsonConfigPath)
+std::vector<uint32_t> getAnchorsIds(json& document)
 {
-    json document = json::parse(std::ifstream(jsonConfigPath));
-
-    if(!document.contains("header"))
-    {
-        spdlog::error("Could not find header in JSON file {}.", jsonConfigPath);
-        return {};
-    }
-
-    uint32_t version = document["header"].value("version", 0u);
-    if(version != 0)
-    {
-        spdlog::error("Unsupported version {} in JSON file {}.", version, jsonConfigPath);
-        return {};
-    }
-    if(!document.contains("anchors"))
-    {
-        spdlog::info("Could not find anchors in JSON file {}.", jsonConfigPath);
-        return {};
-    }
-
     std::vector<uint32_t> ids;
     for(auto & anchor : document["anchors"])
     {
         if(!anchor.contains("selection"))
         {
-            spdlog::info("Could not find selection in JSON file {}.", jsonConfigPath);
+            spdlog::info("Could not find selection in JSON configuration file.");
             return {};
         }
         for(auto & id: anchor["selection"])
@@ -88,7 +68,7 @@ std::vector<std::string> splitString(std::string const & line, char sep)
                 return std::string_view(&*rng.begin(), std::size_t(std::ranges::distance(rng)));
                 })
         | std::ranges::views::filter( [](auto && s) { return !s.empty(); });
-        // to is C++23, have to do the conversion manually with C++20
+        // to() is C++23, have to do the conversion manually with C++20
         //| std::ranges::to<std::vector<std::string>>();
         return std::vector<std::string>(r.begin(), r.end());
 }
@@ -184,6 +164,40 @@ void extractAtomInformation(
    
 }
 
+void sendLammpsData(LAMMPS* lps, uint8_t simUnitValue, godrick::mpi::GodrickMPI& handler, const std::string& phase)
+{
+    double simItD = lammps_get_thermo(lps, "step");
+    simIt_t simIt = static_cast<simIt_t>(simItD);
+
+    // Extracting atom information
+    std::vector<atomIndexes_t> ids;
+    std::vector<atomPositions_t> pos;
+    std::vector<atomForces_t> forces;
+    std::vector<atomVelocities_t> vel;
+    std::unordered_map<std::string, std::variant<double, int32_t> > thermos;
+    extractAtomInformation(lps, ids, pos, forces, vel, thermos);
+
+    conduit::Node rootMsg;
+    conduit::Node& simData = rootMsg.add_child("simdata");
+    simData["simIt"] = simIt;
+    simData["atomIDs"] = ids;
+    simData["atomPositions"] = pos;
+    simData["atomForces"] = forces;
+    simData["atomVelocities"] = vel;
+    simData["units"] = simUnitValue;
+    simData["phase"] = phase; // NVT/NVE
+
+    conduit::Node& thermosData = rootMsg.add_child("thermos");
+    for(auto & t : thermos)
+    {
+        if(std::holds_alternative<double>(t.second))
+            thermosData[t.first] = std::get<double>(t.second);
+        else
+            thermosData[t.first] = std::get<int32_t>(t.second);
+    }
+    handler.push("atoms", rootMsg, true);
+}
+
 int main(int argc, char** argv)
 {
     (void)argc;
@@ -194,6 +208,11 @@ int main(int argc, char** argv)
     std::string lmpInitialState;
     std::string lmpConfigFile;
     uint64_t maxNVESteps  = 1000;
+    uint64_t nbNVTSteps = 0;
+    radahn::core::TimeQuantity damp{0, radahn::core::SimUnits::LAMMPS_METAL};
+    double startTemp = 0.0; // K
+    double endTemp = 0.0;
+    uint64_t seedNVT = 123456789;
     uint32_t intervalSteps = 100;
     uint64_t currentStep = 0;
 
@@ -258,31 +277,197 @@ int main(int argc, char** argv)
     {
         //executeScript(lps, lmpGroups);
         spdlog::info("Loading config from {}.", lmpConfigFile);
-        auto anchorIDS = getAnchorsIds(lmpConfigFile);
-        if(anchorIDS.size() > 0)
+
+        json document = json::parse(std::ifstream(lmpConfigFile));
+
+        if(!document.contains("header"))
         {
-            std::stringstream commandGroup;
-            commandGroup << "group " << permanentAnchorName << " id";
-            for(auto & id : anchorIDS)
+            spdlog::critical("Could not find header in JSON file {}.", lmpConfigFile);
+            exit(-1);
+        }
+
+        uint32_t version = document["header"].value("version", 0u);
+        if(version != 0)
+        {
+            spdlog::critical("Unsupported version {} in JSON file {}.", version, lmpConfigFile);
+            exit(-1);
+        }
+
+        if(!document["header"].contains("units"))
+        {
+            spdlog::critical("Unable to detect the units in the header in the JSON file {}.", lmpConfigFile);
+            exit(-1);
+        }
+        std::string unitConfig = document["header"]["units"].get<std::string>();
+        auto configSimUnit = radahn::core::from_string(unitConfig);
+
+        if(document.contains("anchors"))
+        {
+            // Check for anchors
+            auto anchorIDS = getAnchorsIds(document);
+            if(anchorIDS.size() > 0)
             {
-                commandGroup << " " << id;
+                std::stringstream commandGroup;
+                commandGroup << "group " << permanentAnchorName << " id";
+                for(auto & id : anchorIDS)
+                {
+                    commandGroup << " " << id;
+                }
+                executeCommand(lps, commandGroup.str(), iterationContent);
+                hasPermanentAnchor = true;
             }
-            executeCommand(lps, commandGroup.str(), iterationContent);
-            hasPermanentAnchor = true;
+        }
+
+        // check for NVT
+        if(document.contains("nvtConfig"))
+        {
+            auto & configNVT = document["nvtConfig"];
+            nbNVTSteps = configNVT.value("steps", 1000u);
+            startTemp = configNVT.value("startTemp", 0.0);
+            endTemp = configNVT.value("endTemp", 70.0);
+            damp.m_value = configNVT.value("damp", 1000.0);
+            damp.m_unit = configSimUnit;
+            damp.convertTo(simUnitStyle);
+            seedNVT = configNVT.value("seed", 123456789u);
+            spdlog::info("Detecting a request for a NVT phase for {} steps.", nbNVTSteps);
         }
     }
 
     logFile<<iterationContent.str();
     logFile.flush();
 
+    // NVT Section
+    currentStep = 0;
+    if(nbNVTSteps > 0)
+    {
+        // Clean the output we got from the previous iteration
+        // Dev not: ss.clear() clear the error state, not the content of the ss
+        iterationContent.str(std::string());
+        
+        // We first need to initialize the velocities before doing the NVT loop
+        if(hasPermanentAnchor)
+        {
+            std::string cmdFreeGroup = "group freeGlobal substract all " + permanentAnchorName;
+            executeCommand(lps, cmdFreeGroup, iterationContent);
+
+            std::stringstream cmdCreateVelocities;
+            // https://docs.lammps.org/velocity.html
+            cmdCreateVelocities<<"velocity freeGlobal create "<<startTemp<<" "<<seedNVT;
+            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+
+            std::string cmdFreeUngroup = "group freeGlobal delete";
+            executeCommand(lps, cmdFreeUngroup, iterationContent);
+        }
+        else 
+        {
+            std::stringstream cmdCreateVelocities;
+            // https://docs.lammps.org/velocity.html
+            cmdCreateVelocities<<"velocity all create "<<startTemp<<" "<<seedNVT;
+            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+        }
+
+        // Flushing the commands we have executed to file
+        // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
+        logFile<<iterationContent.str();
+        logFile.flush();
+        
+
+        std::vector<conduit::Node> receivedData;
+        while(currentStep < nbNVTSteps)
+        {
+            // Clean the output we got from the previous iteration
+            // Dev not: ss.clear() clear the error state, not the content of the ss
+            iterationContent.str(std::string());
+
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            auto resultReceive = handler.get("in", receivedData);
+            if( resultReceive == godrick::MessageResponse::TERMINATE )
+            {
+                spdlog::info("Lammps received a terminate message from the engine. Exiting the loop.");
+                break;
+            }
+            if (resultReceive == godrick::MessageResponse::ERROR)
+            {
+                spdlog::info("Lammps task received an error message. Abording.");
+                break;
+            }
+
+            if(resultReceive == godrick::MessageResponse::TOKEN)
+            {
+                spdlog::info("Lammps received a token.");
+            }
+
+            // During the NVT phase, we don't expect anything from the motor engine, no need to check the message content further.
+
+            // Running the NVT on all the atoms except the anchors
+            
+            // Gathering the commands we will need to execute
+            // In this case, we will just declare an no integration group, aka anchors
+            auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
+            if(hasPermanentAnchor)
+                cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
+            std::vector<std::string> doCommands;
+            cmdUtil.writeDoCommands(doCommands);
+            for(auto & cmd : doCommands)
+                executeCommand(lps, cmd, iterationContent);
+
+            // Create the time integration command
+            executeCommand(lps, "#### Start INTEGRATION ", iterationContent);
+            std::stringstream cmdFixLangevin;
+            // https://docs.lammps.org/fix_langevin.html
+            // fix ID group-ID langevin Tstart Tstop damp seed keyword values ...
+            cmdFixLangevin<<"fix nvtlangevin "<<cmdUtil.getIntegrationGroup()<< " langevin";
+            cmdFixLangevin<< " "<<startTemp;
+            cmdFixLangevin<< " "<<endTemp;
+            cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
+            cmdFixLangevin<< " "<<seedNVT;
+            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
+            std::stringstream cmdFixNVT;
+            cmdFixNVT<<"fix NVT "<<cmdUtil.getIntegrationGroup()<<" nve";
+            executeCommand(lps, cmdFixNVT.str(), iterationContent);
+
+            // Advance the simulation
+            executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
+
+            // Undo the time integration
+            std::string cmdUnfixNVT{"unfix NVT"};
+            executeCommand(lps, cmdUnfixNVT, iterationContent);
+            std::string cmdUnfixLangevin{"unfix nvtlangevin"};
+            executeCommand(lps, cmdUnfixLangevin, iterationContent);
+
+            // Undo the anchors
+            std::vector<std::string> undoCommands;
+            cmdUtil.writeUndoCommands(undoCommands);
+            for(auto & cmd : undoCommands)
+                executeCommand(lps, cmd, iterationContent);
+
+            executeCommand(lps, "#### End INTEGRATION ", iterationContent);
+
+            // Sending the simulation data 
+            sendLammpsData(lps, simUnitValue, handler, "NVT");
+
+            // Not using simIt to avoid potential rounding errors from double to uint64
+            currentStep += intervalSteps; 
+
+            executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+
+            // Flushing the commands we have executed to file
+            // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
+            logFile<<iterationContent.str();
+            logFile.flush();
+        }
+    }
+
+    // NVT Section
     std::vector<conduit::Node> receivedData;
+    currentStep = 0;
     while(currentStep < maxNVESteps)
     {
         // Clean the output we got from the previous iteration
         // Dev not: ss.clear() clear the error state, not the content of the ss
         iterationContent.str(std::string());
 
-        executeCommand(lps, "#### LOOP Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        executeCommand(lps, "#### LOOP NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
         auto resultReceive = handler.get("in", receivedData);
         if( resultReceive == godrick::MessageResponse::TERMINATE )
         {
@@ -352,50 +537,13 @@ int main(int argc, char** argv)
         for(auto & cmd : undoCommands)
             executeCommand(lps, cmd, iterationContent);
 
-
-        double simItD = lammps_get_thermo(lps, "step");
-        simIt_t simIt = static_cast<simIt_t>(simItD);
+        // Sending the simulation data 
+        sendLammpsData(lps, simUnitValue, handler, "NVE");
 
         // Not using simIt to avoid potential rounding errors from double to uint64
         currentStep += intervalSteps; 
 
-        // Extracting atom information
-        std::vector<atomIndexes_t> ids;
-        std::vector<atomPositions_t> pos;
-        std::vector<atomForces_t> forces;
-        std::vector<atomVelocities_t> vel;
-        std::unordered_map<std::string, std::variant<double, int32_t> > thermos;
-        extractAtomInformation(lps, ids, pos, forces, vel, thermos);
-
-        /*if(ids.size() > 0)
-        {
-            for(size_t i = 0; i < ids.size(); ++i)
-                spdlog::info("Rank {} Step {}, Atom {}, Position [{} {} {}]", rank, currentStep, ids[i], pos[3*i], pos[3*i+1], pos[3*i+2]);
-        }
-        else
-            spdlog::info("Rank {} Step {} doesn't have any atoms.", rank, currentStep);*/
-
-
-        conduit::Node rootMsg;
-        conduit::Node& simData = rootMsg.add_child("simdata");
-        simData["simIt"] = simIt;
-        simData["atomIDs"] = ids;
-        simData["atomPositions"] = pos;
-        simData["atomForces"] = forces;
-        simData["atomVelocities"] = vel;
-        simData["units"] = simUnitValue;
-
-        conduit::Node& thermosData = rootMsg.add_child("thermos");
-        for(auto & t : thermos)
-        {
-            if(std::holds_alternative<double>(t.second))
-                thermosData[t.first] = std::get<double>(t.second);
-            else
-                thermosData[t.first] = std::get<int32_t>(t.second);
-        }
-        handler.push("atoms", rootMsg, true);
-
-        executeCommand(lps, "#### LOOP End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+        executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
 
         // Flushing the commands we have executed to file
         logFile<<iterationContent.str();

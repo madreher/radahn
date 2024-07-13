@@ -43,6 +43,12 @@ void radahn::motor::MotorEngine::loadTestMotorSetup()
         motor->startMotor();
 }
 
+void radahn::motor::MotorEngine::setCurrentSimulationIt(radahn::core::simIt_t it)
+{
+    m_currentIt = it;
+}
+
+
 bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
     std::vector<atomIndexes_t>& indices, 
     std::vector<atomPositions_t>& positions)

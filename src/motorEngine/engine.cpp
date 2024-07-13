@@ -179,34 +179,55 @@ int main(int argc, char** argv)
         //for(uint64_t i = 0; i < fullIndices.size(); ++i)
         //    spdlog::info("{} {} {}", fullPositions[3*i], fullPositions[3*i+1], fullPositions[3*i+2]);
 
-        //engine.updateMotorsState(simIt, nbAtoms, indices, positions);
-        engine.updateMotorsState(receivedIt, fullIndices, fullPositions);
 
-        if(engine.isCompleted())
+        // Check in which phase we are
+        auto phase = receivedData[0]["simdata"]["phase"].as_string();
+        if(phase.compare("NVT") == 0)
         {
-            if(forceMaxSteps)
+            // During the NVT phase, we don't execute the motors yet. 
+            // Set the engine it since we don't update the engine state 
+            engine.setCurrentSimulationIt(receivedIt);
+            
+            // Sending an empty message to keep the loop going.
+            conduit::Node output;
+            handler.push("motorscmd", output);
+        }
+        else if (phase.compare("NVE") == 0)
+        {
+            engine.updateMotorsState(receivedIt, fullIndices, fullPositions);
+
+            if(engine.isCompleted())
             {
-                // Sending a blank command in this case to keep the loop going. The Lammps
-                // component will send a terminate message when the maximum number of steps has been reached.
-                conduit::Node output;
-                radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(output["lmpcmds"].append(), "motorEngine");
-                handler.push("motorscmd", output);
+                if(forceMaxSteps)
+                {
+                    // Sending a blank command in this case to keep the loop going. The Lammps
+                    // component will send a terminate message when the maximum number of steps has been reached.
+                    conduit::Node output;
+                    radahn::lmp::LammpsCommandsUtils::registerWaitCommandToConduit(output["lmpcmds"].append(), "motorEngine");
+                    handler.push("motorscmd", output);
+                }
+                else
+                {
+                    spdlog::info("Motor engine has completed. Exiting the main loop.");
+                    engine.getCurrentKVS().print();
+                    break;
+                }
             }
-            else
+            else 
             {
-                spdlog::info("Motor engine has completed. Exiting the main loop.");
-                engine.getCurrentKVS().print();
-                break;
+                // Get commands from the motor
+                conduit::Node output;
+                engine.getCommandsFromMotors(output["lmpcmds"].append());
+
+                handler.push("motorscmd", output);
             }
         }
         else 
         {
-            // Get commands from the motor
-            conduit::Node output;
-            engine.getCommandsFromMotors(output["lmpcmds"].append());
-
-            handler.push("motorscmd", output);
+            spdlog::critical("Received a simulation data from an unknown phase {}. Abording.", phase);
+            break;
         }
+        
 
         // This is kinda dangerous because the push operation may modify the Node
         // In this case it's fine because it's the instruction before the next iteration
