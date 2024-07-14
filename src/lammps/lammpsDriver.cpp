@@ -343,11 +343,11 @@ int main(int argc, char** argv)
         // Clean the output we got from the previous iteration
         // Dev not: ss.clear() clear the error state, not the content of the ss
         iterationContent.str(std::string());
-        
+
         // We first need to initialize the velocities before doing the NVT loop
         if(hasPermanentAnchor)
         {
-            std::string cmdFreeGroup = "group freeGlobal substract all " + permanentAnchorName;
+            std::string cmdFreeGroup = "group freeGlobal subtract all " + permanentAnchorName;
             executeCommand(lps, cmdFreeGroup, iterationContent);
 
             std::stringstream cmdCreateVelocities;
@@ -449,7 +449,7 @@ int main(int argc, char** argv)
             // Not using simIt to avoid potential rounding errors from double to uint64
             currentStep += intervalSteps; 
 
-            executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+            executeCommand(lps, "#### LOOP NVT End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
 
             // Flushing the commands we have executed to file
             // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
