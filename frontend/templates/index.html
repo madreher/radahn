@@ -442,6 +442,9 @@
 
             // Create a new Frame and add it to the viewer
             let newFrame = structuredClone(originalState.atoms); // Copy all the atom attributes, just need to update with new positions
+
+            let nbAtomsModel = originalState.atoms.length;
+
             let atomCount = positions.length / 3;
             for(let i = 0; i < atomCount; i++) {
                 newFrame[i].x = positions[i * 3];
@@ -453,6 +456,12 @@
             viewerMolecule.setFrame(viewerMolecule.getModel().getNumFrames()-1);
 
             timestepFrames.push(msg['simIt']);
+            if(nbAtomsModel != atomCount)
+            {
+                console.error("Inconsitent number of atoms received. Expected " + nbAtomsModel + ", received " + atomCount +".");
+                console.log(msg['simIt'] + ":");
+                console.log(positions);
+            }
             
             $('#info-sim-it').empty();
             $('#info-sim-it').append('Current Timestep: ' + msg['simIt'] + ', Current Frame: ' + (viewerMolecule.getModel().getNumFrames()-1) + ', number of Frames: ' + viewerMolecule.getModel().getNumFrames());

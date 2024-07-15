@@ -237,11 +237,33 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
 
     # TODO: decide what to do with the cell. Problematic cases are if the positions are negative and 
     # how to ensure that the box is large enough to avoid self bitting with the period conditions
+    # Still set a dummy cell to avoid an error from ASE, will be replaced when rewriting the file
     atoms.set_cell([500, 500, 500])
-    if atoms.get_positions().min() < 0: # ASE always assume the lower corner to be (0,0,0)
-        atoms.center()
+    #if atoms.get_positions().min() < 0: # ASE always assume the lower corner to be (0,0,0)
+    #    atoms.center()
     tempDataPath = str(dataPath) + '.temp'
     write(filename=tempDataPath, images=atoms, format='lammps-data', atom_style='full')
+
+    # ASE always write the bounding starting from 0,0,0
+    # We have to rewrite it manually to handle cases where positions can be in the negative
+    # Doing it now avoir the need to translate back the trajectory later on to match the user input.
+    positions = np.array(atoms.get_positions())
+
+    xcoords = positions[:,0]
+    ycoords = positions[:,1]
+    zcoords = positions[:,2]
+
+    xmin = xcoords.min()
+    ymin = ycoords.min()
+    zmin = zcoords.min()
+
+    xmax = xcoords.max()
+    ymax = ycoords.max()
+    zmax = zcoords.max()
+
+    padding = 50.0 # Adding 50A for now
+    propagateLog({ "msg": f"bbox: [{xmin} {ymin} {zmin}] [{xmax} {ymax} {zmax}], padding: {padding} A", "level": "info"})
+
 
     chemical_symbols = atoms.get_chemical_symbols()
     masses = atoms.get_masses()
@@ -268,10 +290,18 @@ def xyzToLammpsDataPBC(xyzPath:str, dataPath:str) -> Atoms:
         # Copy the lines until the line ending with zhi is found
         offset = 0
         for i in range(startOffset, len(lines)):
-            f.write(lines[i])
-            if len(lines[i].split()) > 0 and lines[i].split()[-1] == 'zhi':
+            #f.write(lines[i])
+            #if len(lines[i].split()) > 0 and lines[i].split()[-1] == 'zhi':
+            #    break
+            if len(lines[i].split()) > 0 and lines[i].split()[-1] == 'xhi':
+                f.write(f"{xmin - padding}\t{xmax + padding} xlo xhi\n")
+            elif len(lines[i].split()) > 0 and lines[i].split()[-1] == 'yhi':
+                f.write(f"{ymin - padding}\t{ymax + padding} ylo yhi\n")
+            elif len(lines[i].split()) > 0 and lines[i].split()[-1] == 'zhi':
+                f.write(f"{zmin - padding}\t{zmax + padding} zlo zhi\n")
                 break
             else:
+                f.write(lines[i])
                 offset += 1
         if offset > len(lines)-1:
             raise RuntimeError("Could not find zhi in LAMMPS data file")
@@ -340,6 +370,7 @@ def generate_inputs(configTask:dict) -> str:
         # Convert the XYZ to a .data file 
         dataFile = jobFolder / "input.data"
         atoms = xyzToLammpsDataPBC(xyzFile, dataFile)
+        propagateLog({"msg": "Lammps data file generated.", "level": "info"})
         
 
         # Generate the base Lammps script
@@ -416,15 +447,42 @@ def generate_inputs(configTask:dict) -> str:
                         scriptContent += " " + str(id)
                     scriptContent += "\n"
                     scriptContent += "fix minanchorfix minanchorgrp setforce 0.0 0.0 0.0\n"
+                
                 scriptContent +='min_style      cg\n'
-                scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+                scriptContent +='minimize       0.0001 1.0e-5 100 100000\n'
 
                 if ffExtension == 'reax':
                     scriptContent +='min_style      hftn\n'
-                    scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+                    scriptContent +='minimize       0.0001 1.0e-5 100 100000\n'
 
                 scriptContent +='min_style      sd\n'
-                scriptContent +='minimize       1.0e-10 1.0e-10 10000 100000\n'
+                scriptContent +='minimize       0.0001 1.0e-5 100 100000\n'
+                
+                scriptContent += f'variable       i loop 100\n'
+                scriptContent += f'label          loop1\n'
+                scriptContent += f'variable       ene_min equal pe\n'
+                scriptContent += 'variable       ene_min_i equal ${ene_min}\n'
+
+                scriptContent += f'min_style      cg\n'
+                scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                if ffExtension == 'reax':
+                    scriptContent += f'min_style      hftn\n'
+                    scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                scriptContent += f'min_style      sd\n'
+                scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                scriptContent += f'variable       ene_min_f equal pe\n'
+                scriptContent += 'variable       ene_diff equal ${ene_min_i}-${ene_min_f}\n'
+                scriptContent += 'print          "Delta_E = ${ene_diff}"\n'
+                scriptContent += 'if             "${ene_diff}<1e-6" then "jump SELF break1"\n'
+                scriptContent += f'print          "Loop_id = $i"\n'
+                scriptContent += f'next           i\n'
+                scriptContent += f'jump           SELF loop1\n'
+                scriptContent += f'label          break1\n'
+                scriptContent += f'variable       i delete\n'
+                
                 if len(anchorAtomIds) > 0:
                     scriptContent += "unfix minanchorfix\n"
                     scriptContent += "group minanchorgrp delete\n"
@@ -448,7 +506,7 @@ dump_modify    xyz sort id element C H
 
 ####
 reset_timestep 0
-timestep       0.5"""
+timestep       0.0005"""
             scriptContent += "\n\n"
 
 
@@ -644,7 +702,7 @@ def handle_start_listening():
 @socketio.on('generate_inputs')
 def handle_generate_inputs(data):
     app.logger.info("Received a request to generate inputs.")
-
+    
     global threadTable
 
     with threadTable["generateInputs"]["lock"]:

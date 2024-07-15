@@ -116,6 +116,7 @@ void extractAtomInformation(
 {
     // Allocating the buffers according to the local proc
     uint64_t localSize = static_cast<uint64_t>(lps->atom->nlocal);
+    spdlog::info("Extracting {} atoms.", localSize);
     pos.resize(localSize * 3);
     forces.resize(localSize * 3);
     vel.resize(localSize * 3);
@@ -185,7 +186,7 @@ void sendLammpsData(LAMMPS* lps, uint8_t simUnitValue, godrick::mpi::GodrickMPI&
     simData["atomForces"] = forces;
     simData["atomVelocities"] = vel;
     simData["units"] = simUnitValue;
-    simData["phase"] = phase; // NVT/NVE
+    simData["phase"] = std::string(phase); // NVT/NVE
 
     conduit::Node& thermosData = rootMsg.add_child("thermos");
     for(auto & t : thermos)
@@ -344,6 +345,8 @@ int main(int argc, char** argv)
         // Dev not: ss.clear() clear the error state, not the content of the ss
         iterationContent.str(std::string());
 
+        executeCommand(lps, "#### PHASE NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+
         // We first need to initialize the velocities before doing the NVT loop
         if(hasPermanentAnchor)
         {
@@ -355,8 +358,23 @@ int main(int argc, char** argv)
             cmdCreateVelocities<<"velocity freeGlobal create "<<startTemp<<" "<<seedNVT;
             executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
 
-            std::string cmdFreeUngroup = "group freeGlobal delete";
-            executeCommand(lps, cmdFreeUngroup, iterationContent);
+            //std::string cmdFreeUngroup = "group freeGlobal delete";
+            //executeCommand(lps, cmdFreeUngroup, iterationContent);
+
+            // Create the NVT fix 
+            std::stringstream cmdFixLangevin;
+            // https://docs.lammps.org/fix_langevin.html
+            // fix ID group-ID langevin Tstart Tstop damp seed keyword values ...
+            cmdFixLangevin<<"fix nvtlangevin freeGlobal langevin";
+            cmdFixLangevin<< " "<<startTemp;
+            cmdFixLangevin<< " "<<endTemp;
+            cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
+            cmdFixLangevin<< " "<<seedNVT;
+            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
+
+            std::stringstream cmdFixNVT;
+            cmdFixNVT<<"fix nvtnve freeGlobal nve";
+            executeCommand(lps, cmdFixNVT.str(), iterationContent);
         }
         else 
         {
@@ -364,6 +382,21 @@ int main(int argc, char** argv)
             // https://docs.lammps.org/velocity.html
             cmdCreateVelocities<<"velocity all create "<<startTemp<<" "<<seedNVT;
             executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+
+            // Create the NVT fix 
+            std::stringstream cmdFixLangevin;
+            // https://docs.lammps.org/fix_langevin.html
+            // fix ID group-ID langevin Tstart Tstop damp seed keyword values ...
+            cmdFixLangevin<<"fix nvtlangevin all langevin";
+            cmdFixLangevin<< " "<<startTemp;
+            cmdFixLangevin<< " "<<endTemp;
+            cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
+            cmdFixLangevin<< " "<<seedNVT;
+            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
+
+            std::stringstream cmdFixNVT;
+            cmdFixNVT<<"fix nvtnve all nve";
+            executeCommand(lps, cmdFixNVT.str(), iterationContent);
         }
 
         // Flushing the commands we have executed to file
@@ -372,6 +405,7 @@ int main(int argc, char** argv)
         logFile.flush();
         
 
+        // At this point, everything is declared, we just have to call run
         std::vector<conduit::Node> receivedData;
         while(currentStep < nbNVTSteps)
         {
@@ -403,7 +437,7 @@ int main(int argc, char** argv)
             
             // Gathering the commands we will need to execute
             // In this case, we will just declare an no integration group, aka anchors
-            auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
+            /*auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
             if(hasPermanentAnchor)
                 cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
             std::vector<std::string> doCommands;
@@ -413,24 +447,15 @@ int main(int argc, char** argv)
 
             // Create the time integration command
             executeCommand(lps, "#### Start INTEGRATION ", iterationContent);
-            std::stringstream cmdFixLangevin;
-            // https://docs.lammps.org/fix_langevin.html
-            // fix ID group-ID langevin Tstart Tstop damp seed keyword values ...
-            cmdFixLangevin<<"fix nvtlangevin "<<cmdUtil.getIntegrationGroup()<< " langevin";
-            cmdFixLangevin<< " "<<startTemp;
-            cmdFixLangevin<< " "<<endTemp;
-            cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
-            cmdFixLangevin<< " "<<seedNVT;
-            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
             std::stringstream cmdFixNVT;
             cmdFixNVT<<"fix NVT "<<cmdUtil.getIntegrationGroup()<<" nve";
-            executeCommand(lps, cmdFixNVT.str(), iterationContent);
+            executeCommand(lps, cmdFixNVT.str(), iterationContent);*/
 
             // Advance the simulation
             executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
 
             // Undo the time integration
-            std::string cmdUnfixNVT{"unfix NVT"};
+            /*std::string cmdUnfixNVT{"unfix NVT"};
             executeCommand(lps, cmdUnfixNVT, iterationContent);
             std::string cmdUnfixLangevin{"unfix nvtlangevin"};
             executeCommand(lps, cmdUnfixLangevin, iterationContent);
@@ -441,7 +466,7 @@ int main(int argc, char** argv)
             for(auto & cmd : undoCommands)
                 executeCommand(lps, cmd, iterationContent);
 
-            executeCommand(lps, "#### End INTEGRATION ", iterationContent);
+            executeCommand(lps, "#### End INTEGRATION ", iterationContent);*/
 
             // Sending the simulation data 
             sendLammpsData(lps, simUnitValue, handler, "NVT");
@@ -456,6 +481,30 @@ int main(int argc, char** argv)
             logFile<<iterationContent.str();
             logFile.flush();
         }
+
+        // NVT phase is complete, cleaning things up
+        iterationContent.str(std::string());
+        if(hasPermanentAnchor)
+        {
+            std::string unfixNVE{"unfix nvtnve"};
+            executeCommand(lps, unfixNVE, iterationContent);
+
+            std::string unfixlangevin{"unfix nvtlangevin"};
+            executeCommand(lps, unfixlangevin, iterationContent);
+
+            std::string ungroup{"group freeGlobal delete"};
+            executeCommand(lps, ungroup, iterationContent);
+        }
+        else 
+        {
+            std::string unfixNVE{"unfix nvtnve"};
+            executeCommand(lps, unfixNVE, iterationContent);
+
+            std::string unfixlangevin{"unfix nvtlangevin"};
+            executeCommand(lps, unfixlangevin, iterationContent);
+        }
+
+        executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
     }
 
     // NVT Section
