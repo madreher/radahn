@@ -182,15 +182,32 @@ int main(int argc, char** argv)
 
         // Check in which phase we are
         auto phase = receivedData[0]["simdata"]["phase"].as_string();
+        //std::string phase{"NVE"};
         if(phase.compare("NVT") == 0)
         {
             // During the NVT phase, we don't execute the motors yet. 
-            // Set the engine it since we don't update the engine state 
-            engine.setCurrentSimulationIt(receivedIt);
-            
+            // We only update the state of the engine, but not the motors
+            engine.updateEngineState(receivedIt, fullIndices, fullPositions);
+
             // Sending an empty message to keep the loop going.
-            conduit::Node output;
-            handler.push("motorscmd", output);
+            conduit::Node cmdOutput;
+            handler.push("motorscmd", cmdOutput);
+
+            // This is kinda dangerous because the push operation may modify the Node
+            // In this case it's fine because it's the instruction before the next iteration
+            engine.addGlobalKVS(receivedData[0]["thermos"]);    // All the nodes have the same thermo info, no need to check all the inputs
+            engine.commitKVSFrame();
+            conduit::Node& temporalData = engine.getCurrentKVS();
+            
+            //temporalData["global"] = receivedData[0]["thermos"];
+            handler.push("kvs", temporalData);
+
+
+            // Send the atom positions to the outside 
+            conduit::Node atoms;
+            atoms["positions"] = engine.getCurrentPositions();
+            atoms["simIt"] = engine.getCurrentIt();
+            handler.push("atoms", atoms);
         }
         else if (phase.compare("NVE") == 0)
         {
@@ -221,36 +238,37 @@ int main(int argc, char** argv)
 
                 handler.push("motorscmd", output);
             }
+
+            // This is kinda dangerous because the push operation may modify the Node
+            // In this case it's fine because it's the instruction before the next iteration
+            engine.addGlobalKVS(receivedData[0]["thermos"]);    // All the nodes have the same thermo info, no need to check all the inputs
+            engine.commitKVSFrame();
+            conduit::Node& temporalData = engine.getCurrentKVS();
+            
+            //temporalData["global"] = receivedData[0]["thermos"];
+            handler.push("kvs", temporalData);
+
+
+            // Send the atom positions to the outside 
+            conduit::Node atoms;
+            atoms["positions"] = engine.getCurrentPositions();
+            atoms["simIt"] = engine.getCurrentIt();
+            handler.push("atoms", atoms);
+
+            // Iterations is finished, processing the motor state and prepare the motor lists for the next iteration
+            engine.updateMotorLists();
         }
         else 
         {
             spdlog::critical("Received a simulation data from an unknown phase {}. Abording.", phase);
             break;
         }
-        
-
-        // This is kinda dangerous because the push operation may modify the Node
-        // In this case it's fine because it's the instruction before the next iteration
-        engine.addGlobalKVS(receivedData[0]["thermos"]);    // All the nodes have the same thermo info, no need to check all the inputs
-        engine.commitKVSFrame();
-        conduit::Node& temporalData = engine.getCurrentKVS();
-        
-        //temporalData["global"] = receivedData[0]["thermos"];
-        handler.push("kvs", temporalData);
-
-
-        // Send the atom positions to the outside 
-        conduit::Node atoms;
-        atoms["positions"] = engine.getCurrentPositions();
-        atoms["simIt"] = engine.getCurrentIt();
-        handler.push("atoms", atoms);
 
         receivedData.clear();
 
         //engine.getCurrentKVS().print();
 
-        // Iterations is finished, processing the motor state and prepare the motor lists for the next iteration
-        engine.updateMotorLists();
+        
     }
 
     //spdlog::info("Cleaning the motor engine...");

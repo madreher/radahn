@@ -48,10 +48,9 @@ void radahn::motor::MotorEngine::setCurrentSimulationIt(radahn::core::simIt_t it
     m_currentIt = it;
 }
 
-
-bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
-    std::vector<atomIndexes_t>& indices, 
-    std::vector<atomPositions_t>& positions)
+void radahn::motor::MotorEngine::updateEngineState(radahn::core::simIt_t it,
+        std::vector<radahn::core::atomIndexes_t>& indices, 
+        std::vector<radahn::core::atomPositions_t>& positions)
 {
     // First, we need to sort the received positions
     // HYPOTHESIS: We receive ALL the atom information, not just a sub-selection!!!
@@ -72,14 +71,21 @@ bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
 
     // Initialize the data for the current iteration
     m_currentKVS = conduit::Node();
-    //m_currentKVS["global"]["step"] = it;
+
+    m_currentIt = it;
+}
+
+
+bool radahn::motor::MotorEngine::updateMotorsState(simIt_t it,
+    std::vector<atomIndexes_t>& indices, 
+    std::vector<atomPositions_t>& positions)
+{
+    updateEngineState(it, indices, positions);
 
     // Now we can update the motors with the sorted arrays
     bool result = true;
     for(auto & motor : m_activeMotors)
         result &= motor->updateState(it, m_currentIndexes, m_currentPositions, m_currentKVS.add_child(motor->getMotorName()));
-
-    m_currentIt = it;
 
     return result;
 }

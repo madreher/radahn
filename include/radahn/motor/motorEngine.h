@@ -27,6 +27,9 @@ public:
     void loadTestMotorSetup();
 
     void setCurrentSimulationIt(radahn::core::simIt_t it);
+    void updateEngineState(radahn::core::simIt_t it,
+        std::vector<radahn::core::atomIndexes_t>& indices, 
+        std::vector<radahn::core::atomPositions_t>& positions);
     bool updateMotorsState(radahn::core::simIt_t it,
         std::vector<radahn::core::atomIndexes_t>& indices, 
         std::vector<radahn::core::atomPositions_t>& positions);
