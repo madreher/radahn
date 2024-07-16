@@ -1485,61 +1485,109 @@
             <a href="" style="display: none;"></a>
         </div>
         
-        <h2>Model Definition</h2>
+        <h2>Model Import</h2>
         <div>
             <label for="xyz-file">Select XYZ file:</label>
             <input type="file" id="xyz-file" accept=".xyz">
         </div>
-        <div>
-            <label for="ff-file">Select Potential file:</label>
-            <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
-        </div>
         
         <h2>Radahn Setup</h2>
         <div>
-            <label>Number of cores:</label>
-            <input type="number" id="num_cores" name="num_cores" value="1"></input>
-        </div>
-        <div>
-            <label>Maximum number of timesteps:</label>
-            <input type="number" id="num_timesteps" name="num_timesteps" value="10000"></input>
-        </div>
-        <div>
-            <label>Force maximum number of steps:</label>
-            <input type="checkbox" id="force_max_steps" name="force_max_steps" value="true"></input>
-        </div>
-        <div>
-            <label>Add minimization:</label>
-            <input type="checkbox" id="minimize" name="minimize" value="true" checked></input>
-        </div>
-        <div>
-            <label>Update frequency:</label>
-            <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
-        </div>
-        <div>
-            <label>Settings Unit Set:</label>
-            <select id="unit_set">
-                <option name="LAMMPS_METAL" value="LAMMPS_METAL">Metal</option>
-                <option name="LAMMPS_REAL" value="LAMMPS_REAL">Real</option>
-            </select>
-        </div>
-        <form>
-            <label for="enablenvt">Enable NVT phase:</label>
-            <input type="checkbox" id="enablenvt" name="enablenvt" onchange="form.nvtfields.disabled= !checked" checked>
-            <fieldset name="nvtfields">
-                <legend>NVT</legend>
-                <label for="nvtsteps">NVT steps:</label>
-                <input type="number" id="nvtsteps" name="nvtsteps">
-                <label for="startTemp">Start temperature:</label>
-                <input type="number" id="startTemp" name="startTemp">
-                <label for="endTemp">End temperature:</label>
-                <input type="number" id="endTemp" name="endTemp">
-                <label for="damp">Damp:</label>
-                <input type="number" id="damp" name="damp">
-                <label for="seed">Seed:</label>
-                <input type="number" id="seed" name="seed">
+            <fieldset>
+                <legend>General settings</legend>
+                <div>
+                    <label for="ff-file">Select Potential file:</label>
+                    <input type="file" id="ff-file" accept=".reax,.rebo,.airebo,.airebo-m">
+                </div>
+                <div>
+                    <label>Settings Unit Set:</label>
+                    <select id="unit_set">
+                        <option name="LAMMPS_METAL" value="LAMMPS_METAL">Metal</option>
+                        <option name="LAMMPS_REAL" value="LAMMPS_REAL">Real</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="dt_input">dt (Time unit):</label>
+                    <input type="number" id="dt_input" name="dt_input" value="0.5">
+                </div>
+                <div>
+                    <label>Number of cores:</label>
+                    <input type="number" id="num_cores" name="num_cores" value="1"></input>
+                </div>
+                <div>
+                    <label>Update frequency:</label>
+                    <input type="number" id="update_frequency" name="update_frequency" value="100"></input>
+                </div>
             </fieldset>
-        </form>
+        </div>
+        <div>
+            <fieldset>
+                <legend>Minimization</legend>
+                <div>
+                    <input type="radio" id="no_minimization" name="mingroup" value="nomin">
+                    <label for="no_minimization">No minimization</label>
+                </div>
+                <div>
+                    <input type="radio" id="minimization" name="mingroup" value="min" checked>
+                    <label for="minimization">Regular minimization</label>
+                </div>
+                <div>
+                    <input type="radio" id="deep_minimization" name="mingroup" value="deepmin">
+                    <label for="deep_minimization">Deep minimization</label>
+                </div>
+            </fieldset>
+        </div>
+        <div>
+            <fieldset>
+                <legend>Thermalization</legend>
+                <div>
+                    <input type="radio" id="no_thermalisation" name="nvtgroup" value="nonvt">
+                    <label for="no_thermalisation">No thermalization</label>
+                </div>
+                <div>
+                    <input type="radio" id="createvel" name="nvtgroup" value="createvelocity">
+                    <label for="createvel">Create velocities:</label>
+                    <fieldset>
+                        <label for="create_vel_temp">Temperature:</label>
+                        <input type="number" id="create_vel_temp" value="0.01">
+                        <label for="create_vel_seed">Seed:</label>
+                        <input type="number" id="create_vel_seed" value="1234">
+                    </fieldset>
+                </div>
+                <!--label for="enablenvt">Enable NVT phase:</label>
+                <input type="checkbox" id="enablenvt" name="enablenvt" onchange="form.nvtfields.disabled= !checked" checked-->
+                <div name="nvtfields">
+                    <!--legend>NVT</legend-->
+                    <input type="radio" id="nvtphase" name="nvtgroup" value="nvtphase">
+                    <label for="nvtphase">NVT phase</label>
+                    <fieldset>
+                        <label for="nvtsteps">NVT steps:</label>
+                        <input type="number" id="nvtsteps" name="nvtsteps">
+                        <label for="startTemp">Start temperature:</label>
+                        <input type="number" id="startTemp" name="startTemp">
+                        <label for="endTemp">End temperature:</label>
+                        <input type="number" id="endTemp" name="endTemp">
+                        <label for="damp">Damp:</label>
+                        <input type="number" id="damp" name="damp">
+                        <label for="seed">Seed:</label>
+                        <input type="number" id="seed" name="seed">
+                    </fieldset>
+                </div>
+            </fieldset>
+        </div>
+        <div>
+            <fieldset>
+                <legend>NVE</legend>
+                <div>
+                    <label>Maximum number of timesteps:</label>
+                    <input type="number" id="num_timesteps" name="num_timesteps" value="10000"></input>
+                </div>
+                <div>
+                    <label for="force_max_steps">Force maximum number of steps:</label>
+                    <input type="checkbox" id="force_max_steps" name="force_max_steps" value="true"></input>
+                </div>
+            </fieldset>
+        </div>
         <h2>Simulation Operation</h2>
         <!--div>
             <form id="start_listening" method="POST" action="#">
