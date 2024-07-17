@@ -499,10 +499,18 @@
         });
 
         window.refreshNVTSetup = function(){
-            let enableNVT = document.getElementById("enablenvt").checked;
-            if(enableNVT)
+            let enableCreateVelocity = document.getElementById("createvel").checked;
+            let enableNVTPhase = document.getElementById("nvtphase").checked;
+            if(enableCreateVelocity)
             {
-                project.declareNVT(
+                project.declareNVTCreateVelocity(
+                    parseFloat(document.getElementById("create_vel_temp").value),
+                    parseFloat(document.getElementById("create_vel_seed").value)
+                )
+            }
+            else if(enableNVTPhase)
+            {
+                project.declareNVTPhase(
                     parseFloat(document.getElementById("startTemp").value),
                     parseFloat(document.getElementById("endTemp").value),
                     parseFloat(document.getElementById("damp").value),
@@ -513,6 +521,24 @@
             else
             {
                 project.clearNVT();
+            }
+        }
+
+        window.refreshMinimizeSetup = function(){
+            let enableMinimize = document.getElementById("minimization").checked;
+            let enableDeepMinimize = document.getElementById("deep_minimization").checked;
+
+            if(enableMinimize)
+            {
+                project.declareMinimize();
+            }
+            else if(enableDeepMinimize)
+            {
+                project.declareDeepMinimize();
+            }
+            else 
+            {
+                project.clearMinimize();
             }
         }
 
@@ -546,12 +572,13 @@
 
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
+            let simDt = parseFloat(document.getElementById("dt_input").value);
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
-            let minimize = document.getElementById("minimize").checked;
             let forceTimestep = document.getElementById("force_max_steps").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
+            refreshMinimizeSetup();
             refreshNVTSetup();
             let lammpsJSONContent = project.generateLammpsConfigJSON(motorUnitSet);
 
@@ -566,7 +593,10 @@
             configDict['ffContent'] = project.potentialContent;
             configDict['ffName'] = project.potentialFilename;
             configDict['lmp_config'] = lammpsJSONContent;
-            configDict['minimize'] = minimize
+            configDict['unit_set'] = motorUnitSet;
+            configDict["dt"] = simDt;
+            if(project.minimizeEnabled)
+                configDict['minimize_config'] = project.minimizeConfig;
 
             socket.emit('generate_inputs', configDict);
             return false;
@@ -603,12 +633,13 @@
 
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
+            let simDt = parseFloat(document.getElementById("dt_input").value);
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
             let forceTimestep = document.getElementById("force_max_steps").checked;
-            let minimize = document.getElementById("minimize").checked;
             let updateFrequency = document.getElementById("update_frequency").value;
+            refreshMinimizeSetup();
             refreshNVTSetup();
             let lammpsJSONContent = project.generateLammpsConfigJSON(motorUnitSet);
             let configDict = {  };
@@ -643,7 +674,10 @@
             configDict['ffContent'] = project.potentialContent;
             configDict['ffName'] = project.potentialFilename;
             configDict['lmp_config'] = lammpsJSONContent;
-            configDict['minimize'] = minimize
+            configDict['unit_set'] = motorUnitSet;
+            configDict["dt"] = simDt;
+            if(project.minimizeEnabled)
+                configDict['minimize_config'] = project.minimizeConfig;
 
             socket.emit('launch_simulation', configDict);
             return false;
@@ -780,6 +814,12 @@
 
                         // Motor units 
                         document.getElementById('unit_set').value = project.motorGraphUnits;
+
+                        // TODO: 
+                        // Add/load from project: 
+                        // - Minimization settings
+                        // - NVT settings
+                        // - DT
                     }
                     else
                     {
@@ -1310,6 +1350,9 @@
             project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
 
             // Update the NVT section
+            refreshMinimizeSetup();
+
+            // Update the NVT section
             refreshNVTSetup();
 
             // All the updates are done, now we can get the project to save it
@@ -1360,6 +1403,9 @@
 
             // Update the project motor graph and unit
             project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
+
+            // Update the minimize section
+            refreshMinimizeSetup();
 
             // Update the NVT section
             refreshNVTSetup();
@@ -1541,7 +1587,7 @@
             <fieldset>
                 <legend>Thermalization</legend>
                 <div>
-                    <input type="radio" id="no_thermalisation" name="nvtgroup" value="nonvt">
+                    <input type="radio" id="no_thermalisation" name="nvtgroup" value="nonvt" checked>
                     <label for="no_thermalisation">No thermalization</label>
                 </div>
                 <div>

@@ -24,6 +24,16 @@ using json = nlohmann::json;
 using namespace LAMMPS_NS;
 using namespace radahn::core;
 
+struct Langevin
+{
+    std::vector<int> indices;
+    std::string name;
+    double startTemp;
+    double endTemp;
+    radahn::core::TimeQuantity damp;
+    uint64_t seed;
+};
+
 std::vector<uint32_t> getAnchorsIds(json& document)
 {
     std::vector<uint32_t> ids;
@@ -208,14 +218,28 @@ int main(int argc, char** argv)
     std::string configFile;
     std::string lmpInitialState;
     std::string lmpConfigFile;
-    uint64_t maxNVESteps  = 1000;
+    uint32_t intervalSteps = 100;
+    uint64_t currentStep = 0;
+
+    // NVT 
+    std::string nvtType{"none"}; // none, createVelocity, nvtPhase
+    bool enableNVT = false;
+
+    // Settings nvtPhase
     uint64_t nbNVTSteps = 0;
     radahn::core::TimeQuantity damp{0, radahn::core::SimUnits::LAMMPS_METAL};
     double startTemp = 0.0; // K
     double endTemp = 0.0;
     uint64_t seedNVT = 123456789;
-    uint32_t intervalSteps = 100;
-    uint64_t currentStep = 0;
+
+    // Settings createVelocity
+    double tempCreateVel = 0.0; // K
+    uint64_t seedCreateVel = 123456789;
+
+    // NVE
+    uint64_t maxNVESteps  = 1000;
+    std::vector<Langevin> thermostats;
+    
 
     auto cli = lyra::cli()
         | lyra::opt( taskName, "name" )
@@ -274,6 +298,8 @@ int main(int argc, char** argv)
     // Declare the global groups if provided
     bool hasPermanentAnchor = false;
     const std::string permanentAnchorName = "permanentAnchor";
+
+
     if(lmpConfigFile != "")
     {
         //executeScript(lps, lmpGroups);
@@ -319,18 +345,70 @@ int main(int argc, char** argv)
             }
         }
 
+        if(document.contains("thermostats"))
+        {
+            for(auto & thermostatNode : document["thermostats"])
+            {
+                if(!thermostatNode.contains("type"))
+                {
+                    spdlog::error("Unable to find the type of a thermostat. Abording.");
+                    exit(-1);
+                }
+
+                auto thermostatType = thermostatNode["type"].get<std::string>();
+                if(thermostatType.compare("langevin") == 0)
+                {
+                    Langevin thermostat;
+                    for(auto & id: thermostatNode["selection"])
+                    {
+                        thermostat.indices.push_back(id);
+                    }
+                    thermostat.name = thermostatNode.value("name", "defaultLangevin");
+                    thermostat.startTemp = thermostatNode.value("startTemp", 300.0);
+                    thermostat.endTemp = thermostatNode.value("endTemp", 300.0);
+                    thermostat.damp = radahn::core::TimeQuantity(thermostatNode.value("damp", 300.0), configSimUnit);
+                    thermostat.damp.convertTo(simUnitStyle);
+                    thermostat.seed = thermostatNode.value("seed", 1234u);
+                    thermostats.push_back(std::move(thermostat));
+                }
+
+            }
+        }
+
         // check for NVT
         if(document.contains("nvtConfig"))
         {
             auto & configNVT = document["nvtConfig"];
-            nbNVTSteps = configNVT.value("steps", 1000u);
-            startTemp = configNVT.value("startTemp", 0.0);
-            endTemp = configNVT.value("endTemp", 70.0);
-            damp.m_value = configNVT.value("damp", 1000.0);
-            damp.m_unit = configSimUnit;
-            damp.convertTo(simUnitStyle);
-            seedNVT = configNVT.value("seed", 123456789u);
-            spdlog::info("Detecting a request for a NVT phase for {} steps.", nbNVTSteps);
+            if(!configNVT.contains("type"))
+            {
+                spdlog::error("Thermalization requested but unable to find the type in \"nvtConfig\". Abording.");
+                exit(-1);
+            }
+
+            nvtType = configNVT["type"].get<std::string>();
+            if(nvtType.compare("nvtPhase") == 0)
+            {
+                nbNVTSteps = configNVT.value("steps", 1000u);
+                startTemp = configNVT.value("startTemp", 0.0);
+                endTemp = configNVT.value("endTemp", 300.0);
+                damp.m_value = configNVT.value("damp", 1000.0);
+                damp.m_unit = configSimUnit;
+                damp.convertTo(simUnitStyle);
+                seedNVT = configNVT.value("seed", 123456789u);
+                spdlog::info("Detecting a request for a NVT phase for {} steps.", nbNVTSteps);
+                enableNVT = true;
+            }
+            else if(nvtType.compare("createVelocity") == 0)
+            {
+                tempCreateVel = configNVT.value("temp", 300.0);
+                seedCreateVel = configNVT.value("seed", 123456789u);
+                enableNVT = true;
+            }
+            else 
+            {
+                spdlog::error("Thermalization requested but unable to recognize the type {} in \"nvtConfig\". Abording.", nvtType);
+                exit(-1);
+            }
         }
     }
 
@@ -339,7 +417,7 @@ int main(int argc, char** argv)
 
     // NVT Section
     currentStep = 0;
-    if(nbNVTSteps > 0)
+    if(enableNVT && nvtType.compare("nvtPhase") == 0)
     {
         // Clean the output we got from the previous iteration
         // Dev not: ss.clear() clear the error state, not the content of the ss
@@ -433,40 +511,8 @@ int main(int argc, char** argv)
 
             // During the NVT phase, we don't expect anything from the motor engine, no need to check the message content further.
 
-            // Running the NVT on all the atoms except the anchors
-            
-            // Gathering the commands we will need to execute
-            // In this case, we will just declare an no integration group, aka anchors
-            /*auto cmdUtil = radahn::lmp::LammpsCommandsUtils();
-            if(hasPermanentAnchor)
-                cmdUtil.declarePermanentAnchorGroup(permanentAnchorName);
-            std::vector<std::string> doCommands;
-            cmdUtil.writeDoCommands(doCommands);
-            for(auto & cmd : doCommands)
-                executeCommand(lps, cmd, iterationContent);
-
-            // Create the time integration command
-            executeCommand(lps, "#### Start INTEGRATION ", iterationContent);
-            std::stringstream cmdFixNVT;
-            cmdFixNVT<<"fix NVT "<<cmdUtil.getIntegrationGroup()<<" nve";
-            executeCommand(lps, cmdFixNVT.str(), iterationContent);*/
-
             // Advance the simulation
             executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
-
-            // Undo the time integration
-            /*std::string cmdUnfixNVT{"unfix NVT"};
-            executeCommand(lps, cmdUnfixNVT, iterationContent);
-            std::string cmdUnfixLangevin{"unfix nvtlangevin"};
-            executeCommand(lps, cmdUnfixLangevin, iterationContent);
-
-            // Undo the anchors
-            std::vector<std::string> undoCommands;
-            cmdUtil.writeUndoCommands(undoCommands);
-            for(auto & cmd : undoCommands)
-                executeCommand(lps, cmd, iterationContent);
-
-            executeCommand(lps, "#### End INTEGRATION ", iterationContent);*/
 
             // Sending the simulation data 
             sendLammpsData(lps, simUnitValue, handler, "NVT");
@@ -506,11 +552,126 @@ int main(int argc, char** argv)
 
         executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
     }
+    else if(enableNVT && nvtType.compare("createVelocity") == 0)
+    {
+        // We first need to initialize the velocities before doing the NVT loop
+        if(hasPermanentAnchor)
+        {
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            
+            std::string cmdFreeGroup = "group freeGlobal subtract all " + permanentAnchorName;
+            executeCommand(lps, cmdFreeGroup, iterationContent);
 
-    // NVT Section
+            std::stringstream cmdCreateVelocities;
+            // https://docs.lammps.org/velocity.html
+            cmdCreateVelocities<<"velocity freeGlobal create "<<tempCreateVel<<" "<<seedCreateVel;
+            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+
+            std::string ungroup{"group freeGlobal delete"};
+            executeCommand(lps, ungroup, iterationContent);
+
+            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        }
+        else 
+        {
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+
+            std::stringstream cmdCreateVelocities;
+            // https://docs.lammps.org/velocity.html
+            cmdCreateVelocities<<"velocity all create "<<tempCreateVel<<" "<<seedCreateVel;
+            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+
+            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        }
+    }
+    // Flushing the commands we have executed to file
+    logFile<<iterationContent.str();
+    logFile.flush();
+
+    // PRE NVE Section
+    std::vector<std::string> thermoFields({"step", "time", "etotal", "pe", "epair"});
+    std::vector<std::string> thermoGroups;
+    iterationContent.str(std::string());
+    executeCommand(lps, "#### PRE NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+    if(thermostats.size() > 0)
+    {
+        for(auto & thermostat : thermostats)
+        {
+            std::stringstream cmdGroup;
+            cmdGroup<<"group "<<thermostat.name<<" id";
+            for(auto & id : thermostat.indices)
+                cmdGroup<<" "<<id;
+            executeCommand(lps, cmdGroup.str(), iterationContent);
+
+            thermoGroups.push_back(thermostat.name);
+
+            std::stringstream cmdComputeTemp;
+            cmdComputeTemp<<"compute temp_"<<thermostat.name<<" "<<thermostat.name<<" temp";
+            executeCommand(lps, cmdComputeTemp.str(), iterationContent);
+            thermoFields.push_back("c_temp_" + thermostat.name);
+
+            std::stringstream cmdComputeKe;
+            cmdComputeKe<<"compute ke_"<<thermostat.name<<" "<<thermostat.name<<" ke";
+            executeCommand(lps,cmdComputeKe.str(), iterationContent);
+            thermoFields.push_back("c_ke_" + thermostat.name);
+        }  
+    }
+
+    std::stringstream cmdGroupMobile;
+    if(hasPermanentAnchor)
+        cmdGroupMobile<<"group mobileAtoms subtract all "<<permanentAnchorName;
+    else
+        cmdGroupMobile<<"group mobileAtoms subtract all empty";
+    executeCommand(lps, cmdGroupMobile.str(), iterationContent);
+    std::string cmdMobileComputeTemp{"compute temp_mobileAtoms mobileAtoms temp"};
+    executeCommand(lps, cmdMobileComputeTemp, iterationContent);
+    thermoFields.push_back("c_temp_mobileAtoms");
+    std::string cmdMobileComputeKE{"compute ke_mobileAtoms mobileAtoms ke"};
+    executeCommand(lps, cmdMobileComputeKE, iterationContent);
+    thermoFields.push_back("c_ke_mobileAtoms");
+
+    std::stringstream cmdGroupThermalized;
+    if(thermoGroups.size() > 0)
+    {
+        cmdGroupThermalized<<"group thermalizedAtoms union";
+        for(auto & grp : thermoGroups)
+            cmdGroupThermalized<<" "<<grp;
+    }
+    else
+    {
+        cmdGroupThermalized<<"group thermalizedAtoms empty";
+    }
+    executeCommand(lps, cmdGroupThermalized.str(), iterationContent);
+    std::string cmdThermalizedComputeTemp{"compute temp_thermalizedAtoms thermalizedAtoms temp"};
+    executeCommand(lps, cmdThermalizedComputeTemp, iterationContent);
+    thermoFields.push_back("c_temp_thermalizedAtoms");
+    std::string cmdThermalizedComputeKE{"compute ke_thermalizedAtoms thermalizedAtoms ke"};
+    executeCommand(lps, cmdThermalizedComputeKE, iterationContent);
+    thermoFields.push_back("c_ke_thermalizedAtoms");
+
+    std::string cmdGroupNonThermalized{"group nonthermalizedAtoms subtract mobileAtoms thermalizedAtoms"};
+    executeCommand(lps, cmdGroupNonThermalized, iterationContent);
+    std::string cmdNonThermalizedComputeTemp{"compute temp_nonthermalizedAtoms nonthermalizedAtoms temp"};
+    executeCommand(lps, cmdNonThermalizedComputeTemp, iterationContent);
+    thermoFields.push_back("c_temp_nonthermalizedAtoms");
+    std::string cmdNonThermalizedComputeKE{"compute ke_nonthermalizedAtoms nonthermalizedAtoms ke"};
+    executeCommand(lps, cmdNonThermalizedComputeKE, iterationContent);
+    thermoFields.push_back("c_ke_nonthermalizedAtoms");
+
+    executeCommand(lps, "thermo 50", iterationContent);
+    std::stringstream cmdThermoStyle;
+    cmdThermoStyle<<"thermo_style custom";
+    for(auto & field : thermoFields)
+        cmdThermoStyle<<" "<<field;
+    executeCommand(lps, cmdThermoStyle.str(), iterationContent);
+    executeCommand(lps, "thermo_modify lost error flush yes", iterationContent);
+
+    executeCommand(lps, "#### PRE NVE End from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+
+    // NVE Section
     std::vector<conduit::Node> receivedData;
-    currentStep = 0;
-    while(currentStep < maxNVESteps)
+    uint64_t currentNVEStep = 0;
+    while(currentNVEStep < maxNVESteps)
     {
         // Clean the output we got from the previous iteration
         // Dev not: ss.clear() clear the error state, not the content of the ss
@@ -591,6 +752,7 @@ int main(int argc, char** argv)
 
         // Not using simIt to avoid potential rounding errors from double to uint64
         currentStep += intervalSteps; 
+        currentNVEStep += intervalSteps;
 
         executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
 
