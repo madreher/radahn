@@ -427,9 +427,20 @@ def generate_inputs(configTask:dict) -> str:
             scriptContent += f"neighbor       {min([2.5, minCellDim/2])} bin\n"
             scriptContent += 'neigh_modify   every 1 delay 0 check yes\n'
 
-            if configTask["minimize"]:
+            if ffExtension in ["airebo"]:
+                scriptContent +="""compute 0 all pair airebo
+variable REBO     equal c_0[1]
+variable LJ       equal c_0[2]
+variable TORSION  equal c_0[3]
 
-                scriptContent +="### Minimization\n"
+thermo 1
+thermo_style custom step etotal pe ke epair v_REBO v_LJ v_TORSION
+"""
+
+            if "minimize_config" in configTask:
+
+                minimizationType = configTask["minimize_config"]["type"]
+                scriptContent +="\n### Minimization\n"
 
                 # Check if we have anchors
                 anchorAtomIds = []
@@ -457,31 +468,33 @@ def generate_inputs(configTask:dict) -> str:
 
                 scriptContent +='min_style      sd\n'
                 scriptContent +='minimize       0.0001 1.0e-5 100 100000\n'
+
+                if minimizationType == "deep":
                 
-                scriptContent += f'variable       i loop 100\n'
-                scriptContent += f'label          loop1\n'
-                scriptContent += f'variable       ene_min equal pe\n'
-                scriptContent += 'variable       ene_min_i equal ${ene_min}\n'
+                    scriptContent += f'variable       i loop 100\n'
+                    scriptContent += f'label          loop1\n'
+                    scriptContent += f'variable       ene_min equal pe\n'
+                    scriptContent += 'variable       ene_min_i equal ${ene_min}\n'
 
-                scriptContent += f'min_style      cg\n'
-                scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
-
-                if ffExtension == 'reax':
-                    scriptContent += f'min_style      hftn\n'
+                    scriptContent += f'min_style      cg\n'
                     scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
 
-                scriptContent += f'min_style      sd\n'
-                scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
+                    if ffExtension == 'reax':
+                        scriptContent += f'min_style      hftn\n'
+                        scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
 
-                scriptContent += f'variable       ene_min_f equal pe\n'
-                scriptContent += 'variable       ene_diff equal ${ene_min_i}-${ene_min_f}\n'
-                scriptContent += 'print          "Delta_E = ${ene_diff}"\n'
-                scriptContent += 'if             "${ene_diff}<1e-6" then "jump SELF break1"\n'
-                scriptContent += f'print          "Loop_id = $i"\n'
-                scriptContent += f'next           i\n'
-                scriptContent += f'jump           SELF loop1\n'
-                scriptContent += f'label          break1\n'
-                scriptContent += f'variable       i delete\n'
+                    scriptContent += f'min_style      sd\n'
+                    scriptContent += f'minimize       1.0e-10 1.0e-10 10000 100000\n'
+
+                    scriptContent += f'variable       ene_min_f equal pe\n'
+                    scriptContent += 'variable       ene_diff equal ${ene_min_i}-${ene_min_f}\n'
+                    scriptContent += 'print          "Delta_E = ${ene_diff}"\n'
+                    scriptContent += 'if             "${ene_diff}<1e-6" then "jump SELF break1"\n'
+                    scriptContent += f'print          "Loop_id = $i"\n'
+                    scriptContent += f'next           i\n'
+                    scriptContent += f'jump           SELF loop1\n'
+                    scriptContent += f'label          break1\n'
+                    scriptContent += f'variable       i delete\n'
                 
                 if len(anchorAtomIds) > 0:
                     scriptContent += "unfix minanchorfix\n"
@@ -489,11 +502,17 @@ def generate_inputs(configTask:dict) -> str:
 
 
             # Add basic IO setup
-            scriptContent += """####
+            scriptContent += """
+####
 
 thermo         50
-thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz
-thermo_modify  flush yes lost warn
+"""
+            if ffExtension in ["airebo"]:
+                scriptContent += "thermo_style custom step etotal pe ke epair v_REBO v_LJ v_TORSION"
+            else:
+                scriptContent += "thermo_style   custom step etotal pe ke temp press pxx pyy pzz lx ly lz"
+            scriptContent += """
+thermo_modify  flush yes lost error
 
 dump           dump all custom 100 fulltrajectory.dump id type x y z q
 dump_modify    dump sort id
@@ -505,8 +524,29 @@ dump_modify    xyz sort id element C H
             scriptContent +="""
 
 ####
+
 reset_timestep 0
-timestep       0.0005"""
+"""
+            if "dt" not in configTask:
+                propagateLog({"msg": "Unable to find dt in the task configuration dictionnary.", "level": "error"})
+            if "unit_set" not in configTask:
+                propagateLog({"msg": "Unable to find the unit set in the task configuration dictionnary.", "level": "error"})
+            if ffExtension == 'reax':
+                # Reax is real
+                if configTask["unit_set"] == "LAMMPS_REAL":
+                    scriptContent+=f"timestep       {configTask['dt']}\n"
+                elif configTask["unit_set"] == "LAMMPS_METAL":
+                    scriptContent+=f"timestep       {configTask['dt'] * 1000.0}\n"
+                else:
+                    propagateLog({"msg": f"Unit set {configTask['unit_set']} currently not supported.", "level": "error"})
+            else:
+                # Rebo case, metal unit
+                if configTask["unit_set"] == "LAMMPS_REAL":
+                    scriptContent+=f"timestep       {configTask['dt'] / 1000.0}\n"
+                elif configTask["unit_set"] == "LAMMPS_METAL":
+                    scriptContent+=f"timestep       {configTask['dt'] }\n"
+                else:
+                    propagateLog({"msg": f"Unit set {configTask['unit_set']} currently not supported.", "level": "error"})
             scriptContent += "\n\n"
 
 

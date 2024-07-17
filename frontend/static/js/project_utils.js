@@ -62,6 +62,8 @@ class RadahnProject {
     motorGraphUnits = "LAMMPS_REAL";
     anchorList = {}
     selectionList = {}
+    minimizeEnabled = false;
+    minimizeConfig = {};
     nvtEnabled = false;
     nvtConfig = {};
 
@@ -81,6 +83,8 @@ class RadahnProject {
         this.motorGraphUnits = "LAMMPS_REAL";
         this.anchorList = {};
         this.selectionList = {};
+        this.minimizeEnabled = false;
+        this.minimizeConfig = {};
         this.nvtEnabled = false;
         this.nvtConfig = {};
     }
@@ -138,9 +142,42 @@ class RadahnProject {
         delete this.selectionList[selectionName];
     }
 
-    declareNVT(startTemp, endTemp, dampingFactor, seed, nbSteps)
+    declareMinimize()
+    {
+        this.minimizeConfig = {
+            "type": "regular"
+        };
+        this.minimizeEnabled = true;
+    }
+
+    declareDeepMinimize()
+    {
+        this.minimizeConfig = {
+            "type": "deep"
+        };
+        this.minimizeEnabled = true;
+    }
+
+    clearMinimize()
+    {
+        this.minimizeConfig = {}
+        this.minimizeEnabled = false;
+    }
+
+    declareNVTCreateVelocity(temp, seed)
     {
         this.nvtConfig = {
+            "type": "createVelocity",
+            "temp": temp, 
+            "seed": seed
+        };
+        this.nvtEnabled = true;
+    }
+
+    declareNVTPhase(startTemp, endTemp, dampingFactor, seed, nbSteps)
+    {
+        this.nvtConfig = {
+            "type": "nvtPhase",
             "startTemp": startTemp,
             "endTemp": endTemp,
             "damp": dampingFactor,
@@ -174,6 +211,10 @@ class RadahnProject {
         project["motorGraphUnits"] = this.motorGraphUnits;
         project["anchors"] = this.anchorList;
         project["selections"] = this.selectionList;
+        if(this.minimizeEnabled)
+        {
+            project["minimizeConfig"] = this.minimizeConfig;
+        }
         if(this.nvtEnabled)
         {
             project["nvtConfig"] = this.nvtConfig;
@@ -208,8 +249,7 @@ class RadahnProject {
         // Clear the project
         this.resetProject()
 
-        // Load field by field 
-        // TODO: Need to add a header with versioning
+        // Load field by field S
         if("projectName" in dictContent)
             this.projectName = dictContent["projectName"];
         if("xyzContent" in dictContent)
@@ -228,10 +268,15 @@ class RadahnProject {
             this.motorGraph = dictContent["motorGraph"];
         if("motorGraphUnits" in dictContent)
             this.motorGraphUnits = dictContent["motorGraphUnits"];
+        if("minimizeConfig" in dictContent)
+        {
+            this.minimizeEnabled = true;
+            this.minimizeConfig = dictContent["minimizeConfig"];
+        }
         if("nvtConfig" in dictContent)
         {
             this.nvtEnabled = true;
-            this.nvtConfig = dictContent["nvtConfig"]
+            this.nvtConfig = dictContent["nvtConfig"];
         }
 
     }
