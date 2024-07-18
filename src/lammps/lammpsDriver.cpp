@@ -52,7 +52,7 @@ std::vector<uint32_t> getAnchorsIds(json& document)
     return ids;
 }
 
-bool executeScript(LAMMPS* lps, const std::string& scriptPath, std::stringstream& commandsHistory)
+bool executeScript(LAMMPS* lps, const std::string& scriptPath, std::ofstream& commandsHistory)
 {
     std::ifstream fdesc(scriptPath);
 
@@ -108,7 +108,7 @@ SimUnits getUnitStyle(const std::string& scriptPath)
     throw std::runtime_error("Unable to find the units command.");
 }
 
-bool executeCommand(LAMMPS* lps, const std::string& cmd, std::stringstream& commandsHistory)
+bool executeCommand(LAMMPS* lps, const std::string& cmd, std::ofstream& commandsHistory)
 {
     lps->input->one(cmd);
     commandsHistory<<cmd<<"\n";
@@ -290,8 +290,8 @@ int main(int argc, char** argv)
     // Creating the log file for the commands
     std::ofstream logFile("full.log.lammps");
 
-    std::stringstream iterationContent;
-    executeScript(lps, lmpInitialState, iterationContent);
+    //std::stringstream logFile;
+    executeScript(lps, lmpInitialState, logFile);
     auto simUnitStyle = getUnitStyle(lmpInitialState);
     auto simUnitValue = static_cast<std::underlying_type<radahn::core::SimUnits>::type>(simUnitStyle);
 
@@ -340,7 +340,7 @@ int main(int argc, char** argv)
                 {
                     commandGroup << " " << id;
                 }
-                executeCommand(lps, commandGroup.str(), iterationContent);
+                executeCommand(lps, commandGroup.str(), logFile);
                 hasPermanentAnchor = true;
             }
         }
@@ -411,33 +411,27 @@ int main(int argc, char** argv)
             }
         }
     }
-
-    logFile<<iterationContent.str();
     logFile.flush();
 
     // NVT Section
     currentStep = 0;
     if(enableNVT && nvtType.compare("nvtPhase") == 0)
     {
-        // Clean the output we got from the previous iteration
-        // Dev not: ss.clear() clear the error state, not the content of the ss
-        iterationContent.str(std::string());
-
-        executeCommand(lps, "#### PHASE NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        executeCommand(lps, "#### PHASE NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
 
         // We first need to initialize the velocities before doing the NVT loop
         if(hasPermanentAnchor)
         {
             std::string cmdFreeGroup = "group freeGlobal subtract all " + permanentAnchorName;
-            executeCommand(lps, cmdFreeGroup, iterationContent);
+            executeCommand(lps, cmdFreeGroup, logFile);
 
             std::stringstream cmdCreateVelocities;
             // https://docs.lammps.org/velocity.html
             cmdCreateVelocities<<"velocity freeGlobal create "<<startTemp<<" "<<seedNVT;
-            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+            executeCommand(lps, cmdCreateVelocities.str(), logFile);
 
             //std::string cmdFreeUngroup = "group freeGlobal delete";
-            //executeCommand(lps, cmdFreeUngroup, iterationContent);
+            //executeCommand(lps, cmdFreeUngroup, logFile);
 
             // Create the NVT fix 
             std::stringstream cmdFixLangevin;
@@ -448,18 +442,18 @@ int main(int argc, char** argv)
             cmdFixLangevin<< " "<<endTemp;
             cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
             cmdFixLangevin<< " "<<seedNVT;
-            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
+            executeCommand(lps, cmdFixLangevin.str(), logFile);
 
             std::stringstream cmdFixNVT;
             cmdFixNVT<<"fix nvtnve freeGlobal nve";
-            executeCommand(lps, cmdFixNVT.str(), iterationContent);
+            executeCommand(lps, cmdFixNVT.str(), logFile);
         }
         else 
         {
             std::stringstream cmdCreateVelocities;
             // https://docs.lammps.org/velocity.html
             cmdCreateVelocities<<"velocity all create "<<startTemp<<" "<<seedNVT;
-            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+            executeCommand(lps, cmdCreateVelocities.str(), logFile);
 
             // Create the NVT fix 
             std::stringstream cmdFixLangevin;
@@ -470,16 +464,15 @@ int main(int argc, char** argv)
             cmdFixLangevin<< " "<<endTemp;
             cmdFixLangevin<< " "<<damp.m_value; // Was converted to the right unit when loaded
             cmdFixLangevin<< " "<<seedNVT;
-            executeCommand(lps, cmdFixLangevin.str(), iterationContent);
+            executeCommand(lps, cmdFixLangevin.str(), logFile);
 
             std::stringstream cmdFixNVT;
             cmdFixNVT<<"fix nvtnve all nve";
-            executeCommand(lps, cmdFixNVT.str(), iterationContent);
+            executeCommand(lps, cmdFixNVT.str(), logFile);
         }
 
         // Flushing the commands we have executed to file
         // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
-        logFile<<iterationContent.str();
         logFile.flush();
         
 
@@ -487,11 +480,7 @@ int main(int argc, char** argv)
         std::vector<conduit::Node> receivedData;
         while(currentStep < nbNVTSteps)
         {
-            // Clean the output we got from the previous iteration
-            // Dev not: ss.clear() clear the error state, not the content of the ss
-            iterationContent.str(std::string());
-
-            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
             auto resultReceive = handler.get("in", receivedData);
             if( resultReceive == godrick::MessageResponse::TERMINATE )
             {
@@ -512,7 +501,7 @@ int main(int argc, char** argv)
             // During the NVT phase, we don't expect anything from the motor engine, no need to check the message content further.
 
             // Advance the simulation
-            executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
+            executeCommand(lps, "run " + std::to_string(intervalSteps), logFile);
 
             // Sending the simulation data 
             sendLammpsData(lps, simUnitValue, handler, "NVT");
@@ -520,79 +509,75 @@ int main(int argc, char** argv)
             // Not using simIt to avoid potential rounding errors from double to uint64
             currentStep += intervalSteps; 
 
-            executeCommand(lps, "#### LOOP NVT End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+            executeCommand(lps, "#### LOOP NVT End at Timestep " + std::to_string(currentStep) + " #########################################", logFile);
 
             // Flushing the commands we have executed to file
             // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
-            logFile<<iterationContent.str();
             logFile.flush();
         }
 
         // NVT phase is complete, cleaning things up
-        iterationContent.str(std::string());
         if(hasPermanentAnchor)
         {
             std::string unfixNVE{"unfix nvtnve"};
-            executeCommand(lps, unfixNVE, iterationContent);
+            executeCommand(lps, unfixNVE, logFile);
 
             std::string unfixlangevin{"unfix nvtlangevin"};
-            executeCommand(lps, unfixlangevin, iterationContent);
+            executeCommand(lps, unfixlangevin, logFile);
 
             std::string ungroup{"group freeGlobal delete"};
-            executeCommand(lps, ungroup, iterationContent);
+            executeCommand(lps, ungroup, logFile);
         }
         else 
         {
             std::string unfixNVE{"unfix nvtnve"};
-            executeCommand(lps, unfixNVE, iterationContent);
+            executeCommand(lps, unfixNVE, logFile);
 
             std::string unfixlangevin{"unfix nvtlangevin"};
-            executeCommand(lps, unfixlangevin, iterationContent);
+            executeCommand(lps, unfixlangevin, logFile);
         }
 
-        executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", logFile);
     }
     else if(enableNVT && nvtType.compare("createVelocity") == 0)
     {
         // We first need to initialize the velocities before doing the NVT loop
         if(hasPermanentAnchor)
         {
-            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
             
             std::string cmdFreeGroup = "group freeGlobal subtract all " + permanentAnchorName;
-            executeCommand(lps, cmdFreeGroup, iterationContent);
+            executeCommand(lps, cmdFreeGroup, logFile);
 
             std::stringstream cmdCreateVelocities;
             // https://docs.lammps.org/velocity.html
             cmdCreateVelocities<<"velocity freeGlobal create "<<tempCreateVel<<" "<<seedCreateVel;
-            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+            executeCommand(lps, cmdCreateVelocities.str(), logFile);
 
             std::string ungroup{"group freeGlobal delete"};
-            executeCommand(lps, ungroup, iterationContent);
+            executeCommand(lps, ungroup, logFile);
 
-            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", logFile);
         }
         else 
         {
-            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            executeCommand(lps, "#### LOOP NVT Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
 
             std::stringstream cmdCreateVelocities;
             // https://docs.lammps.org/velocity.html
             cmdCreateVelocities<<"velocity all create "<<tempCreateVel<<" "<<seedCreateVel;
-            executeCommand(lps, cmdCreateVelocities.str(), iterationContent);
+            executeCommand(lps, cmdCreateVelocities.str(), logFile);
 
-            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+            executeCommand(lps, "#### PHASE NVT END at Timestep " + std::to_string(currentStep) + " #####################################", logFile);
         }
     }
     // Flushing the commands we have executed to file
-    logFile<<iterationContent.str();
     logFile.flush();
 
     // PRE NVE Section
     std::vector<std::string> thermoFields({"step", "time", "etotal", "pe", "epair"});
     std::vector<std::string> thermoGroups;
-    iterationContent.str(std::string());
-    executeCommand(lps, "#### PRE NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+    executeCommand(lps, "#### PRE NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
     if(thermostats.size() > 0)
     {
         for(auto & thermostat : thermostats)
@@ -601,23 +586,23 @@ int main(int argc, char** argv)
             cmdGroup<<"group "<<thermostat.name<<" id";
             for(auto & id : thermostat.indices)
                 cmdGroup<<" "<<id;
-            executeCommand(lps, cmdGroup.str(), iterationContent);
+            executeCommand(lps, cmdGroup.str(), logFile);
 
             thermoGroups.push_back(thermostat.name);
 
             std::stringstream cmdComputeTemp;
             cmdComputeTemp<<"compute temp_"<<thermostat.name<<" "<<thermostat.name<<" temp";
-            executeCommand(lps, cmdComputeTemp.str(), iterationContent);
+            executeCommand(lps, cmdComputeTemp.str(), logFile);
             thermoFields.push_back("c_temp_" + thermostat.name);
 
             std::stringstream cmdComputeKe;
             cmdComputeKe<<"compute ke_"<<thermostat.name<<" "<<thermostat.name<<" ke";
-            executeCommand(lps,cmdComputeKe.str(), iterationContent);
+            executeCommand(lps,cmdComputeKe.str(), logFile);
             thermoFields.push_back("c_ke_" + thermostat.name);
 
             std::stringstream cmdFixLangevin;
             cmdFixLangevin<<"fix lgv"<<thermostat.name<<" "<<thermostat.name<<" langevin "<<thermostat.startTemp<<" "<<thermostat.endTemp<<" "<<thermostat.damp.m_value<<" "<<thermostat.seed;
-            executeCommand(lps,cmdFixLangevin.str(), iterationContent);
+            executeCommand(lps,cmdFixLangevin.str(), logFile);
         }  
     }
 
@@ -626,12 +611,12 @@ int main(int argc, char** argv)
         cmdGroupMobile<<"group mobileAtoms subtract all "<<permanentAnchorName;
     else
         cmdGroupMobile<<"group mobileAtoms subtract all empty";
-    executeCommand(lps, cmdGroupMobile.str(), iterationContent);
+    executeCommand(lps, cmdGroupMobile.str(), logFile);
     std::string cmdMobileComputeTemp{"compute temp_mobileAtoms mobileAtoms temp"};
-    executeCommand(lps, cmdMobileComputeTemp, iterationContent);
+    executeCommand(lps, cmdMobileComputeTemp, logFile);
     thermoFields.push_back("c_temp_mobileAtoms");
     std::string cmdMobileComputeKE{"compute ke_mobileAtoms mobileAtoms ke"};
-    executeCommand(lps, cmdMobileComputeKE, iterationContent);
+    executeCommand(lps, cmdMobileComputeKE, logFile);
     thermoFields.push_back("c_ke_mobileAtoms");
 
     std::stringstream cmdGroupThermalized;
@@ -645,43 +630,39 @@ int main(int argc, char** argv)
     {
         cmdGroupThermalized<<"group thermalizedAtoms empty";
     }
-    executeCommand(lps, cmdGroupThermalized.str(), iterationContent);
+    executeCommand(lps, cmdGroupThermalized.str(), logFile);
     std::string cmdThermalizedComputeTemp{"compute temp_thermalizedAtoms thermalizedAtoms temp"};
-    executeCommand(lps, cmdThermalizedComputeTemp, iterationContent);
+    executeCommand(lps, cmdThermalizedComputeTemp, logFile);
     thermoFields.push_back("c_temp_thermalizedAtoms");
     std::string cmdThermalizedComputeKE{"compute ke_thermalizedAtoms thermalizedAtoms ke"};
-    executeCommand(lps, cmdThermalizedComputeKE, iterationContent);
+    executeCommand(lps, cmdThermalizedComputeKE, logFile);
     thermoFields.push_back("c_ke_thermalizedAtoms");
 
     std::string cmdGroupNonThermalized{"group nonthermalizedAtoms subtract mobileAtoms thermalizedAtoms"};
-    executeCommand(lps, cmdGroupNonThermalized, iterationContent);
+    executeCommand(lps, cmdGroupNonThermalized, logFile);
     std::string cmdNonThermalizedComputeTemp{"compute temp_nonthermalizedAtoms nonthermalizedAtoms temp"};
-    executeCommand(lps, cmdNonThermalizedComputeTemp, iterationContent);
+    executeCommand(lps, cmdNonThermalizedComputeTemp, logFile);
     thermoFields.push_back("c_temp_nonthermalizedAtoms");
     std::string cmdNonThermalizedComputeKE{"compute ke_nonthermalizedAtoms nonthermalizedAtoms ke"};
-    executeCommand(lps, cmdNonThermalizedComputeKE, iterationContent);
+    executeCommand(lps, cmdNonThermalizedComputeKE, logFile);
     thermoFields.push_back("c_ke_nonthermalizedAtoms");
 
-    executeCommand(lps, "thermo 50", iterationContent);
+    executeCommand(lps, "thermo 50", logFile);
     std::stringstream cmdThermoStyle;
     cmdThermoStyle<<"thermo_style custom";
     for(auto & field : thermoFields)
         cmdThermoStyle<<" "<<field;
-    executeCommand(lps, cmdThermoStyle.str(), iterationContent);
-    executeCommand(lps, "thermo_modify lost error flush yes", iterationContent);
+    executeCommand(lps, cmdThermoStyle.str(), logFile);
+    executeCommand(lps, "thermo_modify lost error flush yes", logFile);
 
-    executeCommand(lps, "#### PRE NVE End from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+    executeCommand(lps, "#### PRE NVE End from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
 
     // NVE Section
     std::vector<conduit::Node> receivedData;
     uint64_t currentNVEStep = 0;
     while(currentNVEStep < maxNVESteps)
     {
-        // Clean the output we got from the previous iteration
-        // Dev not: ss.clear() clear the error state, not the content of the ss
-        iterationContent.str(std::string());
-
-        executeCommand(lps, "#### LOOP NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", iterationContent);
+        executeCommand(lps, "#### LOOP NVE Start from Timestep " + std::to_string(currentStep) + " #####################################", logFile);
         auto resultReceive = handler.get("in", receivedData);
         if( resultReceive == godrick::MessageResponse::TERMINATE )
         {
@@ -728,28 +709,28 @@ int main(int argc, char** argv)
         std::vector<std::string> doCommands;
         cmdUtil.writeDoCommands(doCommands);
         for(auto & cmd : doCommands)
-            executeCommand(lps, cmd, iterationContent);
+            executeCommand(lps, cmd, logFile);
 
         // Create the time integration command
-        executeCommand(lps, "#### Start INTEGRATION ", iterationContent);
+        executeCommand(lps, "#### Start INTEGRATION ", logFile);
         std::stringstream cmdFixNVE;
         cmdFixNVE<<"fix NVE "<<cmdUtil.getIntegrationGroup()<<" nve";
-        executeCommand(lps, cmdFixNVE.str(), iterationContent);
+        executeCommand(lps, cmdFixNVE.str(), logFile);
 
         // Advance the simulation
-        executeCommand(lps, "run " + std::to_string(intervalSteps), iterationContent);
+        executeCommand(lps, "run " + std::to_string(intervalSteps), logFile);
 
         // Undo the time integration
         std::stringstream cmdUnfixNVE;
         cmdUnfixNVE<<"unfix NVE";
-        executeCommand(lps, cmdUnfixNVE.str(), iterationContent);
-        executeCommand(lps, "#### End INTEGRATION ", iterationContent);
+        executeCommand(lps, cmdUnfixNVE.str(), logFile);
+        executeCommand(lps, "#### End INTEGRATION ", logFile);
 
         // Undo the motors commands
         std::vector<std::string> undoCommands;
         cmdUtil.writeUndoCommands(undoCommands);
         for(auto & cmd : undoCommands)
-            executeCommand(lps, cmd, iterationContent);
+            executeCommand(lps, cmd, logFile);
 
         // Sending the simulation data 
         sendLammpsData(lps, simUnitValue, handler, "NVE");
@@ -758,10 +739,9 @@ int main(int argc, char** argv)
         currentStep += intervalSteps; 
         currentNVEStep += intervalSteps;
 
-        executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", iterationContent);
+        executeCommand(lps, "#### LOOP NVE End at Timestep " + std::to_string(currentStep) + " #########################################", logFile);
 
         // Flushing the commands we have executed to file
-        logFile<<iterationContent.str();
         logFile.flush();
     }
     spdlog::info("Lammps done. Closing godrick...");
