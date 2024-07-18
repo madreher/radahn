@@ -614,6 +614,10 @@ int main(int argc, char** argv)
             cmdComputeKe<<"compute ke_"<<thermostat.name<<" "<<thermostat.name<<" ke";
             executeCommand(lps,cmdComputeKe.str(), iterationContent);
             thermoFields.push_back("c_ke_" + thermostat.name);
+
+            std::stringstream cmdFixLangevin;
+            cmdFixLangevin<<"fix lgv"<<thermostat.name<<" "<<thermostat.name<<" langevin "<<thermostat.startTemp<<" "<<thermostat.endTemp<<" "<<thermostat.damp.m_value<<" "<<thermostat.seed;
+            executeCommand(lps,cmdFixLangevin.str(), iterationContent);
         }  
     }
 
