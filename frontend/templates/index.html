@@ -1265,7 +1265,7 @@
             if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
                 let selectionName = document.getElementById('save-selection').value;
                 let selectionDict = {
-                    atomIndexes: selectedAtoms, 
+                    atomIndexes: selectedAtoms.slice(), 
                     name: document.getElementById('save-selection').value,
                     color: document.getElementById('selection-color').value
                 };
@@ -1301,7 +1301,7 @@
                     let anchorDict = {
                         name: anchorName,
                         color: document.getElementById('anchor-color').value,
-                        atomIndexes: selectedAtoms
+                        atomIndexes: selectedAtoms.slice()
                     };
 
                     project.addAnchor(anchorName, anchorDict);
@@ -1316,7 +1316,7 @@
                 let anchorDict = {
                         name: anchorName,
                         color: document.getElementById('anchor-color').value,
-                        atomIndexes: project.selectionList[selectionName].atomIndexes
+                        atomIndexes: project.selectionList[selectionName].atomIndexes.slice()
                     };
 
                 project.addAnchor(anchorName, anchorDict);
@@ -1349,7 +1349,7 @@
             {
                 if(selectedAtoms.length > 0)
                 {
-                    selectionIndices = selectedAtoms;
+                    selectionIndices = selectedAtoms.slice();
                 }
                 else
                 {
