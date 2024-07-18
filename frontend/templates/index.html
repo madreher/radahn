@@ -1408,8 +1408,37 @@
                     break;
                 }
                 case "anchor": {
-                    // We first color by atom type for every atoms, then we re-color by selection
+                    // We first color by atom type for every atoms, then we re-color by anchor
                     viewerMolecule.setStyle({}, {stick: {}})
+                    Object.entries(project.anchorList).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+                    break;
+                }
+                case "thermostat": {
+                    // We first color by atom type for every atoms, then we re-color by thermostat
+                    viewerMolecule.setStyle({}, {stick: {}})
+                    Object.entries(project.thermostatList).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+                    break;
+                }
+                case "jigs": {
+                    // We go through every type of jigs in order
+
+                    // First is default refresentation
+                    viewerMolecule.setStyle({}, {stick: {}})
+
+                    // Second is the selection, i.e least prioritized
+                    Object.entries(project.selectionList).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+
+                    // Third are anchor and thermostat. Technically putting thermostat third because in case of overlap, the anchor would be applied
+                    Object.entries(project.thermostatList).forEach(([name, entry]) => {
+                        viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
+                    });
+
                     Object.entries(project.anchorList).forEach(([name, entry]) => {
                         viewerMolecule.getModel().setStyle({'serial': entry.atomIndexes}, {'stick': {'color': entry.color}});
                     });
@@ -1861,6 +1890,8 @@
                     <option value="atom-type">Atom Type</option>
                     <option value="selection">Selection</option>
                     <option value="anchor">Anchor</option>
+                    <option value="thermostat">Thermostat</option>
+                    <option value="jigs">Jigs</option>
                 </select>
                 <label>Label:</label>
                 <select id="atom-label">
