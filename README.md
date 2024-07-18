@@ -6,8 +6,8 @@ Radahn is interactive molecular dynamic application allowing users to steer thei
 
 - Real time visualization and data extraction from a molecular dynamic simulation
 - Set of motors to add user interactions in a molecular simulation
-- Lammps as simulation backend currently, Gromacs will be added later one.
-- Frontend in a web browser to load molecular model, configure a set of motors to apply, and visualize the simulation in real time
+- Lammps as simulation backend currently, Gromacs will be added later on.
+- Frontend in a web browser to load a molecular model, configure a set of motors to apply to the model, and visualize the simulation in real time
 - Works on Linux, Windows via WSL
 
 # Related project:
