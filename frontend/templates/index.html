@@ -65,6 +65,9 @@
         // Anchor table
         updateAnchorTable();
 
+        // Thermostats table
+        updateThermostatTable();
+
         // Node Editor
         var nodeEditor = new LGraph();
         var nodeEditorCanvas = new LGraphCanvas("#node-canvas", nodeEditor);
@@ -796,9 +799,10 @@
                         // Text fields
                         document.getElementById('project-name').value = project.projectName;
 
-                        // Selection and anchor table
+                        // Selection,anchor, thermostats table
                         updateDynamicTable();
                         updateAnchorTable();
+                        updateThermostatTable();
 
                         // Node graph
                         if(project.hasMotorGraph())
@@ -912,7 +916,7 @@
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = entry.color;
-                colorInput.readOnly = true;
+                colorInput.disabled = true;
                 cellColor.appendChild(colorInput);
 
                 // Add Edit and Delete buttons
@@ -960,6 +964,21 @@
                 option.textContent = name;
                 anchorSourceSelect.appendChild(option);
             });
+
+            // Update the list of saved selections in the thermostat drop menu
+            const thermostatSourceSelect = document.getElementById('thermostat-source');
+            thermostatSourceSelect.innerHTML = '';
+            const defaultOptionThermostat = document.createElement('option');
+            defaultOptionThermostat.value = 'current-selection';
+            defaultOptionThermostat.textContent = 'Current selection';
+            thermostatSourceSelect.appendChild(defaultOptionThermostat);
+
+            Object.keys(project.thermostatList).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                thermostatSourceSelect.appendChild(option);
+            });
         }
 
         // Handle the htlm generation for the anchor table
@@ -997,7 +1016,7 @@
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = entry.color;
-                colorInput.readOnly = true;
+                colorInput.disabled = true;
                 cellColor.appendChild(colorInput);
 
                 // Delete button with action
@@ -1007,6 +1026,81 @@
                 deleteButton.addEventListener('click', () => {
                     project.deleteAnchor(name);
                     updateAnchorTable();
+                    refreshMolecule();
+                })
+                cellDelete.appendChild(deleteButton);
+            });
+
+            // Append the table to the container
+            tableContainer.appendChild(table);
+        }
+
+        // Handle the htlm generation for the anchor table
+        function updateThermostatTable()
+        {
+            const tableContainer = document.getElementById('dynamic-thermostat-table-container');
+            tableContainer.innerHTML = ''; // Clear previous content
+
+            // Create a table element
+            const table = document.createElement('table');
+            table.className = 'dynamic-table';
+            table.setAttribute('border', '1');
+
+            // Create table header
+            const headerRow = table.insertRow();
+            const headers = ['Name', 'Number of Atoms', 'Color', 'Edit', 'Delete'];
+            headers.forEach(headerText => {
+                const header = document.createElement('th');
+                header.textContent = headerText;
+                headerRow.appendChild(header);
+            });
+
+            // Populate the table with saved selections
+            Object.entries(project.thermostatList).forEach(([name, entry]) => {
+                const row = table.insertRow();
+                const cellName = row.insertCell();
+                cellName.textContent = name;
+
+                const cellNumAtoms = row.insertCell();
+                cellNumAtoms.textContent = entry.atomIndexes.length;
+
+                // You can customize the color representation based on the selection
+                const cellColor = row.insertCell();
+                //cellColor.textContent = 'PLACEHOLDER';
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = entry.color;
+                colorInput.disabled = true;
+                cellColor.appendChild(colorInput);
+
+                // Edit button with action
+                const cellEdit = row.insertCell();
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => {
+                    // Load the selection into the form
+                    document.getElementById('save-thermostat').value = name;
+                    document.getElementById('thermostat-color').value = entry.color;
+                    let strSelection = "";
+                    for(let i = 0; i < entry.atomIndexes.length; i++)
+                    {
+                        strSelection += entry.atomIndexes[i] + " ";
+                    }
+                    document.getElementById('current-selection').value = strSelection;
+                    document.getElementById('thermostat-start').value = entry.startTemp;
+                    document.getElementById('thermostat-end').value = entry.endTemp;
+                    document.getElementById('thermostat-damp').value = entry.damp;
+                    document.getElementById('thermostat-seed').value = entry.seed;
+                })
+                cellEdit.appendChild(editButton);
+
+                // Delete button with action
+                const cellDelete = row.insertCell();
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    project.deleteThermostat(name);
+                    updateThermostatTable();
                     refreshMolecule();
                 })
                 cellDelete.appendChild(deleteButton);
@@ -1239,6 +1333,61 @@
             return;
         }
 
+        window.saveThermostat = function() {
+            // Get the name of the anchor
+            let thermostatName = document.getElementById('save-thermostat').value;
+            if(thermostatName.length == 0)
+            {
+                console.warn("No name was given for the thermostat");
+                return;
+            }
+
+            // Get the name of the selection associated with the anchor
+            let selectionName = document.getElementById('thermostat-source').value;
+            let selectionIndices = [];
+            if(selectionName === "current-selection")
+            {
+                if(selectedAtoms.length > 0)
+                {
+                    selectionIndices = selectedAtoms;
+                }
+                else
+                {
+                    console.warn("No atoms are selected to create a thermostat.");
+                    return;
+                }
+            }
+            else if(selectionName in project.selectionList)
+            {
+                selectionIndices = project.selectionList[selectionName].atomIndexes.slice();
+            }
+            else 
+            {
+                console.warn("The selection " + selectionName + " does not exist");
+                return;
+            }
+
+            let thermostatColor = document.getElementById('thermostat-color').value;
+            let thermostatStartTemp = parseFloat(document.getElementById('thermostat-start').value);
+            let thermostatEndTemp = parseFloat(document.getElementById('thermostat-end').value);
+            let thermostatDamp = parseFloat(document.getElementById('thermostat-damp').value);
+            let thermostatSeed = parseInt(document.getElementById('thermostat-seed').value);
+
+            project.addThermostat(thermostatName, {
+                name: thermostatName,
+                color: thermostatColor,
+                atomIndexes: selectionIndices,
+                startTemp: thermostatStartTemp,
+                endTemp: thermostatEndTemp,
+                damp: thermostatDamp,
+                seed: thermostatSeed
+            });
+
+            updateThermostatTable();
+
+            return;
+        }
+
         window.refreshMolecule = function() {
             //console.log("Refreshing the molecule");
             let vizStyle = document.getElementById("color-by").value;
@@ -1427,6 +1576,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            font-size: small;
         }
         .left {
             float: left;
@@ -1733,19 +1883,43 @@
                     <label id="current-selection-label">Current Selection: </label>
                     <span id="current-selection-span"><input type="text" id="current-selection" name="current-selection"></input></span>
                 </div>
-                <label>Selection name:</label>
-                <input type="text" id="save-selection" name="save-selection"></input>
-                <input type="color" id="selection-color" name="selection-color"></input>
-                <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
+                <div>
+                    <label for="save-selection">Selection name:</label>
+                    <input type="text" id="save-selection" name="save-selection"></input>
+                    <input type="color" id="selection-color" name="selection-color"></input>
+                    <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
+                </div>
                 <div id="dynamic-table-container"></div>
-                <label>Anchor name:</label>
-                <input type="text" id="save-anchor" name="save-anchor"></input>
-                <input type="color" id="anchor-color" name="anchor-color"></input>
-                <select id="anchor-source">
-                    <option value="current-selection">Current selection</option>
-                </select>
-                <button id="save-anchor-button" onclick="saveAnchor()">Save</button>
+                <div>
+                    <label for="save-anchor">Anchor name:</label>
+                    <input type="text" id="save-anchor" name="save-anchor"></input>
+                    <input type="color" id="anchor-color" name="anchor-color"></input>
+                    <select id="anchor-source">
+                        <option value="current-selection">Current selection</option>
+                    </select>
+                    <button id="save-anchor-button" onclick="saveAnchor()">Save</button>
+                </div>
                 <div id="dynamic-anchor-table-container"></div>
+                <div>
+                    <label for="save-thermostat">Thermostat name:</label>
+                    <input type="text" id="save-thermostat" name="save-thermostat"></input>
+                    <label for="thermostat-color">Color:</label>
+                    <input type="color" id="thermostat-color" name="thermostat-color"></input>
+                    <select id="thermostat-source">
+                        <option value="current-selection">Current selection</option>
+                    </select>
+                    <br>
+                    <label for="thermostat-start">Start Temp (K):</label>
+                    <input type="number" id="thermostat-start" name="thermostat-start"></input>
+                    <label for="thermostat-end">End Temp (K):</label>
+                    <input type="number" id="thermostat-end" name="thermostat-end"></input>
+                    <label for="thermostat-damp">Damp (Time unit):</label>
+                    <input type="number" id="thermostat-damp" name="thermostat-damp"></input>
+                    <label for="thermostat-seed">Seed:</label>
+                    <input type="number" id="thermostat-seed" name="thermostat-seed"></input>
+                    <button id="save-thermostat-button" onclick="saveThermostat()">Save</button>
+                </div>
+                <div id="dynamic-thermostat-table-container"></div>
             </div>
         </div>
         
