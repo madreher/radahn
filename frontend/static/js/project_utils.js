@@ -60,8 +60,9 @@ class RadahnProject {
     potentialFilename = "";
     motorGraph = "";
     motorGraphUnits = "LAMMPS_REAL";
-    anchorList = {}
-    selectionList = {}
+    anchorList = {};
+    selectionList = {};
+    thermostatList = {};
     minimizeEnabled = false;
     minimizeConfig = {};
     nvtEnabled = false;
@@ -83,6 +84,7 @@ class RadahnProject {
         this.motorGraphUnits = "LAMMPS_REAL";
         this.anchorList = {};
         this.selectionList = {};
+        this.thermostatList = {};
         this.minimizeEnabled = false;
         this.minimizeConfig = {};
         this.nvtEnabled = false;
@@ -140,6 +142,16 @@ class RadahnProject {
     deleteSelection(selectionName)
     {
         delete this.selectionList[selectionName];
+    }
+
+    addThermostat(thermostatName, thermostat)
+    {
+        this.thermostatList[thermostatName] = thermostat;
+    }
+
+    deleteThermostat(thermostatName)
+    {
+        delete this.thermostatList[thermostatName];
     }
 
     declareMinimize()
@@ -211,6 +223,7 @@ class RadahnProject {
         project["motorGraphUnits"] = this.motorGraphUnits;
         project["anchors"] = this.anchorList;
         project["selections"] = this.selectionList;
+        project["thermostats"] = this.thermostatList;
         if(this.minimizeEnabled)
         {
             project["minimizeConfig"] = this.minimizeConfig;
@@ -264,6 +277,8 @@ class RadahnProject {
             this.anchorList = dictContent["anchors"];
         if("selections" in dictContent)
             this.selectionList = dictContent["selections"];
+        if("thermostats" in dictContent)
+            this.thermostatList = dictContent["thermostats"];
         if("motorGraph" in dictContent)
             this.motorGraph = dictContent["motorGraph"];
         if("motorGraphUnits" in dictContent)
@@ -285,7 +300,6 @@ class RadahnProject {
     {
         let anchorNodes = [];
         // Go though each element of the anchor table
-
         for(const [key, value] of Object.entries(this.anchorList))
         {
             let anchorNode = {
@@ -300,9 +314,30 @@ class RadahnProject {
             anchorNodes.push(anchorNode);
         }
 
+        let thermostatNodes = [];
+        for(const [key, value] of Object.entries(this.thermostatList))
+        {
+            let thermostatNode = {
+                "name": key,
+                "type": "langevin",
+                "selection": value.atomIndexes,
+                "startTemp": value.startTemp,
+                "endTemp": value.endTemp,
+                "seed" : value.seed,
+                "damp": value.damp
+            };
+            console.log(thermostatNode);
+            for(let j = 0; j < thermostatNode["selection"].length; ++j)
+            {
+                thermostatNode["selection"][j] = thermostatNode["selection"][j] + 1;
+            }
+            thermostatNodes.push(thermostatNode);
+        }
+
         let radahnJSON = {}
         radahnJSON["header"] = { "versionMajor": 0, "versionMinor": 1, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig"};
         radahnJSON["anchors"] = anchorNodes;
+        radahnJSON["thermostats"] = thermostatNodes;
         if(this.nvtEnabled)
         {
             radahnJSON["nvtConfig"] = this.nvtConfig;
