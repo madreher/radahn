@@ -307,7 +307,7 @@ class RadahnProject {
         {
             let anchorNode = {
                 "name": key,
-                "selection": value.atomIndexes
+                "selection": value.atomIndexes.slice()
             };
             console.log(anchorNode);
             for(let j = 0; j < anchorNode["selection"].length; ++j)
@@ -323,7 +323,7 @@ class RadahnProject {
             let thermostatNode = {
                 "name": key,
                 "type": "langevin",
-                "selection": value.atomIndexes,
+                "selection": value.atomIndexes.slice(),
                 "startTemp": value.startTemp,
                 "endTemp": value.endTemp,
                 "seed" : value.seed,

@@ -441,7 +441,7 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
             // Search for the selection and do the replacement if found
             if(nodesArray[i]["selectionName"] in selectionTable)
             {
-                nodesArray[i]["selection"] = selectionTable[nodesArray[i]["selectionName"]].atomIndexes
+                nodesArray[i]["selection"] = selectionTable[nodesArray[i]["selectionName"]].atomIndexes.slice();
 
                 // Atom indexes are 0 based, need to switch them to 1 base
                 for(let j = 0; j < nodesArray[i]["selection"].length; ++j)
