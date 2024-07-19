@@ -220,6 +220,7 @@ int main(int argc, char** argv)
     std::string lmpConfigFile;
     uint32_t intervalSteps = 100;
     uint64_t currentStep = 0;
+    std::string ffType = "";
 
     // NVT 
     std::string nvtType{"none"}; // none, createVelocity, nvtPhase
@@ -327,6 +328,19 @@ int main(int argc, char** argv)
         }
         std::string unitConfig = document["header"]["units"].get<std::string>();
         auto configSimUnit = radahn::core::from_string(unitConfig);
+
+        if(!document["header"].contains("fftype"))
+        {
+            spdlog::critical("Unable to detect the type of forcefield used in the header in the JSON file {}.", lmpConfigFile);
+            exit(-1);
+        }
+        ffType = document["header"]["fftype"].get<std::string>();
+        std::set<std::string> supportedFFTypes{"airebo", "rebo", "airebo-m", "reax"};
+        if(supportedFFTypes.count(ffType) == 0)
+        {
+            spdlog::critical("Received an unsupported type of forcefield \"{}\". Abording.", ffType);
+            exit(-1);
+        }
 
         if(document.contains("anchors"))
         {
@@ -646,6 +660,27 @@ int main(int argc, char** argv)
     std::string cmdNonThermalizedComputeKE{"compute ke_nonthermalizedAtoms nonthermalizedAtoms ke"};
     executeCommand(lps, cmdNonThermalizedComputeKE, logFile);
     thermoFields.push_back("c_ke_nonthermalizedAtoms");
+
+    if(hasPermanentAnchor)
+    {
+        std::stringstream cmdAnchorComputeTemp;
+        cmdAnchorComputeTemp<<"compute temp_"<<permanentAnchorName<<" "<<permanentAnchorName<<" temp";
+        executeCommand(lps, cmdAnchorComputeTemp.str(), logFile);
+        thermoFields.push_back("c_temp_" + permanentAnchorName);
+
+        std::stringstream cmdAnchorComputeKE;
+        cmdAnchorComputeKE<<"compute ke_"<<permanentAnchorName<<" "<<permanentAnchorName<<" ke";
+        executeCommand(lps, cmdAnchorComputeKE.str(), logFile);
+        thermoFields.push_back("c_ke_" + permanentAnchorName);
+    }
+
+    // DEBUG FOR KEVIN. THIS IS SETUP In THE INPUT
+    if(ffType.compare("airebo") == 0)
+    {
+        thermoFields.push_back("v_REBO");
+        thermoFields.push_back("v_LJ");
+        thermoFields.push_back("v_TORSION");
+    }
 
     executeCommand(lps, "thermo 50", logFile);
     std::stringstream cmdThermoStyle;
