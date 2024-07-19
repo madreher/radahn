@@ -176,8 +176,38 @@ void extractAtomInformation(
 
     for(auto & field : thermoFieldsRequested)
     {
-        double data = lammps_get_thermo(lps, field.c_str());
-        thermo.insert({field, data});
+        if(field.starts_with("v_"))
+        {
+            std::string varName = field.substr(2, field.size()-2);
+            double* dptr = static_cast<double*>(lammps_extract_variable(lps, varName.c_str(), NULL));
+            if(dptr)
+            {
+                thermo.insert({field, *dptr});
+                lammps_free(dptr);
+            }
+            else 
+            {
+                spdlog::error("Unable to find the field {} {}.", varName, field);
+            }
+        }
+        else if(field.starts_with("c_"))
+        {
+            std::string varName = field.substr(2, field.size()-2);
+            double* dptr = static_cast<double*>(lammps_extract_compute(lps, varName.c_str(), LMP_STYLE_GLOBAL, LMP_TYPE_SCALAR));
+            if(dptr)
+            {
+                thermo.insert({field, *dptr});
+            }
+            else 
+            {
+                spdlog::error("Unable to find the field {} {}.", varName, field);
+            }
+        }
+        else
+        {
+            double data = lammps_get_thermo(lps, field.c_str());
+            thermo.insert({field, data});
+        }
     }
    
 }
