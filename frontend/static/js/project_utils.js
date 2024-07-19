@@ -80,6 +80,7 @@ class RadahnProject {
         this.xyzFilename = "";
         this.potentialContent = "";
         this.potentialFilename = "";
+        this.potentialType = "";
         this.motorGraph = {};
         this.motorGraphUnits = "LAMMPS_REAL";
         this.anchorList = {};
@@ -111,6 +112,7 @@ class RadahnProject {
     {
         this.potentialContent = potentialContent;
         this.potentialFilename = potentialFilename;
+        this.potentialType = potentialFilename.split('.').pop();
     }
 
     setMotorGraph(motorGraph, motorGraphUnits)
@@ -273,6 +275,7 @@ class RadahnProject {
             this.potentialContent = dictContent["potentialContent"];
         if("potentialFilename" in dictContent)
             this.potentialFilename = dictContent["potentialFilename"];
+            this.potentialType = this.potentialFilename.split('.').pop();
         if("anchors" in dictContent)
             this.anchorList = dictContent["anchors"];
         if("selections" in dictContent)
@@ -335,7 +338,7 @@ class RadahnProject {
         }
 
         let radahnJSON = {}
-        radahnJSON["header"] = { "versionMajor": 0, "versionMinor": 1, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig"};
+        radahnJSON["header"] = { "versionMajor": 0, "versionMinor": 1, "units": unit, "generator": "Radahn_frontendV1", "format": "lmpConfig", "fftype": this.potentialType};
         radahnJSON["anchors"] = anchorNodes;
         radahnJSON["thermostats"] = thermostatNodes;
         if(this.nvtEnabled)

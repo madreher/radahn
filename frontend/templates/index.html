@@ -1263,6 +1263,11 @@
         // Make the function global so that it's accessible to the "save" button
         window.saveSelectionInternal = function() {
             if (selectedAtoms.length > 0 && document.getElementById('save-selection').value.length > 0) {
+                if(!document.getElementById('save-selection').checkValidity())
+                {
+                    console.error("Invalid selection name. The selection name can only be alphanumerical [A-Za-z0-9].");
+                    return;
+                }
                 let selectionName = document.getElementById('save-selection').value;
                 let selectionDict = {
                     atomIndexes: selectedAtoms.slice(), 
@@ -1288,6 +1293,12 @@
             if(anchorName.length == 0)
             {
                 console.warn("No name was given for the anchor");
+                return;
+            }
+
+            if(!document.getElementById('save-anchor').checkValidity())
+            {
+                console.error("Invalid anchor name. The anchor name can only be alphanumerical [A-Za-z0-9].");
                 return;
             }
 
@@ -1339,6 +1350,12 @@
             if(thermostatName.length == 0)
             {
                 console.warn("No name was given for the thermostat");
+                return;
+            }
+
+            if(!document.getElementById('save-thermostat').checkValidity())
+            {
+                console.error("Invalid thermostat name. The thermostat name can only be alphanumerical [A-Za-z0-9].");
                 return;
             }
 
@@ -1885,72 +1902,82 @@
             <div id="visualization" class="mol-container"></div>
             <canvas id="visualization-overlay" class="mol-overlay"></canvas>
             <div id="info">
-                <label>Color by:</label>
-                <select id="color-by">
-                    <option value="atom-type">Atom Type</option>
-                    <option value="selection">Selection</option>
-                    <option value="anchor">Anchor</option>
-                    <option value="thermostat">Thermostat</option>
-                    <option value="jigs">Jigs</option>
-                </select>
-                <label>Label:</label>
-                <select id="atom-label">
-                    <option value="none">None</option>
-                    <option value="index">Index</option>
-                </select>
-                <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
-                <p id="info-sim-it">Current Timestep: 0</p>
-                <p>
-                    <button id="play-button" onclick="onPlayTrajectory()">Play</button>
-                    <button id="stop-button" onclick="onStopTrajectory()">Stop</button>
-                    <button id="next-button" onclick="onGoToNextFrame()">Next</button>
-                    <button id="prev-button" onclick="onGoToPreviousFrame()">Prev</button>
-                    <button id="first-button" onclick="onGoToFirstFrame()">First</button>
-                    <button id="last-button" onclick="onGoToLastFrame()">Last</button>
-                    <button id="reset-button" onclick="onGoToUserFrame()">Go to</button>
-                    <input type="number" id="user-frame" name="user-frame"></input>
-                </p>
-                <div id="current-selection-container">
-                    <label id="current-selection-label">Current Selection: </label>
-                    <span id="current-selection-span"><input type="text" id="current-selection" name="current-selection"></input></span>
-                </div>
-                <div>
-                    <label for="save-selection">Selection name:</label>
-                    <input type="text" id="save-selection" name="save-selection"></input>
-                    <input type="color" id="selection-color" name="selection-color"></input>
-                    <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
-                </div>
-                <div id="dynamic-table-container"></div>
-                <div>
+                <fieldset>
+                    <legend>Viewer</legend>
+                    <label>Color by:</label>
+                    <select id="color-by">
+                        <option value="atom-type">Atom Type</option>
+                        <option value="selection">Selection</option>
+                        <option value="anchor">Anchor</option>
+                        <option value="thermostat">Thermostat</option>
+                        <option value="jigs">Jigs</option>
+                    </select>
+                    <label>Label:</label>
+                    <select id="atom-label">
+                        <option value="none">None</option>
+                        <option value="index">Index</option>
+                    </select>
+                    <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
+                    <p id="info-sim-it">Current Timestep: 0</p>
+                    <p>
+                        <button id="play-button" onclick="onPlayTrajectory()">Play</button>
+                        <button id="stop-button" onclick="onStopTrajectory()">Stop</button>
+                        <button id="next-button" onclick="onGoToNextFrame()">Next</button>
+                        <button id="prev-button" onclick="onGoToPreviousFrame()">Prev</button>
+                        <button id="first-button" onclick="onGoToFirstFrame()">First</button>
+                        <button id="last-button" onclick="onGoToLastFrame()">Last</button>
+                        <button id="reset-button" onclick="onGoToUserFrame()">Go to</button>
+                        <input type="number" id="user-frame" name="user-frame"></input>
+                    </p>
+                </fieldset>
+                <fieldset>
+                    <legend>Selections</legend>
+                    <div id="current-selection-container">
+                        <label id="current-selection-label">Current Selection: </label>
+                        <span id="current-selection-span"><input type="text" id="current-selection" name="current-selection"></input></span>
+                    </div>
+                    <div>
+                        <label for="save-selection">Selection name:</label>
+                        <input type="text" id="save-selection" name="save-selection" pattern="[A-Za-z0-9]{1,}"></input>
+                        <input type="color" id="selection-color" name="selection-color"></input>
+                        <button id="save-selection-button" onclick="saveSelectionInternal()">Save</button>
+                    </div>
+                    <div id="dynamic-table-container"></div>
+                </fieldset>
+                <fieldset>
+                    <legend>Anchors</legend>
                     <label for="save-anchor">Anchor name:</label>
-                    <input type="text" id="save-anchor" name="save-anchor"></input>
+                    <input type="text" id="save-anchor" name="save-anchor" pattern="[A-Za-z0-9]{1,}"></input>
                     <input type="color" id="anchor-color" name="anchor-color"></input>
                     <select id="anchor-source">
                         <option value="current-selection">Current selection</option>
                     </select>
                     <button id="save-anchor-button" onclick="saveAnchor()">Save</button>
-                </div>
-                <div id="dynamic-anchor-table-container"></div>
-                <div>
-                    <label for="save-thermostat">Thermostat name:</label>
-                    <input type="text" id="save-thermostat" name="save-thermostat"></input>
-                    <label for="thermostat-color">Color:</label>
-                    <input type="color" id="thermostat-color" name="thermostat-color"></input>
-                    <select id="thermostat-source">
-                        <option value="current-selection">Current selection</option>
-                    </select>
-                    <br>
-                    <label for="thermostat-start">Start Temp (K):</label>
-                    <input type="number" id="thermostat-start" name="thermostat-start"></input>
-                    <label for="thermostat-end">End Temp (K):</label>
-                    <input type="number" id="thermostat-end" name="thermostat-end"></input>
-                    <label for="thermostat-damp">Damp (Time unit):</label>
-                    <input type="number" id="thermostat-damp" name="thermostat-damp"></input>
-                    <label for="thermostat-seed">Seed:</label>
-                    <input type="number" id="thermostat-seed" name="thermostat-seed"></input>
-                    <button id="save-thermostat-button" onclick="saveThermostat()">Save</button>
-                </div>
-                <div id="dynamic-thermostat-table-container"></div>
+                    <div id="dynamic-anchor-table-container"></div>
+                </fieldset>
+                <fieldset>
+                    <legend>Thermostats</legend>
+                    <div>
+                        <label for="save-thermostat">Thermostat name:</label>
+                        <input type="text" id="save-thermostat" name="save-thermostat" pattern="[A-Za-z0-9]{1,}"></input>
+                        <label for="thermostat-color">Color:</label>
+                        <input type="color" id="thermostat-color" name="thermostat-color"></input>
+                        <select id="thermostat-source">
+                            <option value="current-selection">Current selection</option>
+                        </select>
+                        <br>
+                        <label for="thermostat-start">Start Temp (K):</label>
+                        <input type="number" id="thermostat-start" name="thermostat-start"></input>
+                        <label for="thermostat-end">End Temp (K):</label>
+                        <input type="number" id="thermostat-end" name="thermostat-end"></input>
+                        <label for="thermostat-damp">Damp (Time unit):</label>
+                        <input type="number" id="thermostat-damp" name="thermostat-damp"></input>
+                        <label for="thermostat-seed">Seed:</label>
+                        <input type="number" id="thermostat-seed" name="thermostat-seed"></input>
+                        <button id="save-thermostat-button" onclick="saveThermostat()">Save</button>
+                    </div>
+                    <div id="dynamic-thermostat-table-container"></div>
+                </fieldset>
             </div>
         </div>
         
