@@ -46,6 +46,7 @@ RUN cd /root && mkdir radahn && cd radahn && mkdir opt conduit godrick lammps ra
 # CONUIT BUILD
 RUN cd /root/radahn/conduit && \
     git clone --recursive https://github.com/llnl/conduit.git . && \
+    git checkout tags/v0.9.2 && \
     mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/radahn/opt ../src/ -DCMAKE_BUILD_TYPE=Release -DENABLE_MPI=ON && \
     make -j2 && \
