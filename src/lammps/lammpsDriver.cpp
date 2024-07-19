@@ -121,6 +121,7 @@ void extractAtomInformation(
     std::vector<atomPositions_t>& pos,
     std::vector<atomForces_t>& forces,
     std::vector<atomVelocities_t>& vel,
+    std::vector<std::string>& thermoFieldsRequested,
     std::unordered_map<std::string, std::variant<double, int32_t> >& thermo
     )
 {
@@ -155,7 +156,7 @@ void extractAtomInformation(
     thermo.insert({"simIt", static_cast<int32_t>(simIt32[0])});
 
 
-    double temp = lammps_get_thermo(lps, "temp");
+    /*double temp = lammps_get_thermo(lps, "temp");
     thermo.insert({"temp", temp});
 
     double tot = lammps_get_thermo(lps, "etotal");
@@ -165,17 +166,23 @@ void extractAtomInformation(
     thermo.insert({"pot", pot});
 
     double kin = lammps_get_thermo(lps, "ke");
-    thermo.insert({"kin", kin});
+    thermo.insert({"kin", kin});*/
 
     double* dt = static_cast<double*>(lammps_extract_global(lps, "dt"));
     thermo.insert({"dt", dt[0]});
 
     double* sim_t = static_cast<double*>(lammps_extract_global(lps, "atime"));
     thermo.insert({"sim_t", sim_t[0]});
+
+    for(auto & field : thermoFieldsRequested)
+    {
+        double data = lammps_get_thermo(lps, field.c_str());
+        thermo.insert({field, data});
+    }
    
 }
 
-void sendLammpsData(LAMMPS* lps, uint8_t simUnitValue, godrick::mpi::GodrickMPI& handler, const std::string& phase)
+void sendLammpsData(LAMMPS* lps, uint8_t simUnitValue, godrick::mpi::GodrickMPI& handler, const std::string& phase, std::vector<std::string>& thermoFields)
 {
     double simItD = lammps_get_thermo(lps, "step");
     simIt_t simIt = static_cast<simIt_t>(simItD);
@@ -186,7 +193,7 @@ void sendLammpsData(LAMMPS* lps, uint8_t simUnitValue, godrick::mpi::GodrickMPI&
     std::vector<atomForces_t> forces;
     std::vector<atomVelocities_t> vel;
     std::unordered_map<std::string, std::variant<double, int32_t> > thermos;
-    extractAtomInformation(lps, ids, pos, forces, vel, thermos);
+    extractAtomInformation(lps, ids, pos, forces, vel, thermoFields, thermos);
 
     conduit::Node rootMsg;
     conduit::Node& simData = rootMsg.add_child("simdata");
@@ -489,6 +496,14 @@ int main(int argc, char** argv)
         // This is costly, but during the debugging stage where the simulation might break, it's a necessary cost.
         logFile.flush();
         
+        std::vector<std::string> thermoFieldsNVT({"step", "time", "etotal", "pe", "epair"});
+        // DEBUG FOR KEVIN. THIS IS SETUP In THE INPUT
+        if(ffType.compare("airebo") == 0)
+        {
+            thermoFieldsNVT.push_back("v_REBO");
+            thermoFieldsNVT.push_back("v_LJ");
+            thermoFieldsNVT.push_back("v_TORSION");
+        }
 
         // At this point, everything is declared, we just have to call run
         std::vector<conduit::Node> receivedData;
@@ -518,7 +533,7 @@ int main(int argc, char** argv)
             executeCommand(lps, "run " + std::to_string(intervalSteps), logFile);
 
             // Sending the simulation data 
-            sendLammpsData(lps, simUnitValue, handler, "NVT");
+            sendLammpsData(lps, simUnitValue, handler, "NVT", thermoFieldsNVT);
 
             // Not using simIt to avoid potential rounding errors from double to uint64
             currentStep += intervalSteps; 
@@ -768,7 +783,7 @@ int main(int argc, char** argv)
             executeCommand(lps, cmd, logFile);
 
         // Sending the simulation data 
-        sendLammpsData(lps, simUnitValue, handler, "NVE");
+        sendLammpsData(lps, simUnitValue, handler, "NVE", thermoFields);
 
         // Not using simIt to avoid potential rounding errors from double to uint64
         currentStep += intervalSteps; 
