@@ -669,7 +669,7 @@ int main(int argc, char** argv)
     if(hasPermanentAnchor)
         cmdGroupMobile<<"group mobileAtoms subtract all "<<permanentAnchorName;
     else
-        cmdGroupMobile<<"group mobileAtoms subtract all empty";
+        cmdGroupMobile<<"group mobileAtoms union all";
     executeCommand(lps, cmdGroupMobile.str(), logFile);
     std::string cmdMobileComputeTemp{"compute temp_mobileAtoms mobileAtoms temp"};
     executeCommand(lps, cmdMobileComputeTemp, logFile);
