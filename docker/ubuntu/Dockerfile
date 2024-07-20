@@ -35,35 +35,34 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip3 install -q --no-cache-dir conan conan-package-tools
 
-
-WORKDIR /root
+WORKDIR /app
 
 RUN mkdir -p /root/.conan
 
 # Create a folder for each project 
-RUN cd /root && mkdir radahn && cd radahn && mkdir opt conduit godrick lammps radahn
+RUN cd /app && mkdir radahn && cd radahn && mkdir opt conduit godrick lammps radahn
 
 # CONUIT BUILD
-RUN cd /root/radahn/conduit && \
+RUN cd /app/radahn/conduit && \
     git clone --recursive https://github.com/llnl/conduit.git . && \
     git checkout tags/v0.9.2 && \
     mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/root/radahn/opt ../src/ -DCMAKE_BUILD_TYPE=Release -DENABLE_MPI=ON && \
+    cmake -DCMAKE_INSTALL_PREFIX=/app/radahn/opt ../src/ -DCMAKE_BUILD_TYPE=Release -DENABLE_MPI=ON && \
     make -j2 && \
     make install
 
 
 # GODRICK BUILD
-RUN cd /root/radahn/godrick && \
+RUN cd /app/radahn/godrick && \
     git clone --recursive https://github.com/madreher/Godrick.git . && \
-    export CONDUIT_PREFIX=/root/radahn/opt && \
+    export CONDUIT_PREFIX=/app/radahn/opt && \
     mkdir build && cd build && \
     ../run_cmake_script.sh && \
     make -j2 && \
     make install
 
 # LAMMPS BUILD
-RUN cd /root/radahn/lammps && \
+RUN cd /app/radahn/lammps && \
     wget https://download.lammps.org/tars/lammps-17Apr2024.tar.gz && \
     tar -xf lammps-17Apr2024.tar.gz && \
     cd lammps-17Apr2024/ && \
@@ -72,8 +71,8 @@ RUN cd /root/radahn/lammps && \
                 -DBUILD_MPI=TRUE -DBUILD_OMP=TRUE \
                 -DBUILD_SHARED_LIBS=TRUE \
                 -DPKG_OPENMP=TRUE \
-                -DCMAKE_INSTALL_PREFIX=/root/radahn/opt \
-                -DCMAKE_INSTALL_RPATH=/root/radahn/opt/lammps-17Apr2024/lib \
+                -DCMAKE_INSTALL_PREFIX=/app/radahn/opt \
+                -DCMAKE_INSTALL_RPATH=/app/radahn/opt/lammps-17Apr2024/lib \
                 -DPKG_MOLECULE=TRUE \
                 -DPKG_RIGID=TRUE \
                 -DPKG_KSPACE=TRUE \
@@ -155,19 +154,19 @@ RUN cd /root/radahn/lammps && \
     make install 
 
 # RADAHN BUILD
-RUN cd /root/radahn/radahn && \
+RUN cd /app/radahn/radahn && \
     git clone --recursive https://github.com/madreher/radahn.git . && \
-    export CONDUIT_PREFIX=/root/radahn/radahn/build/install && \
-    export GODRICK_PREFIX=/root/radahn/godrick/build/install && \
-    export LAMMPS_PREFIX=/root/radahn/opt && \
+    export CONDUIT_PREFIX=/app/radahn/radahn/build/install && \
+    export GODRICK_PREFIX=/app/radahn/godrick/build/install && \
+    export LAMMPS_PREFIX=/app/radahn/opt && \
     mkdir build && cd build && \
     ../run_cmake_script.sh && \
     make -j2 && \
     make install
 
 # Python packages
-RUN cd /root/radahn/radahn && pip3 install -r requirements.txt
-RUN cd /root/radahn/godrick && \
+RUN cd /app/radahn/radahn && pip3 install -r requirements.txt
+RUN cd /app/radahn/godrick && \
     pip3 install -r requirements.txt && \
     pip3 install -e .
 
