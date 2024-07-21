@@ -387,14 +387,10 @@
 
                     // Updating the plots if necessary
                     if(firstPlotKey === fields[i].key) {
-                        chart1.data.labels.push(simIt);
-                        chart1.data.datasets[0].data.push(fields[i].value);
                         chart1.update();
                     }
 
                     if(secondPlotKey === fields[i].key) {
-                        chart2.data.labels.push(simIt);
-                        chart2.data.datasets[0].data.push(fields[i].value);
                         chart2.update();
                     }
                 }
@@ -1235,10 +1231,10 @@
             {
                 // Update the plot
                 chart1.data.datasets[0].label = plot1Field;
-                // deep copy, we don't want the chart and local kvs to share the same KVS
-                // TODO: check if we can just update the KVS and then we don't need to update the dataset of the chart?
-                chart1.data.labels = kvsData[plot1Field].it.slice();
-                chart1.data.datasets[0].data = kvsData[plot1Field].values.slice(); 
+                // Using array reference instead of copy so that we just have to update the kvsData structure
+                // when receiving new data
+                chart1.data.labels = kvsData[plot1Field].it;
+                chart1.data.datasets[0].data = kvsData[plot1Field].values; 
                 chart1.update();
 
                 firstPlotKey = plot1Field;
@@ -1248,8 +1244,10 @@
             {
                 // Update the plot
                 chart2.data.datasets[0].label = plot2Field;
-                chart2.data.labels = kvsData[plot2Field].it.slice();
-                chart2.data.datasets[0].data = kvsData[plot2Field].values.slice(); 
+                // Using array reference instead of copy so that we just have to update the kvsData structure
+                // when receiving new data
+                chart2.data.labels = kvsData[plot2Field].it;
+                chart2.data.datasets[0].data = kvsData[plot2Field].values; 
                 chart2.update();
 
                 secondPlotKey = plot2Field;
