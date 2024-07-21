@@ -187,7 +187,7 @@ void extractAtomInformation(
             }
             else 
             {
-                spdlog::error("Unable to find the field {} {}.", varName, field);
+                spdlog::error("Failed to cast the field {} {} in the Lammps driver.", varName, field);
             }
         }
         else if(field.starts_with("c_"))
@@ -200,7 +200,7 @@ void extractAtomInformation(
             }
             else 
             {
-                spdlog::error("Unable to find the field {} {}.", varName, field);
+                spdlog::error("Failed to cast the field {} {} in the Lammps driver.", varName, field);
             }
         }
         else

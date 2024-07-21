@@ -293,12 +293,12 @@
                     pan: {
                         enabled: true,
                         mode: 'x',
-                    },
+                    }/*,
                     limits: {
                         x: {
                             minRange: 3
                         },
-                    },
+                    },*/
                 }
             }
         }
@@ -334,12 +334,12 @@
                     pan: {
                         enabled: true,
                         mode: 'x',
-                    },
+                    }/*,
                     limits: {
                         x: {
                             minRange: 3
                         },
-                    },
+                    },*/
                 }
             }
         }
@@ -375,6 +375,7 @@
             
             //let keys = extractKeys(msg);
             let fields = extractKeysAndValues(msg);
+            //console.log(fields);
 
             // Updating the internal map
             let simIt = msg['global']['simIt'];
@@ -1234,8 +1235,10 @@
             {
                 // Update the plot
                 chart1.data.datasets[0].label = plot1Field;
-                chart1.data.labels = kvsData[plot1Field].it;
-                chart1.data.datasets[0].data = kvsData[plot1Field].values; 
+                // deep copy, we don't want the chart and local kvs to share the same KVS
+                // TODO: check if we can just update the KVS and then we don't need to update the dataset of the chart?
+                chart1.data.labels = kvsData[plot1Field].it.slice();
+                chart1.data.datasets[0].data = kvsData[plot1Field].values.slice(); 
                 chart1.update();
 
                 firstPlotKey = plot1Field;
@@ -1245,8 +1248,8 @@
             {
                 // Update the plot
                 chart2.data.datasets[0].label = plot2Field;
-                chart2.data.labels = kvsData[plot2Field].it;
-                chart2.data.datasets[0].data = kvsData[plot2Field].values; 
+                chart2.data.labels = kvsData[plot2Field].it.slice();
+                chart2.data.datasets[0].data = kvsData[plot2Field].values.slice(); 
                 chart2.update();
 
                 secondPlotKey = plot2Field;
