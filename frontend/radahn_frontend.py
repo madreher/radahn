@@ -640,11 +640,18 @@ def listen_to_zmq_socket(configTask:dict):
         checkEvent = "threadName" in configTask
         if checkEvent:
             threadTable[configTask["threadName"]]["event"].set()
+        previousIt = -1
         while (checkEvent and threadTable[configTask["threadName"]]["event"].is_set()) or (not checkEvent):
             socks = dict(poller.poll(500)) # ms
             if socket in socks and socks[socket] == zmq.POLLIN:
                 message = socket.recv()
-                socketio.emit('zmq_message', {'message': message.decode('utf-8')})
+                messageStr = message.decode('utf-8')
+                msgDict = json.loads(messageStr)
+                if "global" not in msgDict.keys():
+                    continue
+                if "simIt" not in msgDict["global"].keys():
+                    continue 
+                socketio.emit('zmq_message', {'message': messageStr})
     finally:
         propagateLog({"msg": "End Listening for KVS messages.", "level": "info"})
         if "threadName" in configTask:

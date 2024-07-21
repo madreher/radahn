@@ -133,7 +133,7 @@ public:
             }
             else
             {
-                spdlog::warn("Unable to find the field {} in the node.", field);
+                spdlog::warn("Unable to find the field {} in the node, even though it has been declared in the CSVWriter {}.", field, m_name);
                 node.print();
                 spdlog::warn("End print node.");
                 m_content<<m_sep;

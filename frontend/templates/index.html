@@ -293,12 +293,12 @@
                     pan: {
                         enabled: true,
                         mode: 'x',
-                    },
+                    }/*,
                     limits: {
                         x: {
                             minRange: 3
                         },
-                    },
+                    },*/
                 }
             }
         }
@@ -334,12 +334,12 @@
                     pan: {
                         enabled: true,
                         mode: 'x',
-                    },
+                    }/*,
                     limits: {
                         x: {
                             minRange: 3
                         },
-                    },
+                    },*/
                 }
             }
         }
@@ -375,6 +375,7 @@
             
             //let keys = extractKeys(msg);
             let fields = extractKeysAndValues(msg);
+            //console.log(fields);
 
             // Updating the internal map
             let simIt = msg['global']['simIt'];
@@ -386,14 +387,10 @@
 
                     // Updating the plots if necessary
                     if(firstPlotKey === fields[i].key) {
-                        chart1.data.labels.push(simIt);
-                        chart1.data.datasets[0].data.push(fields[i].value);
                         chart1.update();
                     }
 
                     if(secondPlotKey === fields[i].key) {
-                        chart2.data.labels.push(simIt);
-                        chart2.data.datasets[0].data.push(fields[i].value);
                         chart2.update();
                     }
                 }
@@ -1234,6 +1231,8 @@
             {
                 // Update the plot
                 chart1.data.datasets[0].label = plot1Field;
+                // Using array reference instead of copy so that we just have to update the kvsData structure
+                // when receiving new data
                 chart1.data.labels = kvsData[plot1Field].it;
                 chart1.data.datasets[0].data = kvsData[plot1Field].values; 
                 chart1.update();
@@ -1245,6 +1244,8 @@
             {
                 // Update the plot
                 chart2.data.datasets[0].label = plot2Field;
+                // Using array reference instead of copy so that we just have to update the kvsData structure
+                // when receiving new data
                 chart2.data.labels = kvsData[plot2Field].it;
                 chart2.data.datasets[0].data = kvsData[plot2Field].values; 
                 chart2.update();
