@@ -93,3 +93,21 @@ These instructions have been tested on native Ubuntu 22.04, Windows 11 via WSL2 
 ### Ubuntu 22
 
 TODO
+
+# Tutorial
+
+## Goal
+
+In this section, we are going to go over the main workflow provided by Radahn. A typical workflow is typically composed of 4 phases:
+- Model preparation, which include loading a molecular model and creating jigs (motors, anchors, thermostats)
+- Minimization of the model
+- Thermalization of the model
+- Equilibration and actuation of the model. 
+
+In this example, we will import a single nanotube and try to bend one of it extremity which maintaining the other side in place.
+![image info](./data/images/nanotube_bend_demo.png "Nanotube 30A bended ")
+
+## Phase 1: Model preparation
+
+The first step is to install Radahn, launch the server, and open the frontend in your web browser.
+
