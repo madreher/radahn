@@ -98,18 +98,18 @@ TODO
 
 ## Goal
 
-In this section, we are going to cover the main workflow provided by Radahn. A typical workflow is composed of 4 phases:
-- Model preparation, which include loading a molecular model and creating jigs (motors, anchors, thermostats)
-- Simulation setup, which include the selection of a forcefield, the configuration for a minimization, thermalization method, and actuation of the motors
+In this section, we are going to cover the main workflow provided by Radahn. A typical workflow is composed of 3 phases:
+- Model preparation, which includes loading a molecular model and creating jigs (motors, anchors, thermostats)
+- Simulation setup, which includes the selection of a forcefield, the configuration for the minimization, thermalization method, and actuation of the motors
 - Running the simulation
 
-In this example, we will import a single nanotube and try to bend one of it extremity which maintaining the other side in place.
+In this example, we will import a single nanotube and try to bend one of it extremity while maintaining the other side in place.
 ![image info](./data/images/nanotube_bend_demo.png "Nanotube 30A bended ")
 
 ## Phase 1: Model preparation
 
 The first step is to install Radahn, launch the server, and open the frontend in your web browser.
-To install Radahn, please follow the instruction in the Section [Installation](#installation).
+To install Radahn, please follow the instructions in the Section [Installation](#installation).
 
 To launch the server:
 ```
@@ -126,10 +126,10 @@ We will first start by loading the molecular model of the nanotube. In the sourc
 Once loaded, the molecular model should appear in the viewer as shown below.
 ![image info](./data/images/CNT_loaded.png)
 
-We are now going to set up the jigs for the scenario. The are first going to create an anchor on the left side of the molecule. To do so, first select 2 layers of carbons on the left side by maintaining `left shit + left click` in the molecular viewer and draw a rectangle around these layers. You can rotate the camera by maintaining the left click, or translate the camera by maintaing the wheel button. When releasing the mouse click, the current selection will apear in yellow. You can then create an anchor by going to the `Anchors` section below the viewer, choose a name (alphanumerical only) and a color for the anchor, make sure that `Current selection` is selected for the selection, and click on `Save`. Your anchor should now appear in the table below. You can check in the viewer as well by selecting `Anchor` in the `Color by` menu just under the viewer. The viewer should now look something like this:
+We are now going to set up the jigs for the scenario. First, we need to create an anchor on the left side of the molecule. To do so, first select 2 layers of carbons on the left side by maintaining `left shit + left click` in the molecular viewer and draw a rectangle around these layers. You can rotate the camera by maintaining the left click, or translate the camera by maintaing the wheel button. When releasing the mouse click, the current selection will apear in yellow. You can then create an anchor by going to the `Anchors` section below the viewer, choose a name (alphanumerical only) and a color for the anchor, make sure that `Current selection` is selected for the selection, and click on `Save`. Your anchor should now appear in the table below. You can check in the viewer as well by selecting `Anchor` in the `Color by` menu just under the viewer and click on the `Update` button on the right. The viewer should now look something like this:
 ![image info](./data/images/anchor_setup.png)
 
-When using anchors, it is highly recommended to setup a buffer zone with a thermostat near the anchor to create a transition zone between the anchor and the rest of the model. To do so, we are going to select another zone next to the anchor of about 3 layers of carbon with the same selection method. Once you have your selection, go to the `Thermostats` section at the bottom, under the anchors. As previously, choose a name (alphanumerical only), a color, and make sure that `Current selection` is selected for the selection. In addition, we need to setup the temperature of the thermostat. For this case, we are going to run the simulation at 300K after warm up. In the thermostats setting, set `Start Temp` and `End Temp` to 300 (K), 100 for the `Damp` and a seed of your choosing (must be integer). Once this is done, you can click on the `Save` button. You can check your thermostat by selecting `Thermostat` in the `Color by` menu below the viewer and click on `Update`. The viewer should now look something like this:
+When using anchors, it is highly recommended to setup a buffer zone with a thermostat near the anchor to create a transition zone between the anchor and the rest of the model. To do so, we are going to select another zone next to the anchor of about 2-3 layers of carbon with the same selection method. Once you have your selection, go to the `Thermostats` section at the bottom, under the anchors. As previously, choose a name (alphanumerical only), a color, and make sure that `Current selection` is selected for the selection. In addition, we need to setup the temperature of the thermostat. For this case, we are going to run the simulation at 300K after warm up. In the thermostats setting, set `Start Temp` and `End Temp` to 300 (K), 100 for the `Damp` and a seed of your choosing (must be integer). Once this is done, you can click on the `Save` button. You can check your thermostat by selecting `Thermostat` in the `Color by` menu below the viewer and click on `Update`. The viewer should now look something like this:
 ![image info](./data/images/thermostat_setup.png)
 
 Finally, we would like to apply a downward force to the right side of the nanotube. The first step is to create a `Selection` object. To do so, as previously, select about 1-2 layers of carbon on the right extremity of the nanotube, and go to the `Selections` menu below. Choose a name (alphanumerical only), a color, and click on `Save`. You selection should now appear in the table below. You can check your entire setup by selecting `Jigs` in the `Color by` menu below the viewer and click on `Update`. The viewer should now look something like this: 
