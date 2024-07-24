@@ -1554,7 +1554,7 @@
             let fileContent = JSON.stringify(projectContent);
             var bb = new Blob([fileContent], {type: 'text/plain'});
             var a = document.createElement('a');
-            let filename = 
+            //let filename = 
             a.download = 'project.json';
             a.href = window.URL.createObjectURL(bb);
             a.style='display:none';
@@ -1607,6 +1607,20 @@
             //let fileContent = JSON.stringify(projectContent);
             socket.emit('save_project', projectContent);
             console.log("Project content sent to the server.");
+        }
+
+        window.downloadJobFolder = function() {
+            const jobFolderPath = document.getElementById("job_folder").value;
+            if(jobFolderPath.length == 0)
+            {
+                console.error("Job folder path currently empty.");
+                return;
+            }
+
+            const jobFolder = jobFolderPath.split("/").pop();
+
+            window.location.href = '/download_job_folder?job_folder=' + jobFolder;
+            console.log("DownloadJobFolder was called to download the job " + jobFolder);
         }
     });
     </script>
@@ -1859,6 +1873,7 @@
             <form id="open_job_folder" method="POST" action="#">
                 <input type="submit" value="Open"></input>
             </form>
+            <button id="download_job_folder" onclick="downloadJobFolder()">Download Job Folder</button>
             </span>
         </div>
         <h2>Log Console</h2>
