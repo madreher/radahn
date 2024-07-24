@@ -535,7 +535,7 @@
             }
         }
 
-        $('form#generate_inputs').submit(function(event) {
+        window.generate_inputs = function() {
 
             console.log("Requesting to generate Lammps input files in a job folder.");
 
@@ -593,9 +593,9 @@
 
             socket.emit('generate_inputs', configDict);
             return false;
-        });
+        };
 
-        $('form#launch_simulation').submit(function(event) {
+        window.launch_simulation = function() {
             console.log('Requesting to launch simulation.');
 
             // Check which model to use for the simulation
@@ -674,7 +674,7 @@
 
             socket.emit('launch_simulation', configDict);
             return false;
-        });
+        };
 
         $('form#print_motors').submit(function(event) {
             let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, project.selectionList);
@@ -682,7 +682,7 @@
             return false;
         });
 
-        $('form#open_job_folder').submit(function(event) {
+        window.open_job_folder = function() {
             jobFolder = document.getElementById("job_folder").value;
             if(jobFolder.length == 0){
                 console.error("No job folder was specified. Please specify a job folder. ");
@@ -691,7 +691,7 @@
             console.log("Requesting to open job folder: " + jobFolder);
             socket.emit('open_job_folder', {'jobFolder': jobFolder});
             return false;
-        });
+        };
 
         function resetTemporalData(frameIndex = -1) {
             // Reset the plots 
@@ -902,7 +902,7 @@
 
                 // You can customize the color representation based on the selection
                 const cellColor = row.insertCell();
-                //cellColor.textContent = 'PLACEHOLDER';
+                //cellColor.textContent = 'PLACEHOLDER';_
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = entry.color;
@@ -1554,7 +1554,7 @@
             let fileContent = JSON.stringify(projectContent);
             var bb = new Blob([fileContent], {type: 'text/plain'});
             var a = document.createElement('a');
-            let filename = 
+            //let filename = 
             a.download = 'project.json';
             a.href = window.URL.createObjectURL(bb);
             a.style='display:none';
@@ -1607,6 +1607,20 @@
             //let fileContent = JSON.stringify(projectContent);
             socket.emit('save_project', projectContent);
             console.log("Project content sent to the server.");
+        }
+
+        window.downloadJobFolder = function() {
+            const jobFolderPath = document.getElementById("job_folder").value;
+            if(jobFolderPath.length == 0)
+            {
+                console.error("Job folder path currently empty.");
+                return;
+            }
+
+            const jobFolder = jobFolderPath.split("/").pop();
+
+            window.location.href = '/download_job_folder?job_folder=' + jobFolder;
+            console.log("DownloadJobFolder was called to download the job " + jobFolder);
         }
     });
     </script>
@@ -1836,16 +1850,14 @@
                 <option value="original">Original File</option>
                 <option value="current-frame">Current Frame</option>
             </select>
-        </div>
-        <div>
-            <form id="generate_inputs" method="POST" action="#">
+            <!--form id="generate_inputs" method="POST" action="#">
                 <input type="submit" value="Generate inputs"></input>
-            </form>
-        <!--/div>
-        <div-->
-            <form id="launch_simulation" method="POST" action="#">
+            </form-->
+            <button id="generate_inputs" onclick="generate_inputs()">Generate Inputs</button>
+            <!--form id="launch_simulation" method="POST" action="#">
                 <input type="submit" value="Launch"></input>
-            </form>
+            </form-->
+            <button id="launch_simulation" onclick="launch_simulation()">Launch Simulation</button>
         </div>
         <!--div>
             <form id="print_motors" method="POST" action="#">
@@ -1856,9 +1868,11 @@
             <span id="span_job_folder">
             <label>Job Folder: </label>
             <input type="text" id="job_folder" name="job_folder" value="" readonly></input>
-            <form id="open_job_folder" method="POST" action="#">
+            <!--form id="open_job_folder" method="POST" action="#">
                 <input type="submit" value="Open"></input>
-            </form>
+            </form-->
+            <button id="open_job_folder" onclick="open_job_folder()">Open Job Folder</button>
+            <button id="download_job_folder" onclick="downloadJobFolder()">Download Job Folder</button>
             </span>
         </div>
         <h2>Log Console</h2>

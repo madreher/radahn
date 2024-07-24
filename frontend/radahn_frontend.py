@@ -1,4 +1,4 @@
-from flask import Flask, render_template 
+from flask import Flask, render_template, request, send_file
 import logging
 import threading
 from threading import Lock, Event
@@ -15,6 +15,8 @@ import sys
 import platform
 from copy import deepcopy
 import json
+import io
+import zipfile
 
 from ase.io import write, read
 from ase.atoms import Atoms
@@ -84,6 +86,33 @@ if "RADAHN_FRONTEND_ENV_PATH" in os.environ:
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/download_job_folder')
+def download():
+    # First check that we can find the job folder
+    jobFolder = request.args.get('job_folder')
+    if not jobFolder:
+        propagateLog({"msg": "job_folder argument not provided when requesting to download a job folder.", "level": "error"})
+        return 
+    jobFolderPath = rootJobFolder / Path(jobFolder)
+
+    if not jobFolderPath.is_dir():
+        propagateLog({"msg": f"Unable to locate the folder for the job {jobFolder}.", "level":"error"})
+        return 
+    
+    # Job folder does exist, zipping it 
+    zipFileName = f"{jobFolder}.zip"
+    zipFilePath = rootJobFolder / zipFileName
+
+    with zipfile.ZipFile(zipFilePath, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for root, dirs, files in os.walk(jobFolderPath):
+            for file in files:
+                filePath = os.path.join(root, file)
+                arcname = os.path.relpath(filePath, jobFolderPath)
+                zip_file.write(filePath, arcname)
+
+    return send_file(zipFilePath, as_attachment=True, download_name=zipFileName, mimetype='application/zip')
+
 
 def propagateLog(msgConfig):
     level = msgConfig["level"]
