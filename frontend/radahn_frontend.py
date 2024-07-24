@@ -587,6 +587,7 @@ reset_timestep 0
         socketio.emit('job_folder', {'message': jobFolder.absolute().as_posix()})
         app.logger.info(f"Job folder generated: {jobFolder.absolute().as_posix()}")
     except:
+        propagateLog({"msg":"Error occured while trying to generate the file inputs.", "level":"error"})
         if "threadName" in configTask:
                 threadTable[configTask["threadName"]]["thread"] = None
         return ""
@@ -643,6 +644,11 @@ def launch_simulation(configTask:dict):
 
         app.logger.info("Simulation completed.")
         propagateLog({"msg": "End of tasks execution. Simulation completed.", "level": "info"})
+    except:
+        propagateLog({"msg": "Something went when launching a simulation.", "level":"error"})
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
@@ -681,6 +687,11 @@ def listen_to_zmq_socket(configTask:dict):
                 if "simIt" not in msgDict["global"].keys():
                     continue 
                 socketio.emit('zmq_message', {'message': messageStr})
+    except:
+        propagateLog({"msg": "Something went wrong during listening to the ZMQ socket for scalar data.", "level":"error"})
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
+            threadTable[configTask["threadName"]]["event"].clear()
     finally:
         propagateLog({"msg": "End Listening for KVS messages.", "level": "info"})
         if "threadName" in configTask:
@@ -729,6 +740,10 @@ def open_job_folder(configTask:dict):
             propagateLog({"msg": "Opening the job folder in Docker is not supported.", "level": "warn"})
         else:
             propagateLog({"msg": "Unsupported execution environment when requesting to open a folder: " + execEnvironment, "level": "warn"})
+    except:
+        propagateLog({"msg": "Something unexpected happen while trying to open the job folder.", "level":"error"})
+        if "threadName" in configTask:
+            threadTable[configTask["threadName"]]["thread"] = None
     finally:
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
