@@ -80,7 +80,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             vz: 0.0,
             checkx: false,
             checky: false,
-            checkx: false,
+            checkz: false,
             dx: 0.0, 
             dy: 0.0,
             dz: 0.0,
@@ -407,6 +407,25 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
     LiteGraph.registerNodeType("motor/TorqueMotor", TorqueMotor);
 }
 
+radahnGraphUtil.checkValid = function(lGraph) {
+    let nodes = lGraph._nodes;
+    let valid = true;
+    nodes.forEach(node => {
+        node.onValidate();
+        if(!node.properties.valid)
+        {
+            valid = false;
+            console.error("The motor ", node.properties.name, " is not valid. Error: ", node.properties.errorMsg);
+        }
+        else 
+        {
+            console.log("The motor ", node.properties.name, " is valid");
+        }
+    });
+
+    return valid;
+}
+
 radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
 {
     let nodes = lGraph._nodes;
@@ -415,7 +434,8 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
     nodesArray = []
     let valid = true;
     nodes.forEach(node => {
-        if(node.onValidate() && !node.properties.valid)
+        node.onValidate();
+        if(!node.properties.valid)
         {
             valid = false;
             console.error("The motor ", node.properties.name, " is not valid. Error: ", node.properties.errorMsg);

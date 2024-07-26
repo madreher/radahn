@@ -566,6 +566,11 @@
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
             let simDt = parseFloat(document.getElementById("dt_input").value);
+            if(!radahnGraphUtil.checkValid(nodeEditor))
+            {
+                console.error("Motor graph is not valid, unable to generate input files.");
+                return false;
+            }
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
@@ -627,6 +632,11 @@
             // Get the settings from the editor
             let motorUnitSet = document.getElementById("unit_set").value;
             let simDt = parseFloat(document.getElementById("dt_input").value);
+            if(!radahnGraphUtil.checkValid(nodeEditor))
+            {
+                console.error("Motor graph is not valid, unable to generate input files.");
+                return false;
+            }
             let radahnJSONContent = radahnGraphUtil.generateMotorsJSON(nodeEditor, project.selectionList, motorUnitSet);
             let numberCores = document.getElementById("num_cores").value;
             let maxTimestep = document.getElementById("num_timesteps").value;
