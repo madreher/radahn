@@ -605,9 +605,11 @@ def launch_simulation(configTask:dict):
     try:
         #app.logger.info("Received a request to launch the simulation. Generating the inputs...")
         propagateLog({"msg": "Starting the simulation. Generating inputs...", "level": "info"})
+        socketio.emit('task_status', {"status": "Start Launch Simulation"})
         #jobFolder = generate_inputs(xyz, ffContent, ffFileName, motors)
         #jobFolder = generate_inputs(config['xyz'], config['ff'], config['ffName'], config['motors'])
         jobFolder = generate_inputs(configTask)
+        socketio.emit('task_status', {"status": "Input Files Generated"})
         
 
         #app.logger.info("Input generated. Preparing the tasks...")
@@ -636,6 +638,7 @@ def launch_simulation(configTask:dict):
         taskManager.addTask("launchRadahn", cmdLaunch)
 
         app.logger.info("Tasks prepared. Processing the tasks...")
+        socketio.emit('task_status', {"status": "Simulation started."})
         # Processing the tasks
         completed = False
         while not completed:
@@ -646,10 +649,12 @@ def launch_simulation(configTask:dict):
         propagateLog({"msg": "End of tasks execution. Simulation completed.", "level": "info"})
     except:
         propagateLog({"msg": "Something went when launching a simulation.", "level":"error"})
+        socketio.emit('task_status', {"status": "ERROR Launching simulation"})
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
             threadTable[configTask["threadName"]]["event"].clear()
     finally:
+        socketio.emit('task_status', {"status": "Simulation completed."})
         if "threadName" in configTask:
             threadTable[configTask["threadName"]]["thread"] = None
 

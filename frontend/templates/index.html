@@ -478,7 +478,17 @@
 
         socket.on('log_message', function(data) {
             console[data['level']](data['msg']);
-        })
+        });
+
+        socket.on('task_status', function(data) {
+            if(!('status' in data))
+            {
+                console.error("Received a status update but unable to find the status field.");
+                return;
+            }
+            document.getElementById('input_sim_status').value = data['status'];
+            console.log("Task status updated: " + data['status']);
+        });
 
         document.getElementById('project-name').addEventListener('input', function(e){
             if(this.checkValidity())
@@ -675,12 +685,6 @@
             socket.emit('launch_simulation', configDict);
             return false;
         };
-
-        $('form#print_motors').submit(function(event) {
-            let radahnJSONContent = radahnGraphUtil.generateJSON(nodeEditor, project.selectionList);
-            console.log(radahnJSONContent);
-            return false;
-        });
 
         window.open_job_folder = function() {
             jobFolder = document.getElementById("job_folder").value;
@@ -1804,8 +1808,6 @@
                         <input type="number" id="create_vel_seed" value="1234">
                     </fieldset>
                 </div>
-                <!--label for="enablenvt">Enable NVT phase:</label>
-                <input type="checkbox" id="enablenvt" name="enablenvt" onchange="form.nvtfields.disabled= !checked" checked-->
                 <div name="nvtfields">
                     <!--legend>NVT</legend-->
                     <input type="radio" id="nvtphase" name="nvtgroup" value="nvtphase">
@@ -1839,38 +1841,21 @@
             </fieldset>
         </div>
         <h2>Simulation Operation</h2>
-        <!--div>
-            <form id="start_listening" method="POST" action="#">
-                <input type="submit" value="Start listening">
-            </form>
-        </div-->
         <div>
             <label>Start from:</label>
             <select id="start_from" name="start_from">
                 <option value="original">Original File</option>
                 <option value="current-frame">Current Frame</option>
             </select>
-            <!--form id="generate_inputs" method="POST" action="#">
-                <input type="submit" value="Generate inputs"></input>
-            </form-->
             <button id="generate_inputs" onclick="generate_inputs()">Generate Inputs</button>
-            <!--form id="launch_simulation" method="POST" action="#">
-                <input type="submit" value="Launch"></input>
-            </form-->
             <button id="launch_simulation" onclick="launch_simulation()">Launch Simulation</button>
+            <label id="sim_status_label" for="input_sim_status">Last Status:</label>
+            <input type="text" id="input_sim_status" readonly>
         </div>
-        <!--div>
-            <form id="print_motors" method="POST" action="#">
-                <input type="submit" value="Print motors">
-            </form>
-        </div-->
         <div>
             <span id="span_job_folder">
             <label>Job Folder: </label>
             <input type="text" id="job_folder" name="job_folder" value="" readonly></input>
-            <!--form id="open_job_folder" method="POST" action="#">
-                <input type="submit" value="Open"></input>
-            </form-->
             <button id="open_job_folder" onclick="open_job_folder()">Open Job Folder</button>
             <button id="download_job_folder" onclick="downloadJobFolder()">Download Job Folder</button>
             </span>
