@@ -80,7 +80,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             vz: 0.0,
             checkx: false,
             checky: false,
-            checkx: false,
+            checkz: false,
             dx: 0.0, 
             dy: 0.0,
             dz: 0.0,
