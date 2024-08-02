@@ -1393,6 +1393,7 @@
             let thermostatEndTemp = parseFloat(document.getElementById('thermostat-end').value);
             let thermostatDamp = parseFloat(document.getElementById('thermostat-damp').value);
             let thermostatSeed = parseInt(document.getElementById('thermostat-seed').value);
+            console.log("Saving ", thermostatStartTemp, ", ", thermostatEndTemp, ", ", thermostatDamp, ", ", thermostatSeed);
 
             project.addThermostat(thermostatName, {
                 name: thermostatName,
@@ -1565,7 +1566,7 @@
             var bb = new Blob([fileContent], {type: 'text/plain'});
             var a = document.createElement('a');
             //let filename = 
-            a.download = 'project.json';
+            a.download = projectName + '.json';
             a.href = window.URL.createObjectURL(bb);
             a.style='display:none';
             a.click();
