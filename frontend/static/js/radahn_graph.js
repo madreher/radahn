@@ -428,6 +428,9 @@ radahnGraphUtil.checkValid = function(lGraph) {
 
 radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
 {
+    // Process the graph so transfer the dependencies and other links
+    lGraph.runStep(1, false);
+
     let nodes = lGraph._nodes;
 
     //console.log("List of motors:");
