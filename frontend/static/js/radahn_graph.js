@@ -266,7 +266,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             pz: 0.0,
             ax: 0.0,
             ay: 0.0,
-            ax: 0.0,
+            az: 0.0,
             period: 0.0, 
             angle: 0.0,
             valid: true, 
