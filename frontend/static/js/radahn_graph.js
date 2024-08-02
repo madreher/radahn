@@ -410,6 +410,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
 radahnGraphUtil.checkValid = function(lGraph) {
     let nodes = lGraph._nodes;
     let valid = true;
+    let nodeNames = {}
     nodes.forEach(node => {
         node.onValidate();
         if(!node.properties.valid)
@@ -420,6 +421,16 @@ radahnGraphUtil.checkValid = function(lGraph) {
         else 
         {
             console.log("The motor ", node.properties.name, " is valid");
+        }
+
+        if(node.properties.name in nodeNames)
+        {
+            valid = false;
+            console.error("Multiple motors have the name ", node.properties.name, ". Please ensure that the motors have distincts names.");
+        }
+        else 
+        {
+            nodeNames[node.properties.name] = 0;
         }
     });
 
