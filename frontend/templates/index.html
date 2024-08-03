@@ -50,7 +50,9 @@
         var arrowX = null;
         var arrowY = null;
         var arrowZ = null;
-        initArrowCenter();
+        if(document.getElementById("display-axis").checked)
+            displayArrowCenter();
+
 
         // Selection drawing tracking
         var isDrawing = false;
@@ -497,7 +499,7 @@
             }
         })
 
-        function initArrowCenter(){
+        function displayArrowCenter(){
             arrowX = viewerMolecule.addArrow(
                 {
                     start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
@@ -539,19 +541,22 @@
 
 
             // X Arrow
-            viewerMolecule.removeShape(arrowX);
+            if(arrowX != null)
+                viewerMolecule.removeShape(arrowX);
             
 
 
             // Y Arrow
-            viewerMolecule.removeShape(arrowY);
+            if(arrowY != null)
+                viewerMolecule.removeShape(arrowY);
 
 
             // Z Arrow
-            viewerMolecule.removeShape(arrowZ);
+            if(arrowZ != null)
+                viewerMolecule.removeShape(arrowZ);
 
 
-            initArrowCenter();
+            displayArrowCenter();
 
         }
 
@@ -594,7 +599,43 @@
             updateArrowCenter(minx, miny, minz);
         }
 
+        function clearArrowAxis(){
+            // X Arrow
+            if(arrowX != null)
+            {
+                viewerMolecule.removeShape(arrowX);
+                arrowX = null;
+            }          
+
+            // Y Arrow
+            if(arrowY != null)
+            {
+                viewerMolecule.removeShape(arrowY);
+                arrowY = null;
+            }
+
+            // Z Arrow
+            if(arrowZ != null)
+            {
+                viewerMolecule.removeShape(arrowZ);
+                arrowZ = null;
+            }
+
+            viewerMolecule.render();
+        }
+
+        window.onUpdateAxisDisplay = function(){ // Called when checkbox is updated
+            window.onUpdateArrowCenter();
+        }
+
         window.onUpdateArrowCenter = function(){
+            let displayaxis = document.getElementById('display-axis').checked;
+            if(!displayaxis)
+            {
+                clearArrowAxis();
+                return;
+            }
+
             let centerx = parseFloat(document.getElementById('translate-origin-x').value);
             let centery = parseFloat(document.getElementById('translate-origin-y').value);
             let centerz = parseFloat(document.getElementById('translate-origin-z').value);
@@ -2068,7 +2109,7 @@
                     <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                     <div>
                         <label for="display-axis">Display Axis:</label>
-                        <input type="checkbox" id="display-axis" name="display-axis" checked>
+                        <input type="checkbox" id="display-axis" name="display-axis" checked onchange="onUpdateAxisDisplay()">
                         <label for="translate-origin-x">Move axis X:</label>
                         <input type="number" id="translate-origin-x" value="0">
                         <label for="translate-origin-y">Y:</label>
