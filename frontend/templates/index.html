@@ -44,6 +44,15 @@
         var originalPositions = null; // Copy of the positions loaded from file.
         var timestepFrames = [0];
         var intervalUpdateID = null;
+        var originArrows = [0.0, 0.0, 0.0];
+        var arrowLength = 1.0;
+        var arrowRadius = 0.2;
+        var arrowX = null;
+        var arrowY = null;
+        var arrowZ = null;
+        if(document.getElementById("display-axis").checked)
+            displayArrowCenter();
+        document.getElementById('axis-length').value = arrowLength;
 
 
         // Selection drawing tracking
@@ -490,6 +499,173 @@
                 this.value = project.projectName;
             }
         })
+
+        function displayArrowCenter(){
+            arrowX = viewerMolecule.addArrow(
+                {
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0] + arrowLength, y: originArrows[1], z: originArrows[2]},
+                    radius: arrowRadius,
+                    color: 'red'
+                }
+            );
+            arrowY = viewerMolecule.addArrow(
+                {
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0], y: originArrows[1] + arrowLength, z: originArrows[2]},
+                    radius: arrowRadius,
+                    color: 'green'
+                }
+            );
+            arrowZ = viewerMolecule.addArrow(
+                {
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0], y: originArrows[1], z: originArrows[2] + arrowLength},
+                    radius: arrowRadius,
+                    color: 'blue'
+                }
+            );
+
+            viewerMolecule.render();
+
+            // Updating the HTML 
+            document.getElementById('translate-origin-x').value = originArrows[0];
+            document.getElementById('translate-origin-y').value = originArrows[1];
+            document.getElementById('translate-origin-z').value = originArrows[2];
+            document.getElementById('display-axis-length').innerHTML = arrowLength;
+        }
+
+        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0, len = 1.0){
+            originArrows = [centerx, centery, centerz];
+            arrowLength = len;
+
+            // arrowX.updateStyle() update the shading but doesn't move the arrow.
+            // Consequently, we have to delete the old arrow and create a new one.
+
+
+            // X Arrow
+            if(arrowX != null)
+                viewerMolecule.removeShape(arrowX);
+            
+
+
+            // Y Arrow
+            if(arrowY != null)
+                viewerMolecule.removeShape(arrowY);
+
+
+            // Z Arrow
+            if(arrowZ != null)
+                viewerMolecule.removeShape(arrowZ);
+
+
+            displayArrowCenter();
+
+        }
+
+        window.onMoveAxisToLowerCorner = function(){
+
+            // We need to compute the bouding box of the current state of the model.
+            let model = viewerMolecule.getModel();
+            if(model == null)
+            {
+                console.warn("No model is currently loaded, unable to move the axis to a lower corner.");
+                return; // no model loaded yet.
+            }
+
+            let frameIndex = viewerMolecule.getFrame();
+            if(frameIndex >= model.frames.length)
+                frameIndex = model.frames.length - 1;
+
+            let atoms = model.frames[frameIndex];
+            if(atoms.length == 0)
+            {
+                console.warn("A model is loaded but doesn't contain any atoms, unable to move the axis to a lower corner.");
+                return;
+            }
+
+            // Computing the lower corner
+            let minx = atoms[0].x;
+            let miny = atoms[0].y;
+            let minz = atoms[0].z;
+
+            for(let i = 1; i < atoms.length; i++)
+            {
+                if(atoms[i].x < minx)
+                    minx = atoms[i].x;
+                if(atoms[i].y < miny)
+                    miny = atoms[i].y;
+                if(atoms[i].z < minz)
+                    minz = atoms[i].z;
+            }
+
+            updateArrowCenter(minx, miny, minz);
+        }
+
+        function clearArrowAxis(){
+            // X Arrow
+            if(arrowX != null)
+            {
+                viewerMolecule.removeShape(arrowX);
+                arrowX = null;
+            }          
+
+            // Y Arrow
+            if(arrowY != null)
+            {
+                viewerMolecule.removeShape(arrowY);
+                arrowY = null;
+            }
+
+            // Z Arrow
+            if(arrowZ != null)
+            {
+                viewerMolecule.removeShape(arrowZ);
+                arrowZ = null;
+            }
+
+            viewerMolecule.render();
+        }
+
+        window.onUpdateArrowCenter = function(){
+            let displayaxis = document.getElementById('display-axis').checked;
+            if(!displayaxis)
+            {
+                clearArrowAxis();
+                return;
+            }
+
+            let centerx = parseFloat(document.getElementById('translate-origin-x').value);
+            let centery = parseFloat(document.getElementById('translate-origin-y').value);
+            let centerz = parseFloat(document.getElementById('translate-origin-z').value);
+            let len = parseFloat(document.getElementById('axis-length').value);
+
+            if(centerx ==  NaN)
+            {
+                console.error("Unable to parse the Axis X in the viewer.");
+                return;
+            }
+
+            if(centery ==  NaN)
+            {
+                console.error("Unable to parse the Axis Y in the viewer.");
+                return;
+            }
+
+            if(centerz ==  NaN)
+            {
+                console.error("Unable to parse the Axis Z in the viewer.");
+                return;
+            }
+
+            if(len == NaN)
+            {
+                console.error("Unable to parse the length of the axis.");
+                return;
+            }
+
+            updateArrowCenter(centerx, centery, centerz, len);
+        }
 
         window.refreshNVTSetup = function(){
             let enableCreateVelocity = document.getElementById("createvel").checked;
@@ -1937,6 +2113,21 @@
                         <option value="index">Index</option>
                     </select>
                     <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
+                    <div>
+                        <label for="display-axis">Axes Display:</label>
+                        <input type="checkbox" id="display-axis" name="display-axis" checked onchange="onUpdateArrowCenter()">
+                        <label for="translate-origin-x">Move axis X:</label>
+                        <input type="number" id="translate-origin-x" value="0" onchange="onUpdateArrowCenter()">
+                        <label for="translate-origin-y">Y:</label>
+                        <input type="number" id="translate-origin-y" value="0" onchange="onUpdateArrowCenter()">
+                        <label for="translate-origin-z">Z:</label>
+                        <input type="number" id="translate-origin-z" value="0" onchange="onUpdateArrowCenter()">
+                        <label for="axis-length">Length:</label>
+                        <input type="range" id="axis-length" min="1" max="10" value="1" oninput="onUpdateArrowCenter()">
+                        <span id="display-axis-length"></span>
+                        <!--button id="update-axis" onclick="onUpdateArrowCenter()">Update</button-->
+                        <button id="axis-lower-corner" onclick="onMoveAxisToLowerCorner()">Lower Corner</button>
+                    </div>
                     <p id="info-sim-it">Current Timestep: 0</p>
                     <p>
                         <button id="play-button" onclick="onPlayTrajectory()">Play</button>
