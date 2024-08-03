@@ -52,6 +52,7 @@
         var arrowZ = null;
         if(document.getElementById("display-axis").checked)
             displayArrowCenter();
+        document.getElementById('axis-length').value = arrowLength;
 
 
         // Selection drawing tracking
@@ -531,10 +532,12 @@
             document.getElementById('translate-origin-x').value = originArrows[0];
             document.getElementById('translate-origin-y').value = originArrows[1];
             document.getElementById('translate-origin-z').value = originArrows[2];
+            document.getElementById('display-axis-length').innerHTML = arrowLength;
         }
 
-        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0){
+        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0, len = 1.0){
             originArrows = [centerx, centery, centerz];
+            arrowLength = len;
 
             // arrowX.updateStyle() update the shading but doesn't move the arrow.
             // Consequently, we have to delete the old arrow and create a new one.
@@ -624,10 +627,6 @@
             viewerMolecule.render();
         }
 
-        window.onUpdateAxisDisplay = function(){ // Called when checkbox is updated
-            window.onUpdateArrowCenter();
-        }
-
         window.onUpdateArrowCenter = function(){
             let displayaxis = document.getElementById('display-axis').checked;
             if(!displayaxis)
@@ -639,6 +638,7 @@
             let centerx = parseFloat(document.getElementById('translate-origin-x').value);
             let centery = parseFloat(document.getElementById('translate-origin-y').value);
             let centerz = parseFloat(document.getElementById('translate-origin-z').value);
+            let len = parseFloat(document.getElementById('axis-length').value);
 
             if(centerx ==  NaN)
             {
@@ -658,7 +658,13 @@
                 return;
             }
 
-            updateArrowCenter(centerx, centery, centerz);
+            if(len == NaN)
+            {
+                console.error("Unable to parse the length of the axis.");
+                return;
+            }
+
+            updateArrowCenter(centerx, centery, centerz, len);
         }
 
         window.refreshNVTSetup = function(){
@@ -2108,15 +2114,18 @@
                     </select>
                     <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
                     <div>
-                        <label for="display-axis">Display Axis:</label>
-                        <input type="checkbox" id="display-axis" name="display-axis" checked onchange="onUpdateAxisDisplay()">
+                        <label for="display-axis">Axes Display:</label>
+                        <input type="checkbox" id="display-axis" name="display-axis" checked onchange="onUpdateArrowCenter()">
                         <label for="translate-origin-x">Move axis X:</label>
-                        <input type="number" id="translate-origin-x" value="0">
+                        <input type="number" id="translate-origin-x" value="0" onchange="onUpdateArrowCenter()">
                         <label for="translate-origin-y">Y:</label>
-                        <input type="number" id="translate-origin-y" value="0">
+                        <input type="number" id="translate-origin-y" value="0" onchange="onUpdateArrowCenter()">
                         <label for="translate-origin-z">Z:</label>
-                        <input type="number" id="translate-origin-z" value="0">
-                        <button id="update-axis" onclick="onUpdateArrowCenter()">Update</button>
+                        <input type="number" id="translate-origin-z" value="0" onchange="onUpdateArrowCenter()">
+                        <label for="axis-length">Length:</label>
+                        <input type="range" id="axis-length" min="1" max="10" value="1" oninput="onUpdateArrowCenter()">
+                        <span id="display-axis-length"></span>
+                        <!--button id="update-axis" onclick="onUpdateArrowCenter()">Update</button-->
                         <button id="axis-lower-corner" onclick="onMoveAxisToLowerCorner()">Lower Corner</button>
                     </div>
                     <p id="info-sim-it">Current Timestep: 0</p>
