@@ -44,6 +44,10 @@
         var originalPositions = null; // Copy of the positions loaded from file.
         var timestepFrames = [0];
         var intervalUpdateID = null;
+        var originArrows = [0.0, 0.0, 0.0];
+        var arrowLength = 1.0;
+        var arrowRadius = 0.2;
+        updateArrowCenter(0.0, 0.0, 0.0);
 
 
         // Selection drawing tracking
@@ -490,6 +494,42 @@
                 this.value = project.projectName;
             }
         })
+
+        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0){
+            originArrows = [centerx, centery, centerz];
+
+            // X Arrow
+            viewerMolecule.addArrow(
+                {
+                    start: {x: centerx, y: centery, z: centerz},
+                    end: {x: centerx + arrowLength, y: centery, z: centerz},
+                    radius: arrowRadius,
+                    color: 'red'
+                }
+            )
+
+            // Y Arrow
+            viewerMolecule.addArrow(
+                {
+                    start: {x: centerx, y: centery, z: centerz},
+                    end: {x: centerx, y: centery + arrowLength, z: centerz},
+                    radius: arrowRadius,
+                    color: 'green'
+                }
+            )
+
+            // Z Arrow
+            viewerMolecule.addArrow(
+                {
+                    start: {x: centerx, y: centery, z: centerz},
+                    end: {x: centerx, y: centery, z: centerz + arrowLength},
+                    radius: arrowRadius,
+                    color: 'blue'
+                }
+            )
+
+            viewerMolecule.render();
+        }
 
         window.refreshNVTSetup = function(){
             let enableCreateVelocity = document.getElementById("createvel").checked;
