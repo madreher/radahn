@@ -47,8 +47,10 @@
         var originArrows = [0.0, 0.0, 0.0];
         var arrowLength = 1.0;
         var arrowRadius = 0.2;
-        updateArrowCenter(0.0, 0.0, 0.0);
-
+        var arrowX = null;
+        var arrowY = null;
+        var arrowZ = null;
+        initArrowCenter();
 
         // Selection drawing tracking
         var isDrawing = false;
@@ -495,40 +497,127 @@
             }
         })
 
-        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0){
-            originArrows = [centerx, centery, centerz];
-
-            // X Arrow
-            viewerMolecule.addArrow(
+        function initArrowCenter(){
+            arrowX = viewerMolecule.addArrow(
                 {
-                    start: {x: centerx, y: centery, z: centerz},
-                    end: {x: centerx + arrowLength, y: centery, z: centerz},
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0] + arrowLength, y: originArrows[1], z: originArrows[2]},
                     radius: arrowRadius,
                     color: 'red'
                 }
-            )
-
-            // Y Arrow
-            viewerMolecule.addArrow(
+            );
+            arrowY = viewerMolecule.addArrow(
                 {
-                    start: {x: centerx, y: centery, z: centerz},
-                    end: {x: centerx, y: centery + arrowLength, z: centerz},
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0], y: originArrows[1] + arrowLength, z: originArrows[2]},
                     radius: arrowRadius,
                     color: 'green'
                 }
-            )
-
-            // Z Arrow
-            viewerMolecule.addArrow(
+            );
+            arrowZ = viewerMolecule.addArrow(
                 {
-                    start: {x: centerx, y: centery, z: centerz},
-                    end: {x: centerx, y: centery, z: centerz + arrowLength},
+                    start: {x: originArrows[0], y: originArrows[1], z: originArrows[2]},
+                    end: {x: originArrows[0], y: originArrows[1], z: originArrows[2] + arrowLength},
                     radius: arrowRadius,
                     color: 'blue'
                 }
-            )
+            );
 
             viewerMolecule.render();
+
+            // Updating the HTML 
+            document.getElementById('translate-origin-x').value = originArrows[0];
+            document.getElementById('translate-origin-y').value = originArrows[1];
+            document.getElementById('translate-origin-z').value = originArrows[2];
+        }
+
+        function updateArrowCenter(centerx = 0.0, centery = 0.0, centerz = 0.0){
+            originArrows = [centerx, centery, centerz];
+
+            // arrowX.updateStyle() update the shading but doesn't move the arrow.
+            // Consequently, we have to delete the old arrow and create a new one.
+
+
+            // X Arrow
+            viewerMolecule.removeShape(arrowX);
+            
+
+
+            // Y Arrow
+            viewerMolecule.removeShape(arrowY);
+
+
+            // Z Arrow
+            viewerMolecule.removeShape(arrowZ);
+
+
+            initArrowCenter();
+
+        }
+
+        window.onMoveAxisToLowerCorner = function(){
+
+            // We need to compute the bouding box of the current state of the model.
+            let model = viewerMolecule.getModel();
+            if(model == null)
+            {
+                console.warn("No model is currently loaded, unable to move the axis to a lower corner.");
+                return; // no model loaded yet.
+            }
+
+            let frameIndex = viewerMolecule.getFrame();
+            if(frameIndex >= model.frames.length)
+                frameIndex = model.frames.length - 1;
+
+            let atoms = model.frames[frameIndex];
+            if(atoms.length == 0)
+            {
+                console.warn("A model is loaded but doesn't contain any atoms, unable to move the axis to a lower corner.");
+                return;
+            }
+
+            // Computing the lower corner
+            let minx = atoms[0].x;
+            let miny = atoms[0].y;
+            let minz = atoms[0].z;
+
+            for(let i = 1; i < atoms.length; i++)
+            {
+                if(atoms[i].x < minx)
+                    minx = atoms[i].x;
+                if(atoms[i].y < miny)
+                    miny = atoms[i].y;
+                if(atoms[i].z < minz)
+                    minz = atoms[i].z;
+            }
+
+            updateArrowCenter(minx, miny, minz);
+        }
+
+        window.onUpdateArrowCenter = function(){
+            let centerx = parseFloat(document.getElementById('translate-origin-x').value);
+            let centery = parseFloat(document.getElementById('translate-origin-y').value);
+            let centerz = parseFloat(document.getElementById('translate-origin-z').value);
+
+            if(centerx ==  NaN)
+            {
+                console.error("Unable to parse the Axis X in the viewer.");
+                return;
+            }
+
+            if(centery ==  NaN)
+            {
+                console.error("Unable to parse the Axis Y in the viewer.");
+                return;
+            }
+
+            if(centerz ==  NaN)
+            {
+                console.error("Unable to parse the Axis Z in the viewer.");
+                return;
+            }
+
+            updateArrowCenter(centerx, centery, centerz);
         }
 
         window.refreshNVTSetup = function(){
@@ -1977,6 +2066,18 @@
                         <option value="index">Index</option>
                     </select>
                     <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
+                    <div>
+                        <label for="display-axis">Display Axis:</label>
+                        <input type="checkbox" id="display-axis" name="display-axis" checked>
+                        <label for="translate-origin-x">Move axis X:</label>
+                        <input type="number" id="translate-origin-x" value="0">
+                        <label for="translate-origin-y">Y:</label>
+                        <input type="number" id="translate-origin-y" value="0">
+                        <label for="translate-origin-z">Z:</label>
+                        <input type="number" id="translate-origin-z" value="0">
+                        <button id="update-axis" onclick="onUpdateArrowCenter()">Update</button>
+                        <button id="axis-lower-corner" onclick="onMoveAxisToLowerCorner()">Lower Corner</button>
+                    </div>
                     <p id="info-sim-it">Current Timestep: 0</p>
                     <p>
                         <button id="play-button" onclick="onPlayTrajectory()">Play</button>
