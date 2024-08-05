@@ -205,6 +205,22 @@
         });
 
         // Forward events from the overlay to the molecule canvas
+        elementMoleculeOverlay.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+
+            const rect = viewerMolecule.container.getBoundingClientRect();
+            const contextMenuEvent = new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: event.clientX - rect.left,
+                clientY: event.clientY - rect.top
+            });
+
+            viewerMolecule.container.dispatchEvent(contextMenuEvent);
+        });
+
+
         elementMoleculeOverlay.addEventListener('mousedown', (event) => {
             viewerMolecule.container.dispatchEvent(new MouseEvent('mousedown', event)); // Forward to 3Dmol.js (not the molecule canvas) for selection event);
             if (event.button === 0 && event.shiftKey) {
@@ -1321,6 +1337,14 @@
             }
         }
 
+        window.saveMoleculeScreenshot = function() {
+            // Save the file 
+            let anchorLink = document.getElementById("anchor-screenshot");
+            anchorLink.setAttribute('download', project.projectName + ".png");
+            anchorLink.setAttribute('href', viewerMolecule.getCanvas().toDataURL("image/png").replace("image/png", "image/octet-stream"));
+            anchorLink.click();
+        }
+
         window.onPlayTrajectory = function() {
             console.log("Starting trajectory playback");
             viewerMolecule.animate({loop: "forward", reps:1});
@@ -2113,6 +2137,8 @@
                         <option value="index">Index</option>
                     </select>
                     <button id="toggle-atom-colors" onclick="refreshMolecule()">Update</button>
+                    <a id="anchor-screenshot"></a>
+                    <button id="button-screenshot" onclick="saveMoleculeScreenshot()">Screenshot</button>
                     <div>
                         <label for="display-axis">Axes Display:</label>
                         <input type="checkbox" id="display-axis" name="display-axis" checked onchange="onUpdateArrowCenter()">

@@ -53,7 +53,7 @@ radahnProjectUtils.viewerToArray = function(viewer, frameIndex)
 class RadahnProject {
 
     // We keep everything public for now for simplicity. This is basically just a data storage
-    projectName = "defaultName";
+    projectName = "defaultProjectName";
     xyzContent = "";
     xyzFilename = "";
     potentialContent = "";
@@ -75,7 +75,7 @@ class RadahnProject {
 
     resetProject()
     {
-        this.projectName = "defaultName";
+        this.projectName = "defaultProjectName";
         this.xyzContent = "";
         this.xyzFilename = "";
         this.potentialContent = "";
