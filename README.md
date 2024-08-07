@@ -20,14 +20,20 @@ Radahn is interactive molecular dynamic application allowing users to steer thei
 
 ## Docker method
 
-### Install Docker and prepare folders on Ubuntu and WSL2 (first time install only)
+### Get the sources 
 
-This first set of instruction should be executed only the fist time this software gets installed. On Windows, these instructions should be executed within WSL.
+We first need to get the source code. Create a folder where you would like to get the sources, then do the following:
+
 ```
 # Get the sources 
 cd /path/to/source
 git clone https://github.com/madreher/radahn.git .
+```
 
+### Install Docker on Ubuntu and WSL2 (first time install only)
+
+This first set of instruction should be executed only the fist time this software gets installed. On Windows, these instructions should be executed within WSL.
+```
 # Install docker
 sudo docker/ubuntu/install_docker_ubuntu.sh
 
@@ -36,6 +42,21 @@ sudo usermod -aG docker $USER
 
 # **IMPORTANT: RESTART!!**
 
+```
+
+### Install Docker on OSX  (first time install only)
+
+Download (Docker)[https://docs.docker.com/desktop/install/mac-install/] for OSX here based on your processor. After installation, you will have to launch the desktop application at least once to finish the setup of docker. After this, the command `docker` should become available in the terminale. To test:
+```
+matthieu@Matthieus-MacBook-Air .radahn % docker --version
+Docker version 27.0.3, build 7d4bcd8
+```
+
+### Prepare Folders and config files (first time install only)
+
+Radahn relies on a user folder to store relevant configuration files and prepare where the simulation data will be stored. 
+
+```
 # Setup Radahn folders and variables
 mkdir $HOME/.radahn
 mkdir $HOME/.radahn/jobs

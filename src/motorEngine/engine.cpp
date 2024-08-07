@@ -52,7 +52,6 @@ simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<ato
     outPositions.reserve(static_cast<size_t>(totalNbAtoms*3));
 
     // Copy the data to the vectors
-    size_t offset = 0;
     for(size_t i = 0; i < receivedData.size(); ++i)
     {
         auto & simData = receivedData[i]["simdata"];
@@ -63,8 +62,6 @@ simIt_t mergeInputData(std::vector<conduit::Node>& receivedData, std::vector<ato
 
         outIndices.insert(outIndices.end(), indices, indices + nbAtoms);
         outPositions.insert(outPositions.end(), positions, positions + 3*nbAtoms);
-
-        offset += nbAtoms;
     }
 
     return simIt;
