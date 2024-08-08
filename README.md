@@ -46,7 +46,7 @@ sudo usermod -aG docker $USER
 
 ### Install Docker on OSX  (first time install only)
 
-Download (Docker)[https://docs.docker.com/desktop/install/mac-install/] for OSX here based on your processor. After installation, you will have to launch the desktop application at least once to finish the setup of docker. After this, the command `docker` should become available in the terminale. To test:
+Download [Docker](https://docs.docker.com/desktop/install/mac-install/) for OSX here based on your processor. After installation, you will have to launch the desktop application at least once to finish the setup of docker. After this, the command `docker` should become available in the terminale. To test:
 ```
 matthieu@Matthieus-MacBook-Air .radahn % docker --version
 Docker version 27.0.3, build 7d4bcd8
