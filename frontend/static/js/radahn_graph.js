@@ -269,6 +269,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             az: 0.0,
             period: 0.0, 
             angle: 0.0,
+            autocentroid: false,
             valid: true, 
             errorMsg: "OK"
         };
@@ -278,6 +279,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
         this.widgetPX = this.addWidget("number", "Centroid X (distance unit)", this.properties.px, {property: "px", min: -10000000000.0, max: 10000000000.0, step:1});
         this.widgetPY = this.addWidget("number", "Centroid Y (distance unit)", this.properties.py, {property: "py", min: -10000000000.0, max: 10000000000.0, step:1});
         this.widgetPZ = this.addWidget("number", "Centroid Z (distance unit)", this.properties.pz, {property: "pz", min: -10000000000.0, max: 10000000000.0, step:1});
+        this.widgetAutoCentroid = this.addWidget("toggle", "Auto Centroid", this.properties.autocentroid, {property: "autocentroid"});
         this.widgetAX = this.addWidget("number", "Rotation Axe x", this.properties.ax, {property: "ax", min: -10000000000.0, max: 10000000000.0, step:1});
         this.widgetAY = this.addWidget("number", "Rotation Axe y", this.properties.ay, {property: "ay", min: -10000000000.0, max: 10000000000.0, step:1});
         this.widgetAZ = this.addWidget("number", "Rotation Axe z", this.properties.az, {property: "az", min: -10000000000.0, max: 10000000000.0, step:1});
@@ -323,6 +325,7 @@ radahnGraphUtil.setupRadahnGraph = function(lGraph)
             "px": this.properties.px,
             "py": this.properties.py,
             "pz": this.properties.pz,
+            "autocentroid": this.properties.autocentroid,
             "ax": this.properties.ax,
             "ay": this.properties.ay,
             "az": this.properties.az,
@@ -482,6 +485,18 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
                 {
                     nodesArray[i]["selection"][j] = nodesArray[i]["selection"][j] + 1;
                 }
+
+                // Special treatment for the rotate motor 
+                // Ugly approach
+                if(nodesArray[i]["type"] == "rotate" && nodesArray[i]["autocentroid"])
+                {
+                    const centroid = selectionTable[nodesArray[i]["selectionName"]].centroid;
+                    console.log("Requested to auto center the Rotate motor ", nodesArray[i]["name"]);
+                    console.log("Replace center [", nodesArray[i]["px"], ",", nodesArray[i]["py"], ",", nodesArray[i]["pz"], "] by [", centroid[0], ",", centroid[1], ",", centroid[2], "].")
+                    nodesArray[i]["px"] = centroid[0];
+                    nodesArray[i]["py"] = centroid[1];
+                    nodesArray[i]["pz"] = centroid[2];
+                }
             }
             else 
             {
@@ -497,5 +512,5 @@ radahnGraphUtil.generateMotorsJSON = function(lGraph, selectionTable, unit)
     radahnJSON["motors"] = nodesArray;
 
     //console.log(JSON.stringify(radahnJSON));
-    return JSON.stringify(radahnJSON);
+    return JSON.stringify(radahnJSON, null, 4);
 }
