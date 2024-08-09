@@ -156,6 +156,52 @@ class RadahnProject {
         delete this.thermostatList[thermostatName];
     }
 
+    setSelectionPositionsFromXYZ(xyzContent)
+    {
+        // Parse the xyz content
+        const lines = xyzContent.split('\n');
+
+        // The first line is the number of atoms
+        const atomCount = parseInt(lines[0].trim(), 10);
+
+        // The second line is the comment line, usually ignored or used as metadata
+        const comment = lines[1].trim();
+
+        // The remaining lines are the atomic coordinates
+        const atoms = [];
+        for (let i = 2; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+                const [element, x, y, z] = line.split(/\s+/);
+                atoms.push({
+                    element,
+                    x: parseFloat(x),
+                    y: parseFloat(y),
+                    z: parseFloat(z)
+                });
+            }
+        }
+
+        // Now that we have the list of atoms and their positions, we can update each selection list
+        for ( let [name, selection] of Object.entries(this.selectionList)) {
+            let indices = selection.atomIndexes;
+            let avgx = 0;
+            let avgy = 0; 
+            let avgz = 0;
+            indices.forEach((val) => {
+                avgx += atoms[val].x;
+                avgy += atoms[val].y;
+                avgz += atoms[val].z;
+            });
+
+            avgx /= indices.length;
+            avgy /= indices.length;
+            avgz /= indices.length;
+
+            selection.centroid = [avgx, avgy, avgz];
+        };
+    }
+
     declareMinimize()
     {
         this.minimizeConfig = {
@@ -346,6 +392,6 @@ class RadahnProject {
             radahnJSON["nvtConfig"] = this.nvtConfig;
         }
 
-        return JSON.stringify(radahnJSON);
+        return JSON.stringify(radahnJSON, null, 4);
     }
 }

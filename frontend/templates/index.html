@@ -750,6 +750,11 @@
                 return false;
             }
 
+            // Update the selections with the state which will be used for the simulation
+            console.log("Updating selection information...");
+            project.setSelectionPositionsFromXYZ(xyzData);
+            console.log("Selections updated with the simulation state.");
+
             if(project.potentialContent.length == 0){
                 console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
                 return false;
@@ -815,6 +820,9 @@
                 console.error("No molecule was loaded. Please load a molecule before generating inputs. ");
                 return false;
             }
+
+            // Update the selections with the state which will be used for the simulation
+            project.setSelectionPositionsFromXYZ(xyzData);
 
             if(project.potentialContent.length == 0){
                 console.error("No forcefield was loaded. Please load a forcefield before generating inputs. ");
@@ -1747,7 +1755,7 @@
             }
 
             // Update the project motor graph and unit
-            project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
+            project.setMotorGraph(JSON.stringify(nodeEditor.serialize(), null, 4), document.getElementById("unit_set").value);
 
             // Update the NVT section
             refreshMinimizeSetup();
@@ -1762,7 +1770,7 @@
 
             // Save the file 
             //console.log(projectContent);
-            let fileContent = JSON.stringify(projectContent);
+            let fileContent = JSON.stringify(projectContent, null, 4);
             var bb = new Blob([fileContent], {type: 'text/plain'});
             var a = document.createElement('a');
             //let filename = 
@@ -1802,7 +1810,7 @@
             }
 
             // Update the project motor graph and unit
-            project.setMotorGraph(JSON.stringify(nodeEditor.serialize()), document.getElementById("unit_set").value);
+            project.setMotorGraph(JSON.stringify(nodeEditor.serialize(), null, 4), document.getElementById("unit_set").value);
 
             // Update the minimize section
             refreshMinimizeSetup();
