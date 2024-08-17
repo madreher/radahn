@@ -1843,7 +1843,10 @@
         }
 
         window.stopSimulation = function() {
-            socket.emit('send_sim_stop_command');
+            if(window.confirm("Stoping the simulation is irreversible. Proceed stopping the simulation?"))
+            {
+                socket.emit('send_sim_stop_command');
+            }
         }
     });
     </script>
