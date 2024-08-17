@@ -146,6 +146,7 @@ int main(int argc, char** argv)
     }
 
     std::vector<conduit::Node> receivedData;
+    std::vector<conduit::Node> receivedUserCmd;
     bool unitSet = false;
 
 
@@ -153,6 +154,13 @@ int main(int argc, char** argv)
     {
         // Debug
         //printSimulationData(receivedData);
+
+        // Check if we have received a user command
+        if(handler.get("usercmd", receivedUserCmd) == godrick::MessageResponse::MESSAGES)
+        {
+            spdlog::info("Received a user command. Processing...");
+        }
+        
 
         // Merge all the data into individual arrays instead of partial arrays
         // This is necessary when Lammps is running on multiple MPI processes, we receive as many 

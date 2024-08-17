@@ -177,6 +177,7 @@ def main():
     engineResources = splitResources[1]
     engine = MPITask(name="engine", cmdline=engineCmd, placementPolicy=MPIPlacementPolicy.ONETASKPERCORE, resources=engineResources)
     engine.addInputPort("atoms")
+    engine.addInputPort("usercmd")
     engine.addOutputPort("motorscmd")
     engine.addOutputPort("kvs")
     engine.addOutputPort("atoms")
@@ -192,18 +193,21 @@ def main():
     engineToSim.setNbToken(1)
 
     # Open gates
-    kvsEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50000)
-    kvsEngine.connectToOutputPort(engine.getOutputPort("kvs"))
+    outKVSEngine = ZMQGateCommunicator(name="kvsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50000)
+    outKVSEngine.connectToOutputPort(engine.getOutputPort("kvs"))
     outAtomsEngine = ZMQGateCommunicator(name="atomsGate", side=CommunicatorGateSideFlag.OPEN_SENDER, protocol=ZMQCommunicatorProtocol.PUB_SUB, bindingSide=ZMQBindingSide.ZMQ_BIND_SENDER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50001)
     outAtomsEngine.connectToOutputPort(engine.getOutputPort("atoms"))
+    inCmdEngine = ZMQGateCommunicator(name="cmdGate", side=CommunicatorGateSideFlag.OPEN_RECEIVER, protocol=ZMQCommunicatorProtocol.PUSH_PULL, bindingSide=ZMQBindingSide.ZMQ_BIND_RECEIVER, format=CommunicatorMessageFormat.MSG_FORMAT_JSON, port=50002, nonblocking=True)
+    inCmdEngine.connectToInputPort(engine.getInputPort("usercmd"))
 
     # Declaring the tasks and communicators
     workflow.declareTask(lammps)
     workflow.declareTask(engine)
     workflow.declareCommunicator(simToEngine)
     workflow.declareCommunicator(engineToSim)
-    workflow.declareCommunicator(kvsEngine)
+    workflow.declareCommunicator(outKVSEngine)
     workflow.declareCommunicator(outAtomsEngine)
+    workflow.declareCommunicator(inCmdEngine)
 
     # Process the workflow
     launcher = MainLauncher()
