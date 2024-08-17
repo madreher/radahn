@@ -599,6 +599,25 @@ reset_timestep 0
 
     return jobFolder
 
+def stop_simulation():
+    propagateLog({"msg": "Received a request to stop the simulation.", "level": "info"})
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.PUSH)
+        socket.connect("tcp://localhost:50002")
+
+        msg = {}
+        msg["header"] = {}
+        msg["header"]["format"] = "enginecmd"
+        msg["header"]["generator"] = "radahn_frontend"
+        msg["header"]["version"] = 0
+        cmd = {}
+        cmd["type"] = "STOP_SIMULATION"
+        msg["cmds"] = [cmd]
+
+        socket.send_json(msg)
+    except:
+        propagateLog({"msg":"Error occured while trying to stop the simulation.", "level":"error"})
 
 #def launch_simulation(xyz:str, ffContent:str, ffFileName:str, motors:str):
 def launch_simulation(configTask:dict):
@@ -749,6 +768,10 @@ def open_job_folder(configTask:dict):
             threadTable[configTask["threadName"]]["thread"] = None
         
 
+
+@socketio.on('send_sim_stop_command')
+def handle_send_sim_stop_command():
+    stop_simulation()
 
 @socketio.on('open_job_folder')
 def handle_open_job_folder(data):

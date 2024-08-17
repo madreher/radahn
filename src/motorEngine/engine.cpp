@@ -156,10 +156,43 @@ int main(int argc, char** argv)
         //printSimulationData(receivedData);
 
         // Check if we have received a user command
+        bool terminateLoop = false;
         if(handler.get("usercmd", receivedUserCmd) == godrick::MessageResponse::MESSAGES)
         {
-            spdlog::info("Received a user command. Processing...");
+            spdlog::error("Received a user command. Processing...");
+            if(receivedUserCmd.size() == 1)
+            {
+                if(receivedUserCmd[0].has_child("cmds"))
+                {
+                    auto cmdIter = receivedUserCmd[0]["cmds"].children();
+                    while (cmdIter.has_next())
+                    {
+                        auto cmdNode = cmdIter.next();
+                        //cmdNode.print_detailed();
+                        if(!cmdNode.has_child("type"))
+                        {
+                            spdlog::error("Unable to identify the type of a command from the user.");
+                            continue;
+                        }
+                        auto cmdType = cmdNode["type"].to_string();
+                        if(cmdType.compare("\"STOP_SIMULATION\"") == 0)
+                        {
+                            spdlog::error("Requesting to stop the simulation.");
+                            terminateLoop = true;
+                            break;
+                        }
+                        else
+                        {
+                            spdlog::error("Unknown command type {} from the user.", cmdType);
+                            continue;
+                        }
+                    }
+                }
+            }
         }
+        // We received a stop command, exiting the iteration loop
+        if(terminateLoop)
+            break;
         
 
         // Merge all the data into individual arrays instead of partial arrays
