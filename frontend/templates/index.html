@@ -1841,6 +1841,13 @@
             window.location.href = '/download_job_folder?job_folder=' + jobFolder;
             console.log("DownloadJobFolder was called to download the job " + jobFolder);
         }
+
+        window.stopSimulation = function() {
+            if(window.confirm("Stoping the simulation is irreversible. Proceed stopping the simulation?"))
+            {
+                socket.emit('send_sim_stop_command');
+            }
+        }
     });
     </script>
     <style>
@@ -2077,6 +2084,7 @@
                 <input type="submit" value="Launch"></input>
             </form-->
             <button id="launch_simulation" onclick="launch_simulation()">Launch Simulation</button>
+            <button id="stop_simulation" onclick="stopSimulation()">Stop Simulation</button>
         </div>
         <!--div>
             <form id="print_motors" method="POST" action="#">
