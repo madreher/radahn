@@ -205,3 +205,8 @@ The final board should look something like this:
 ![image info](./data/images/simulation_completed.png)
 
 And this concludes this step by step tutorial on how to use Radahn!
+
+# Future Plans
+
+Rough reorganization plan:
+![image info](./data/images/radahn_plan.)
