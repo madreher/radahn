@@ -209,4 +209,4 @@ And this concludes this step by step tutorial on how to use Radahn!
 # Future Plans
 
 Rough reorganization plan:
-![image info](./data/images/radahn_plan.)
+![image info](./data/images/radahn_plan.png)
